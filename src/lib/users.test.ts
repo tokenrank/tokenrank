@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { drizzle } from "drizzle-orm/neon-http";
 
+import * as dbSchema from "../db/schema";
 import { dailyUsage, devices } from "../db/schema";
 import { hashSecret } from "./security/tokens";
-import { getUsageRows, sanitizePublicUser, upsertUploadedUsage } from "./users";
+import { getProfile, getUsageRows, sanitizePublicUser, upsertUploadedUsage } from "./users";
 import type { TokenUsageEntry } from "./types";
 
 const mockDb = vi.hoisted(() => ({
@@ -84,6 +86,34 @@ function mockWebhookSelect(rows: unknown[]) {
 
   query.from.mockReturnValue(query);
   mockDb.select.mockReturnValue(query);
+
+  return captured;
+}
+
+function mockProfileQueries(userRows: unknown[], usageRows: unknown[]) {
+  const captured: { userWhere?: unknown; usageWhere?: unknown } = {};
+  const userQuery = {
+    from: vi.fn(),
+    where: vi.fn((condition: unknown) => {
+      captured.userWhere = condition;
+      return userQuery;
+    }),
+    limit: vi.fn().mockResolvedValue(userRows),
+  };
+  const usageQuery = {
+    from: vi.fn(),
+    innerJoin: vi.fn(),
+    where: vi.fn((condition: unknown) => {
+      captured.usageWhere = condition;
+      return usageQuery;
+    }),
+    orderBy: vi.fn().mockResolvedValue(usageRows),
+  };
+
+  userQuery.from.mockReturnValue(userQuery);
+  usageQuery.from.mockReturnValue(usageQuery);
+  usageQuery.innerJoin.mockReturnValue(usageQuery);
+  mockDb.select.mockReturnValueOnce(userQuery).mockReturnValueOnce(usageQuery);
 
   return captured;
 }
@@ -286,6 +316,64 @@ describe("getUsageRows", () => {
   });
 });
 
+describe("getProfile", () => {
+  it("returns sanitized public user data and filters blocked public usage", async () => {
+    const captured = mockProfileQueries(
+      [
+        {
+          id: "user-1",
+          name: "Private Auth Name",
+          email: "alice@example.com",
+          emailVerified: new Date("2026-06-22T00:00:00.000Z"),
+          image: "https://example.com/private.jpg",
+          xId: "123456",
+          xHandle: "alice",
+          displayName: "Alice Public",
+          avatarUrl: "https://example.com/avatar.jpg",
+          profilePublic: true,
+          rankingEnabled: true,
+          createdAt: new Date("2026-06-22T00:00:00.000Z"),
+          updatedAt: new Date("2026-06-22T00:00:00.000Z"),
+        },
+      ],
+      [
+        {
+          id: "usage-1",
+          usageDate: "2026-06-23",
+          tool: "codex",
+          model: "gpt-5.5",
+          inputTokens: 1,
+          outputTokens: 2,
+          cacheReadTokens: 3,
+          cacheWriteTokens: 4,
+          totalTokens: 10,
+          estimatedCostMicros: 50,
+          blocked: false,
+          updatedAt: new Date("2026-06-23T00:00:00.000Z"),
+        },
+      ],
+    );
+
+    const profile = await getProfile("@Alice");
+    const usageSql = inspectSql(captured.usageWhere);
+
+    expect(profile?.user).toEqual({
+      id: "user-1",
+      handle: "alice",
+      name: "Alice Public",
+      avatarUrl: "https://example.com/avatar.jpg",
+      profilePublic: true,
+      rankingEnabled: true,
+    });
+    expect(profile?.user).not.toHaveProperty("email");
+    expect(profile?.user).not.toHaveProperty("emailVerified");
+    expect(profile?.daily).toHaveLength(1);
+    expect(usageSql.params).toEqual(expect.arrayContaining(["user-1"]));
+    expect(usageSql.params.filter((param) => param === false)).toHaveLength(2);
+    expect(usageSql.columns.filter((column) => column === "blocked")).toHaveLength(2);
+  });
+});
+
 describe("upsertUploadedUsage", () => {
   it("returns 401 for invalid webhook tokens without inserting usage", async () => {
     const captured = mockWebhookSelect([]);
@@ -347,5 +435,39 @@ describe("upsertUploadedUsage", () => {
     await expect(upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry])).rejects.toThrow(
       "batch failed",
     );
+  });
+
+  it("passes real Drizzle runnable query builders to upload batch", async () => {
+    type RunnableSql = {
+      _prepare: () => unknown;
+      toSQL: () => { sql: string; params: unknown[] };
+    };
+
+    mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
+
+    const realDb = drizzle.mock({ schema: dbSchema });
+
+    mockDb.insert.mockImplementation((table: Parameters<typeof realDb.insert>[0]) =>
+      realDb.insert(table),
+    );
+    mockDb.update.mockImplementation((table: Parameters<typeof realDb.update>[0]) =>
+      realDb.update(table),
+    );
+    mockDb.batch.mockResolvedValue([]);
+
+    await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]);
+
+    const queries = mockDb.batch.mock.calls[0]?.[0] as RunnableSql[];
+    const builtQueries = queries.map((query) => query.toSQL());
+    const allParams = builtQueries.flatMap((query) => query.params);
+
+    expect(queries).toHaveLength(3);
+    expect(queries.every((query) => typeof query._prepare === "function")).toBe(true);
+    expect(builtQueries[0].sql).toContain('insert into "devices"');
+    expect(builtQueries[1].sql).toContain('select "devices"."id"');
+    expect(builtQueries[2].sql).toContain('update "webhook_tokens"');
+    expect(allParams).toContain(hashSecret("raw-device-id"));
+    expect(allParams).not.toContain("raw-device-id");
+    expect(allParams).not.toContain("raw-token");
   });
 });

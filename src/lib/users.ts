@@ -127,7 +127,14 @@ export async function getProfile(handle: string) {
       updatedAt: dailyUsage.updatedAt,
     })
     .from(dailyUsage)
-    .where(eq(dailyUsage.userId, user.id))
+    .innerJoin(devices, eq(devices.id, dailyUsage.deviceId))
+    .where(
+      and(
+        eq(dailyUsage.userId, user.id),
+        eq(dailyUsage.blocked, false),
+        eq(devices.blocked, false),
+      ),
+    )
     .orderBy(desc(dailyUsage.usageDate));
 
   return {
