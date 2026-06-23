@@ -9,6 +9,7 @@ const mockDb = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
   update: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("../db/client", () => ({
@@ -86,10 +87,13 @@ function mockWebhookSelect(rows: unknown[]) {
   return captured;
 }
 
-function mockInsertAndUpdate() {
+function mockPersistenceClient(client: {
+  insert: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+}) {
   const inserts: Array<{ table: unknown; values?: unknown; conflict?: unknown }> = [];
 
-  mockDb.insert.mockImplementation((table: unknown) => {
+  client.insert.mockImplementation((table: unknown) => {
     const record: { table: unknown; values?: unknown; conflict?: unknown } = { table };
     inserts.push(record);
 
@@ -116,7 +120,7 @@ function mockInsertAndUpdate() {
 
   const updateWhere = vi.fn().mockResolvedValue(undefined);
   const updateSet = vi.fn(() => ({ where: updateWhere }));
-  mockDb.update.mockReturnValue({ set: updateSet });
+  client.update.mockReturnValue({ set: updateSet });
 
   return { inserts, updateSet, updateWhere };
 }
@@ -136,6 +140,7 @@ beforeEach(() => {
   mockDb.select.mockReset();
   mockDb.insert.mockReset();
   mockDb.update.mockReset();
+  mockDb.transaction.mockReset();
 });
 
 afterEach(() => {
@@ -174,7 +179,7 @@ describe("sanitizePublicUser", () => {
 });
 
 describe("getUsageRows", () => {
-  it("filters rankings by enabled users, unblocked devices, and inclusive UTC date bounds", async () => {
+  it("filters rankings by enabled users, unblocked devices, unblocked rows, and date bounds", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-23T19:15:00.000Z"));
 
@@ -201,11 +206,13 @@ describe("getUsageRows", () => {
     const rows = await getUsageRows("7d");
     const sql = inspectSql(captured.where);
 
-    expect(sql.params).toEqual(expect.arrayContaining([true, false, "2026-06-17", "2026-06-23"]));
+    expect(sql.params).toEqual(expect.arrayContaining([true, "2026-06-17", "2026-06-23"]));
+    expect(sql.params.filter((param) => param === false)).toHaveLength(2);
     expect(sql.columns).toEqual(
       expect.arrayContaining(["ranking_enabled", "blocked", "usage_date"]),
     );
     expect(sql.columns.filter((column) => column === "usage_date")).toHaveLength(2);
+    expect(sql.columns.filter((column) => column === "blocked")).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       handle: "unknown",
       name: "Unknown",
@@ -224,18 +231,32 @@ describe("upsertUploadedUsage", () => {
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.transaction).not.toHaveBeenCalled();
   });
 
-  it("hashes webhook tokens and device IDs on the valid upload path", async () => {
+  it("persists valid uploads atomically with hashed token and device ID", async () => {
     const captured = mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
-    const { inserts } = mockInsertAndUpdate();
+    const outerPersistence = mockPersistenceClient(mockDb);
+    const tx = {
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+    const txPersistence = mockPersistenceClient(tx);
+
+    mockDb.transaction.mockImplementation(async (callback: (client: typeof tx) => unknown) =>
+      callback(tx),
+    );
 
     const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]);
     const sql = inspectSql(captured.where);
-    const deviceInsert = inserts.find((insert) => insert.table === devices);
-    const usageInsert = inserts.find((insert) => insert.table === dailyUsage);
+    const deviceInsert = txPersistence.inserts.find((insert) => insert.table === devices);
+    const usageInsert = txPersistence.inserts.find((insert) => insert.table === dailyUsage);
 
     expect(result).toEqual({ ok: true, status: 200, uploaded: 1 });
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
+    expect(outerPersistence.inserts).toHaveLength(0);
+    expect(mockDb.update).not.toHaveBeenCalled();
+    expect(tx.update).toHaveBeenCalledTimes(1);
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(deviceInsert?.values).toMatchObject({
@@ -249,5 +270,14 @@ describe("upsertUploadedUsage", () => {
       deviceId: "device-row-id",
       usageDate: "2026-06-23",
     });
+  });
+
+  it("bubbles transaction persistence errors", async () => {
+    mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
+    mockDb.transaction.mockRejectedValue(new Error("transaction failed"));
+
+    await expect(upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry])).rejects.toThrow(
+      "transaction failed",
+    );
   });
 });

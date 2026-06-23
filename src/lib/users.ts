@@ -82,6 +82,7 @@ export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
       and(
         eq(users.rankingEnabled, true),
         eq(devices.blocked, false),
+        eq(dailyUsage.blocked, false),
         gte(dailyUsage.usageDate, start),
         lte(dailyUsage.usageDate, end),
       ),
@@ -151,61 +152,63 @@ export async function upsertUploadedUsage(
   }
 
   const deviceHash = hashSecret(deviceId);
-  const [device] = await db
-    .insert(devices)
-    .values({
-      userId: webhook.userId,
-      deviceHash,
-      label: "Local device",
-    })
-    .onConflictDoUpdate({
-      target: [devices.userId, devices.deviceHash],
-      set: { lastSeenAt: sql`now()` },
-    })
-    .returning();
-
-  for (const entry of entries) {
-    const estimatedCostMicros = estimateCostMicros(entry);
-
-    await db
-      .insert(dailyUsage)
+  await db.transaction(async (tx) => {
+    const [device] = await tx
+      .insert(devices)
       .values({
         userId: webhook.userId,
-        deviceId: device.id,
-        usageDate: entry.date,
-        tool: entry.tool,
-        model: entry.model,
-        inputTokens: entry.input,
-        outputTokens: entry.output,
-        cacheReadTokens: entry.cacheRead,
-        cacheWriteTokens: entry.cacheWrite,
-        totalTokens: entry.total,
-        estimatedCostMicros,
+        deviceHash,
+        label: "Local device",
       })
       .onConflictDoUpdate({
-        target: [
-          dailyUsage.userId,
-          dailyUsage.deviceId,
-          dailyUsage.usageDate,
-          dailyUsage.tool,
-          dailyUsage.model,
-        ],
-        set: {
+        target: [devices.userId, devices.deviceHash],
+        set: { lastSeenAt: sql`now()` },
+      })
+      .returning();
+
+    for (const entry of entries) {
+      const estimatedCostMicros = estimateCostMicros(entry);
+
+      await tx
+        .insert(dailyUsage)
+        .values({
+          userId: webhook.userId,
+          deviceId: device.id,
+          usageDate: entry.date,
+          tool: entry.tool,
+          model: entry.model,
           inputTokens: entry.input,
           outputTokens: entry.output,
           cacheReadTokens: entry.cacheRead,
           cacheWriteTokens: entry.cacheWrite,
           totalTokens: entry.total,
           estimatedCostMicros,
-          updatedAt: sql`now()`,
-        },
-      });
-  }
+        })
+        .onConflictDoUpdate({
+          target: [
+            dailyUsage.userId,
+            dailyUsage.deviceId,
+            dailyUsage.usageDate,
+            dailyUsage.tool,
+            dailyUsage.model,
+          ],
+          set: {
+            inputTokens: entry.input,
+            outputTokens: entry.output,
+            cacheReadTokens: entry.cacheRead,
+            cacheWriteTokens: entry.cacheWrite,
+            totalTokens: entry.total,
+            estimatedCostMicros,
+            updatedAt: sql`now()`,
+          },
+        });
+    }
 
-  await db
-    .update(webhookTokens)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(webhookTokens.id, webhook.id));
+    await tx
+      .update(webhookTokens)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(webhookTokens.id, webhook.id));
+  });
 
   return { ok: true, status: 200, uploaded: entries.length };
 }
