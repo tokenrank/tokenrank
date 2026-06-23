@@ -287,7 +287,23 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const toolEnum = pgEnum("tool", ["codex", "claude-code"]);
+export const toolEnum = pgEnum("tool", [
+  "codex",
+  "claude-code",
+  "hermes",
+  "openclaw",
+  "cline",
+  "opencode",
+  "workbuddy",
+  "gemini",
+  "zcode",
+  "kimi",
+  "kilo-code",
+  "codex-vps",
+  "roo-code",
+  "qwen",
+  "codex-cache",
+]);
 export const tokenStatusEnum = pgEnum("token_status", ["active", "revoked"]);
 export const anomalyStatusEnum = pgEnum("anomaly_status", ["open", "resolved"]);
 
@@ -516,8 +532,24 @@ Create `src/lib/types.ts`:
 
 ```ts
 export const RANGE_KEYS = ["today", "3d", "7d", "30d", "month"] as const;
-export const BOARD_KEYS = ["total", "cost", "codex", "claude-code"] as const;
-export const TOOL_KEYS = ["codex", "claude-code"] as const;
+export const TOOL_KEYS = [
+  "codex",
+  "claude-code",
+  "hermes",
+  "openclaw",
+  "cline",
+  "opencode",
+  "workbuddy",
+  "gemini",
+  "zcode",
+  "kimi",
+  "kilo-code",
+  "codex-vps",
+  "roo-code",
+  "qwen",
+  "codex-cache",
+] as const;
+export const BOARD_KEYS = ["total", "cost", ...TOOL_KEYS] as const;
 
 export type RangeKey = (typeof RANGE_KEYS)[number];
 export type BoardKey = (typeof BOARD_KEYS)[number];
@@ -768,10 +800,12 @@ describe("rankUsageRows", () => {
     const rows = [
       row({ tool: "codex", totalTokens: 100, estimatedCostMicros: 500 }),
       row({ tool: "claude-code", totalTokens: 300, estimatedCostMicros: 200 }),
+      row({ tool: "qwen", totalTokens: 450, estimatedCostMicros: 300 }),
     ];
 
-    expect(rankUsageRows(rows, { board: "cost", range: "today", now })[0].score).toBe(700);
+    expect(rankUsageRows(rows, { board: "cost", range: "today", now })[0].score).toBe(1000);
     expect(rankUsageRows(rows, { board: "codex", range: "today", now })[0].score).toBe(100);
+    expect(rankUsageRows(rows, { board: "qwen", range: "today", now })[0].score).toBe(450);
   });
 });
 ```
@@ -789,7 +823,14 @@ Expected: FAIL because `src/lib/ranking/ranking.ts` does not exist.
 Create `src/lib/ranking/ranking.ts`:
 
 ```ts
-import type { BoardKey, LeaderboardEntry, RangeKey, ToolKey, UsageRow } from "../types";
+import {
+  TOOL_KEYS,
+  type BoardKey,
+  type LeaderboardEntry,
+  type RangeKey,
+  type ToolKey,
+  type UsageRow,
+} from "../types";
 
 type RankOptions = {
   board: BoardKey;
@@ -823,7 +864,10 @@ export function rankUsageRows(rows: UsageRow[], options: RankOptions): Leaderboa
   const entries = [...byUser.values()].map((userRows) => {
     const countedRows = topThreeDeviceRows(userRows);
     const first = countedRows[0] ?? userRows[0];
-    const byTool = { codex: 0, "claude-code": 0 } satisfies Record<ToolKey, number>;
+    const byTool = Object.fromEntries(TOOL_KEYS.map((tool) => [tool, 0])) as Record<
+      ToolKey,
+      number
+    >;
     let totalTokens = 0;
     let estimatedCostMicros = 0;
 
@@ -875,8 +919,8 @@ function scoreForBoard(
   byTool: Record<ToolKey, number>,
 ): number {
   if (board === "cost") return estimatedCostMicros;
-  if (board === "codex" || board === "claude-code") return byTool[board];
-  return totalTokens;
+  if (board === "total") return totalTokens;
+  return byTool[board];
 }
 
 function toDateKey(date: Date): string {
@@ -912,6 +956,7 @@ Create `src/lib/collector/upload.test.ts`:
 ```ts
 import { describe, expect, it } from "vitest";
 import { parseUploadPayload } from "./upload";
+import { TOOL_KEYS } from "../types";
 
 describe("parseUploadPayload", () => {
   it("accepts valid aggregate rows", () => {
@@ -948,6 +993,27 @@ describe("parseUploadPayload", () => {
         prompt: "do not upload this",
       }),
     ).toThrow();
+  });
+
+  it("accepts every supported tool", () => {
+    const parsed = parseUploadPayload({
+      deviceId: "device-1",
+      clientVersion: "0.1.0",
+      timezone: "Asia/Shanghai",
+      generatedAt: "2026-06-22T12:00:00.000Z",
+      entries: TOOL_KEYS.map((tool) => ({
+        date: "2026-06-22",
+        tool,
+        model: `${tool}-demo`,
+        input: 1,
+        output: 2,
+        cacheRead: 3,
+        cacheWrite: 4,
+        total: 10,
+      })),
+    });
+
+    expect(parsed.entries).toHaveLength(TOOL_KEYS.length);
   });
 
   it("rejects unsupported tools and negative counts", () => {
@@ -989,11 +1055,12 @@ Create `src/lib/collector/upload.ts`:
 
 ```ts
 import { z } from "zod";
+import { TOOL_KEYS } from "../types";
 
 const entrySchema = z
   .object({
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    tool: z.enum(["codex", "claude-code"]),
+    tool: z.enum(TOOL_KEYS),
     model: z.string().min(1).max(120),
     input: z.number().int().nonnegative(),
     output: z.number().int().nonnegative(),
@@ -1321,13 +1388,13 @@ Create `app/api/boards/route.ts`:
 
 ```ts
 import { NextResponse } from "next/server";
-import { BOARD_KEYS } from "@/src/lib/types";
+import { BOARD_KEYS, TOOL_KEYS } from "@/src/lib/types";
 
 export async function GET() {
   return NextResponse.json({
     status: 0,
     boards: BOARD_KEYS,
-    tools: ["codex", "claude-code"],
+    tools: TOOL_KEYS,
   });
 }
 ```
@@ -1477,7 +1544,7 @@ import "dotenv/config";
 import { db } from "../src/db/client";
 import { dailyUsage, devices, users } from "../src/db/schema";
 import { estimateCostMicros } from "../src/lib/pricing";
-import type { TokenUsageEntry } from "../src/lib/types";
+import { TOOL_KEYS, type TokenUsageEntry, type ToolKey } from "../src/lib/types";
 
 const demoUsers = [
   { id: "demo_alice", xId: "1001", xHandle: "alice_ai", displayName: "Alice AI" },
@@ -1485,7 +1552,7 @@ const demoUsers = [
   { id: "demo_chen", xId: "1003", xHandle: "chen_codes", displayName: "Chen Codes" },
 ];
 
-function entry(date: string, tool: "codex" | "claude-code", model: string, total: number): TokenUsageEntry {
+function entry(date: string, tool: ToolKey, model: string, total: number): TokenUsageEntry {
   const input = Math.floor(total * 0.2);
   const output = Math.floor(total * 0.05);
   const cacheRead = Math.floor(total * 0.7);
@@ -1530,10 +1597,14 @@ async function main() {
     for (let offset = 0; offset < 30; offset++) {
       const date = new Date(Date.UTC(2026, 5, 22 - offset)).toISOString().slice(0, 10);
       const base = 150_000 + offset * 8_000 + user.id.length * 30_000;
-      const entries = [
-        entry(date, "codex", "gpt-5.5", base),
-        entry(date, "claude-code", "claude-opus-4-8", Math.floor(base * 0.45)),
-      ];
+      const entries = TOOL_KEYS.map((tool, index) =>
+        entry(
+          date,
+          tool,
+          `${tool}-demo`,
+          Math.max(5_000, Math.floor(base * (index === 0 ? 1 : 0.12))),
+        ),
+      );
 
       for (const usage of entries) {
         await db
@@ -1857,42 +1928,66 @@ Create `components/dashboard/daily-bars.tsx`:
 
 ```tsx
 import { formatTokens } from "@/src/lib/format";
+import { TOOL_KEYS, type ToolKey } from "@/src/lib/types";
+
+const TOOL_COLORS = ["#3b82f6", "#f97316", "#22c55e", "#a855f7", "#eab308", "#06b6d4"] as const;
 
 type Day = {
   usageDate: string;
-  tool: "codex" | "claude-code";
+  tool: ToolKey;
   totalTokens: number;
 };
 
 export function DailyBars({ days }: { days: Day[] }) {
-  const grouped = new Map<string, { codex: number; "claude-code": number }>();
+  const grouped = new Map<string, Record<ToolKey, number>>();
 
   for (const day of days) {
-    const current = grouped.get(day.usageDate) ?? { codex: 0, "claude-code": 0 };
+    const current = grouped.get(day.usageDate) ?? emptyToolTotals();
     current[day.tool] += day.totalTokens;
     grouped.set(day.usageDate, current);
   }
 
   const series = [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-30);
-  const max = Math.max(1, ...series.map(([, value]) => value.codex + value["claude-code"]));
+  const max = Math.max(1, ...series.map(([, value]) => totalForTools(value)));
 
   return (
     <div className="rounded-xl bg-white p-5 ring-1 ring-gray-200">
       <h2 className="mb-4 font-semibold text-gray-950">Last 30 Days</h2>
       <div className="flex h-52 items-end gap-1">
         {series.map(([date, value]) => {
-          const codexHeight = (value.codex / max) * 100;
-          const claudeHeight = (value["claude-code"] / max) * 100;
           return (
-            <div key={date} className="flex h-full flex-1 flex-col justify-end" title={`${date}: ${formatTokens(value.codex + value["claude-code"])}`}>
-              <div className="rounded-t bg-orange-400" style={{ height: `${claudeHeight}%` }} />
-              <div className="bg-blue-500" style={{ height: `${codexHeight}%` }} />
+            <div
+              key={date}
+              className="flex h-full flex-1 flex-col justify-end"
+              title={`${date}: ${formatTokens(totalForTools(value))}`}
+            >
+              {TOOL_KEYS.map((tool, index) => {
+                const height = (value[tool] / max) * 100;
+                if (height === 0) return null;
+                return (
+                  <div
+                    key={tool}
+                    style={{
+                      backgroundColor: TOOL_COLORS[index % TOOL_COLORS.length],
+                      height: `${height}%`,
+                    }}
+                  />
+                );
+              })}
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+function emptyToolTotals(): Record<ToolKey, number> {
+  return Object.fromEntries(TOOL_KEYS.map((tool) => [tool, 0])) as Record<ToolKey, number>;
+}
+
+function totalForTools(value: Record<ToolKey, number>): number {
+  return TOOL_KEYS.reduce((sum, tool) => sum + value[tool], 0);
 }
 ```
 
@@ -1904,10 +1999,11 @@ Create `components/dashboard/usage-dashboard.tsx`:
 import { ActivityHeatmap } from "./activity-heatmap";
 import { DailyBars } from "./daily-bars";
 import { formatTokens, formatUsdMicros } from "@/src/lib/format";
+import type { ToolKey } from "@/src/lib/types";
 
 type Usage = {
   usageDate: string;
-  tool: "codex" | "claude-code";
+  tool: ToolKey;
   model: string;
   totalTokens: number;
   estimatedCostMicros: number;

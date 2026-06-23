@@ -45,9 +45,9 @@ Supported ranges:
 
 Supported boards:
 
-- Total tokens
-- Estimated cost
-- Tool-specific boards, initially `codex` and `claude-code`
+- Total tokens (`total` / `总榜`)
+- Estimated cost (`cost`)
+- Tool-specific boards for `codex`, `claude-code`, `hermes`, `openclaw`, `cline`, `opencode`, `workbuddy`, `gemini`, `zcode`, `kimi`, `kilo-code`, `codex-vps`, `roo-code`, `qwen`, and `codex-cache`
 
 Each row shows rank, X avatar, X display name, X handle, token score, estimated cost, and tool breakdown.
 
@@ -94,10 +94,21 @@ Initial commands:
 
 MVP supported tools:
 
-- Codex
-- Claude Code
-
-Later supported tools can include Gemini, opencode, Cline, Roo Code, Kilo Code, OpenClaw, WorkBuddy, and others if their local usage logs are stable enough.
+- Codex (`codex`)
+- Claude Code (`claude-code`)
+- Hermes (`hermes`)
+- OpenClaw (`openclaw`)
+- Cline (`cline`)
+- opencode (`opencode`)
+- WorkBuddy (`workbuddy`)
+- Gemini (`gemini`)
+- ZCode (`zcode`)
+- Kimi (`kimi`)
+- Kilo Code (`kilo-code`)
+- Codex VPS (`codex-vps`)
+- Roo Code (`roo-code`)
+- Qwen (`qwen`)
+- Codex Cache (`codex-cache`)
 
 The collector uploads only aggregated rows:
 
@@ -280,7 +291,7 @@ Manual verification:
 
 ### Phase 2: Collector MVP
 
-- Implement collector CLI for Codex and Claude Code.
+- Implement collector CLI for the MVP supported tool set.
 - Implement upload endpoint.
 - Add install script.
 - Add service installation for macOS first, Linux second.

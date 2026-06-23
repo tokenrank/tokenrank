@@ -13,7 +13,23 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const toolEnum = pgEnum("tool", ["codex", "claude-code"]);
+export const toolEnum = pgEnum("tool", [
+  "codex",
+  "claude-code",
+  "hermes",
+  "openclaw",
+  "cline",
+  "opencode",
+  "workbuddy",
+  "gemini",
+  "zcode",
+  "kimi",
+  "kilo-code",
+  "codex-vps",
+  "roo-code",
+  "qwen",
+  "codex-cache",
+]);
 export const tokenStatusEnum = pgEnum("token_status", ["active", "revoked"]);
 export const anomalyStatusEnum = pgEnum("anomaly_status", ["open", "resolved"]);
 
