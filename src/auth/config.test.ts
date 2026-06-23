@@ -67,6 +67,17 @@ describe("getXIdentityUpdate", () => {
 });
 
 describe("Twitter provider profile", () => {
+  it("requests only the read scopes needed for public X identity login", () => {
+    const provider = getTwitterProvider();
+    const configuredAuthorization = provider.options?.authorization;
+    const scope =
+      configuredAuthorization && typeof configuredAuthorization !== "string"
+        ? configuredAuthorization.params?.scope
+        : undefined;
+
+    expect(scope).toBe("users.read tweet.read");
+  });
+
   it("preserves the raw Twitter v2 username on the normalized profile", async () => {
     const profileCallback = getTwitterProvider().options?.profile;
 

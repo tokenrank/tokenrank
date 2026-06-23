@@ -192,6 +192,11 @@ export const authOptions = {
       clientId: process.env.AUTH_X_ID ?? "",
       clientSecret: process.env.AUTH_X_SECRET ?? "",
       version: "2.0",
+      authorization: {
+        params: {
+          scope: "users.read tweet.read",
+        },
+      },
       profile: mapTwitterProfile,
     }),
   ],
