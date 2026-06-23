@@ -3,17 +3,21 @@
 import { CheckCircle2, Copy, KeyRound, ShieldCheck, Terminal, UploadCloud } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { buildCollectorCommand } from "@/src/lib/connect/collector-command";
+import { buildCollectorCommands } from "@/src/lib/connect/collector-command";
+
+type CommandTarget = "unix" | "windows";
 
 export function WebhookTokenPanel() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const command = useMemo(
-    () => (webhookUrl ? buildCollectorCommand(webhookUrl) : ""),
+  const [commandTarget, setCommandTarget] = useState<CommandTarget>("unix");
+  const commands = useMemo(
+    () => (webhookUrl ? buildCollectorCommands(webhookUrl) : null),
     [webhookUrl],
   );
+  const command = commands?.[commandTarget] ?? "";
   const commandLines = useMemo(() => (command ? command.split("\n") : []), [command]);
 
   async function createToken() {
@@ -41,6 +45,11 @@ export function WebhookTokenPanel() {
     if (!command) return;
     await navigator.clipboard.writeText(command);
     setCopied(true);
+  }
+
+  function selectCommandTarget(nextTarget: CommandTarget) {
+    setCommandTarget(nextTarget);
+    setCopied(false);
   }
 
   return (
@@ -74,7 +83,8 @@ export function WebhookTokenPanel() {
           <div>
             <h3 className="text-sm font-semibold text-slate-950">1. 安装本地采集器</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              只安装一个本机命令 <code className="rounded bg-slate-100 px-1 py-0.5">tokenrank</code>
+              macOS / Linux 打开终端，Windows 打开 PowerShell。只安装一个本机命令{" "}
+              <code className="rounded bg-slate-100 px-1 py-0.5">tokenrank</code>
               ，用于扫描本机 AI 编程工具的用量汇总。
             </p>
           </div>
@@ -108,9 +118,42 @@ export function WebhookTokenPanel() {
       {command ? (
         <div className="mt-5 space-y-4">
           <div>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-slate-950">在终端运行这组命令</h3>
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">
+                  {commandTarget === "windows" ? "在 Windows PowerShell 运行" : "在 macOS / Linux 终端运行"}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {commandTarget === "windows"
+                    ? "按 Win 键搜索 PowerShell，打开后粘贴下面命令。"
+                    : "打开 Terminal / 终端，粘贴下面命令。"}
+                </p>
+              </div>
               <span className="text-xs text-slate-500">{commandLines.length} 行</span>
+            </div>
+            <div className="mb-3 inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
+              <button
+                type="button"
+                onClick={() => selectCommandTarget("unix")}
+                className={`rounded px-3 py-1.5 text-sm font-medium ${
+                  commandTarget === "unix"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-600 hover:text-slate-950"
+                }`}
+              >
+                macOS / Linux
+              </button>
+              <button
+                type="button"
+                onClick={() => selectCommandTarget("windows")}
+                className={`rounded px-3 py-1.5 text-sm font-medium ${
+                  commandTarget === "windows"
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-600 hover:text-slate-950"
+                }`}
+              >
+                Windows PowerShell
+              </button>
             </div>
             <pre className="overflow-x-auto rounded-lg bg-slate-950 p-4 text-sm leading-7 text-slate-50">
               <code>{command}</code>
@@ -126,7 +169,7 @@ export function WebhookTokenPanel() {
             ) : (
               <Copy className="size-4" aria-hidden="true" />
             )}
-            {copied ? "已复制" : "复制全部命令"}
+            {copied ? "已复制" : commandTarget === "windows" ? "复制 Windows 命令" : "复制 macOS / Linux 命令"}
           </button>
         </div>
       ) : (

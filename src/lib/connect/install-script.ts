@@ -29,3 +29,28 @@ fi
 "\${bin_dir}/tokenrank" tools
 `;
 }
+
+export function buildWindowsInstallScript(): string {
+  return `$ErrorActionPreference = "Stop"
+
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+  Write-Error "TokenRank requires Node.js. Install Node.js first: https://nodejs.org/"
+  exit 1
+}
+
+$installDir = if ($env:TOKENRANK_HOME) { $env:TOKENRANK_HOME } else { Join-Path $env:USERPROFILE ".tokenrank" }
+$cmdPath = Join-Path $installDir "tokenrank.cmd"
+
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+
+Invoke-WebRequest -Uri "${cliSourceUrl}" -OutFile (Join-Path $installDir "tokenrank.mjs")
+Invoke-WebRequest -Uri "${packageSourceUrl}" -OutFile (Join-Path $installDir "package.json")
+
+$escapedCliPath = (Join-Path $installDir "tokenrank.mjs").Replace('"', '""')
+$cmdContent = "@echo off\`r\`nnode \`"$escapedCliPath\`" %*\`r\`n"
+Set-Content -Path $cmdPath -Value $cmdContent -Encoding ASCII
+
+Write-Host "TokenRank collector installed: $cmdPath"
+& $cmdPath tools
+`;
+}
