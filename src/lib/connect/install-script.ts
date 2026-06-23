@@ -1,5 +1,6 @@
-const cliSourceUrl = "https://raw.githubusercontent.com/BOS1980/tokenrank/main/bin/tokenrank.mjs";
-const packageSourceUrl = "https://raw.githubusercontent.com/BOS1980/tokenrank/main/package.json";
+const appUrl = "https://tokenrank.vercel.app";
+const cliSourceUrl = `${appUrl}/tokenrank.mjs`;
+const packageSourceUrl = `${appUrl}/tokenrank-package.json`;
 
 export function buildInstallScript(): string {
   return `#!/usr/bin/env bash
