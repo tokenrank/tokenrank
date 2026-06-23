@@ -20,7 +20,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: -1, error: "invalid board or range" }, { status: 400 });
   }
 
-  const entries = await getLeaderboard(board, range);
+  try {
+    const entries = await getLeaderboard(board, range);
 
-  return NextResponse.json({ status: 0, board, range, entries });
+    return NextResponse.json({ status: 0, board, range, entries });
+  } catch {
+    return NextResponse.json({ status: -1, error: "server error" }, { status: 500 });
+  }
 }

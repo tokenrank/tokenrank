@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import {
   parseUploadPayload,
   type ParsedUploadPayload,
-} from "../../../../../src/lib/collector/upload";
-import { upsertUploadedUsage } from "../../../../../src/lib/users";
+} from "@/src/lib/collector/upload";
+import { upsertUploadedUsage } from "@/src/lib/users";
 
 export async function POST(
   request: Request,
@@ -20,11 +20,15 @@ export async function POST(
     return NextResponse.json({ status: -1, error: "invalid payload" }, { status: 400 });
   }
 
-  const result = await upsertUploadedUsage(token, payload.deviceId, payload.entries);
+  try {
+    const result = await upsertUploadedUsage(token, payload.deviceId, payload.entries);
 
-  if (!result.ok) {
-    return NextResponse.json({ status: -1, error: "invalid token" }, { status: result.status });
+    if (!result.ok) {
+      return NextResponse.json({ status: -1, error: "invalid token" }, { status: result.status });
+    }
+
+    return NextResponse.json({ status: 0, uploaded: result.uploaded });
+  } catch {
+    return NextResponse.json({ status: -1, error: "server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ status: 0, uploaded: result.uploaded });
 }

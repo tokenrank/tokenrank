@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 
 import { dailyUsage, devices, users, webhookTokens } from "../db/schema";
 
@@ -35,6 +35,12 @@ function displayName(name: string | null, handle: string | null): string {
   return name?.trim() || handle?.trim() || "Unknown";
 }
 
+function toUtcDateKey(date: Date): string {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+}
+
 export function sanitizePublicUser(user: UserRow): PublicProfileUser {
   return {
     id: user.id,
@@ -48,7 +54,9 @@ export function sanitizePublicUser(user: UserRow): PublicProfileUser {
 
 export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
   const db = await getDb();
-  const start = getRangeStart(range);
+  const now = new Date();
+  const start = getRangeStart(range, now);
+  const end = toUtcDateKey(now);
   const rows = await db
     .select({
       userId: users.id,
@@ -70,7 +78,14 @@ export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
     .from(dailyUsage)
     .innerJoin(users, eq(users.id, dailyUsage.userId))
     .innerJoin(devices, eq(devices.id, dailyUsage.deviceId))
-    .where(and(eq(users.rankingEnabled, true), gte(dailyUsage.usageDate, start)));
+    .where(
+      and(
+        eq(users.rankingEnabled, true),
+        eq(devices.blocked, false),
+        gte(dailyUsage.usageDate, start),
+        lte(dailyUsage.usageDate, end),
+      ),
+    );
 
   return rows.map((row) => ({
     ...row,
