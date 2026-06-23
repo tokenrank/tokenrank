@@ -53,8 +53,7 @@ export default async function MePage() {
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="font-semibold text-slate-950">本地运行方式</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            当前 Web MVP 已支持 webhook 上传和排行榜展示。collector CLI 会在下一阶段补齐，先使用这里生成的
-            webhook URL 作为连接目标。
+            当前 collector CLI 支持保存 webhook、预览本地扫描结果、自动上传 JSON/SQLite 聚合数据，并可安装后台服务。
           </p>
         </section>
       </div>

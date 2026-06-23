@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TokenRank
 
-## Getting Started
+Public X identity leaderboard for AI coding token usage.
 
-First, run the development server:
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev --hostname 127.0.0.1
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://127.0.0.1:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Required local environment:
 
-This project uses Tailwind CSS with a system font stack.
+```bash
+DATABASE_URL=
+AUTH_X_ID=
+AUTH_X_SECRET=
+AUTH_SECRET=
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
+```
 
-## Learn More
+The X developer callback URL must match:
 
-To learn more about Next.js, take a look at the following resources:
+```text
+http://127.0.0.1:3000/api/auth/callback/twitter
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Collector CLI
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The local CLI accepts aggregate token rows only. It does not upload prompts, code, or conversation content.
 
-## Deploy on Vercel
+```bash
+pnpm tokenrank tools
+pnpm tokenrank sources
+pnpm tokenrank preview --json
+pnpm tokenrank connect "https://your-site.example/api/collector/upload/secret"
+pnpm tokenrank upload
+pnpm tokenrank service install --interval 300
+pnpm tokenrank service status
+pnpm tokenrank service uninstall
+pnpm tokenrank logout
+pnpm tokenrank upload --file usage.json
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Without `--file`, `upload` scans the known local tool log locations and uploads aggregate rows. Use `preview --json` first to inspect the exact aggregate payload. Large uploads are split into 500-row batches to match the server API limit.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`usage.json` can be either an array of entries or an object with `entries`.
+
+```json
+{
+  "entries": [
+    {
+      "date": "2026-06-23",
+      "tool": "codex",
+      "model": "gpt-5.5",
+      "input": 100,
+      "output": 50,
+      "cacheRead": 200,
+      "cacheWrite": 10
+    }
+  ]
+}
+```
+
+Supported tools: `codex`, `claude-code`, `hermes`, `openclaw`, `cline`, `opencode`, `workbuddy`, `gemini`, `zcode`, `kimi`, `kilo-code`, `codex-vps`, `roo-code`, `qwen`, `codex-cache`.
+
+Current automatic scanning supports JSON, JSONL, SQLite, and DB files. It skips raw prompt/code/content fields and queries only token/date/model columns from SQLite.
+
+## Verification
+
+```bash
+pnpm test
+pnpm build
+pnpm e2e
+```

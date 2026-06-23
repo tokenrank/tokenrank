@@ -2,6 +2,9 @@
   "name": "tokenrank",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "tokenrank": "bin/tokenrank.mjs"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "tokenrank": "node bin/tokenrank.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
