@@ -14,9 +14,10 @@ export default async function MePage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-8">
         <div>
           <p className="text-sm font-semibold text-emerald-700">我的 TokenRank</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">登录后连接采集器</h1>
+          <h1 className="mt-1 text-3xl font-bold text-slate-950">登录后开始上榜</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            使用 X 登录后，你可以生成私有 webhook，连接本地 collector，并在公开排行榜展示你的统计。
+            排行榜按公开 X 身份展示。登录后生成你的私有上传地址，再运行本地采集器上传 Token
+            汇总。
           </p>
         </div>
 
@@ -36,8 +37,11 @@ export default async function MePage() {
       <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-emerald-700">我的 TokenRank</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">采集器与账号</h1>
-          <p className="mt-2 text-sm text-slate-600">已登录：{user.name ?? "X user"}</p>
+          <h1 className="mt-1 text-3xl font-bold text-slate-950">三步上榜</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            已登录：{user.name ?? "X user"}。生成上传地址后复制命令到终端运行，你的 Token
+            汇总会进入今日、3 天、7 天、30 天和月榜。
+          </p>
         </div>
         <Link
           href="/api/auth/signout?callbackUrl=/"
@@ -51,10 +55,21 @@ export default async function MePage() {
       <div className="mt-6 space-y-4">
         <WebhookTokenPanel />
         <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-950">本地运行方式</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            当前 collector CLI 支持保存 webhook、预览本地扫描结果、自动上传 JSON/SQLite 聚合数据，并可安装后台服务。
-          </p>
+          <h2 className="font-semibold text-slate-950">上传成功后怎么看结果</h2>
+          <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-600 sm:grid-cols-3">
+            <p>
+              <span className="font-semibold text-slate-900">排行榜：</span>
+              首页会按时间范围和工具榜单自动排名。
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">个人页：</span>
+              `/u/你的X用户名` 会展示公开统计。
+            </p>
+            <p>
+              <span className="font-semibold text-slate-900">持续更新：</span>
+              之后运行页面命令里的 upload 行即可刷新。
+            </p>
+          </div>
         </section>
       </div>
     </main>

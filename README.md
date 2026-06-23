@@ -31,6 +31,14 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 The local CLI accepts aggregate token rows only. It does not upload prompts, code, or conversation content.
 
+Production install:
+
+```bash
+curl -fsSL "https://tokenrank.vercel.app/install.sh" | bash
+```
+
+Local development commands:
+
 ```bash
 pnpm tokenrank tools
 pnpm tokenrank sources
