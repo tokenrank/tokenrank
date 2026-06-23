@@ -58,18 +58,19 @@ describe("rankUsageRows", () => {
     ]);
   });
 
-  it("caps counted devices to top three per user", () => {
+  it("caps counted devices to top three by aggregated device totals", () => {
     const entries = rankUsageRows(
       [
-        row({ deviceId: "d1", totalTokens: 100 }),
-        row({ deviceId: "d2", totalTokens: 200 }),
-        row({ deviceId: "d3", totalTokens: 300 }),
-        row({ deviceId: "d4", totalTokens: 400 }),
+        row({ deviceId: "d1", totalTokens: 180 }),
+        row({ deviceId: "d1", totalTokens: 170 }),
+        row({ deviceId: "d2", totalTokens: 340 }),
+        row({ deviceId: "d3", totalTokens: 330 }),
+        row({ deviceId: "d4", totalTokens: 300 }),
       ],
       { board: "total", range: "today", now },
     );
 
-    expect(entries[0].score).toBe(900);
+    expect(entries[0].score).toBe(1020);
   });
 
   it("filters blocked rows and dates outside the range", () => {
@@ -95,5 +96,17 @@ describe("rankUsageRows", () => {
     expect(rankUsageRows(rows, { board: "cost", range: "today", now })[0].score).toBe(1000);
     expect(rankUsageRows(rows, { board: "codex", range: "today", now })[0].score).toBe(100);
     expect(rankUsageRows(rows, { board: "qwen", range: "today", now })[0].score).toBe(450);
+  });
+
+  it("filters users with zero score for the selected board", () => {
+    const entries = rankUsageRows(
+      [
+        row({ userId: "u1", handle: "alice", name: "Alice", tool: "codex", totalTokens: 100 }),
+        row({ userId: "u2", handle: "bob", name: "Bob", tool: "qwen", totalTokens: 250 }),
+      ],
+      { board: "qwen", range: "today", now },
+    );
+
+    expect(entries.map((entry) => [entry.handle, entry.score])).toEqual([["bob", 250]]);
   });
 });
