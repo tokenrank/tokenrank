@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -53,6 +55,7 @@ export const users = pgTable(
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   },
   (table) => [
+    uniqueIndex("users_email_idx").on(table.email),
     uniqueIndex("users_x_id_idx").on(table.xId),
     uniqueIndex("users_x_handle_idx").on(table.xHandle),
   ],
@@ -178,6 +181,15 @@ export const dailyUsage = pgTable(
     ),
     index("daily_usage_user_date_idx").on(table.userId, table.usageDate),
     index("daily_usage_date_idx").on(table.usageDate),
+    check("daily_usage_input_tokens_nonnegative", sql`${table.inputTokens} >= 0`),
+    check("daily_usage_output_tokens_nonnegative", sql`${table.outputTokens} >= 0`),
+    check("daily_usage_cache_read_tokens_nonnegative", sql`${table.cacheReadTokens} >= 0`),
+    check("daily_usage_cache_write_tokens_nonnegative", sql`${table.cacheWriteTokens} >= 0`),
+    check("daily_usage_total_tokens_nonnegative", sql`${table.totalTokens} >= 0`),
+    check(
+      "daily_usage_estimated_cost_micros_nonnegative",
+      sql`${table.estimatedCostMicros} >= 0`,
+    ),
   ],
 );
 

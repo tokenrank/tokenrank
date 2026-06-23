@@ -15,6 +15,13 @@
       "when": 1782179625563,
       "tag": "0001_brown_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782180735941,
+      "tag": "0002_fair_the_spike",
+      "breakpoints": true
     }
   ]
 }
