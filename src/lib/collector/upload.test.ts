@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parseUploadPayload } from "./upload";
 import { TOOL_KEYS } from "../types";
 
+const CONTENT_FIELD_KEYS = ["prompt", "content", "code"] as const;
+
 describe("parseUploadPayload", () => {
   it("accepts valid aggregate rows", () => {
     const parsed = parseUploadPayload({
@@ -26,7 +28,7 @@ describe("parseUploadPayload", () => {
     expect(parsed.entries[0].total).toBe(360);
   });
 
-  it("rejects content fields", () => {
+  it.each(CONTENT_FIELD_KEYS)("rejects top-level content field %s", (field) => {
     expect(() =>
       parseUploadPayload({
         deviceId: "device-1",
@@ -34,12 +36,12 @@ describe("parseUploadPayload", () => {
         timezone: "Asia/Shanghai",
         generatedAt: "2026-06-22T12:00:00.000Z",
         entries: [],
-        prompt: "do not upload this",
+        [field]: "do not upload this",
       }),
     ).toThrow();
   });
 
-  it("rejects entry-level content fields", () => {
+  it.each(CONTENT_FIELD_KEYS)("rejects entry-level content field %s", (field) => {
     expect(() =>
       parseUploadPayload({
         deviceId: "device-1",
@@ -56,7 +58,7 @@ describe("parseUploadPayload", () => {
             cacheRead: 200,
             cacheWrite: 10,
             total: 360,
-            prompt: "do not upload this",
+            [field]: "do not upload this",
           },
         ],
       }),
@@ -152,4 +154,30 @@ describe("parseUploadPayload", () => {
       }),
     ).toThrow();
   });
+
+  it.each(["2026-99-99", "2026-02-31"] as const)(
+    "rejects invalid calendar date %s",
+    (date) => {
+      expect(() =>
+        parseUploadPayload({
+          deviceId: "device-1",
+          clientVersion: "0.1.0",
+          timezone: "Asia/Shanghai",
+          generatedAt: "2026-06-22T12:00:00.000Z",
+          entries: [
+            {
+              date,
+              tool: "codex",
+              model: "model",
+              input: 1,
+              output: 2,
+              cacheRead: 3,
+              cacheWrite: 4,
+              total: 10,
+            },
+          ],
+        }),
+      ).toThrow();
+    },
+  );
 });

@@ -3,7 +3,7 @@ import { TOOL_KEYS } from "../types";
 
 const entrySchema = z
   .object({
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    date: z.iso.date(),
     tool: z.enum(TOOL_KEYS),
     model: z.string().min(1).max(120),
     input: z.number().int().nonnegative(),
