@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+
+import { Header } from "@/components/shell/header";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TokenRank",
-  description: "TokenRank leaderboard web app",
+  description: "Public X leaderboard for AI coding token usage.",
 };
 
 export default function RootLayout({
@@ -12,8 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="zh-CN" className="h-full antialiased">
+      <body className="flex min-h-full flex-col bg-slate-50 text-slate-950">
+        <Header />
+        {children}
+      </body>
     </html>
   );
 }
