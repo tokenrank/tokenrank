@@ -26,8 +26,12 @@ export function getRangeStart(range: RangeKey, now = new Date()): string {
 }
 
 export function rankUsageRows(rows: UsageRow[], options: RankOptions): LeaderboardEntry[] {
-  const start = getRangeStart(options.range, options.now ?? new Date());
-  const filtered = rows.filter((row) => !row.blocked && row.date >= start);
+  const now = options.now ?? new Date();
+  const start = getRangeStart(options.range, now);
+  const end = toDateKey(
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())),
+  );
+  const filtered = rows.filter((row) => !row.blocked && row.date >= start && row.date <= end);
   const byUser = new Map<string, UsageRow[]>();
 
   for (const row of filtered) {

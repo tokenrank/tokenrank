@@ -63,9 +63,9 @@ describe("rankUsageRows", () => {
       [
         row({ deviceId: "d1", totalTokens: 180 }),
         row({ deviceId: "d1", totalTokens: 170 }),
+        row({ deviceId: "d4", totalTokens: 300 }),
         row({ deviceId: "d2", totalTokens: 340 }),
         row({ deviceId: "d3", totalTokens: 330 }),
-        row({ deviceId: "d4", totalTokens: 300 }),
       ],
       { board: "total", range: "today", now },
     );
@@ -81,6 +81,15 @@ describe("rankUsageRows", () => {
         row({ totalTokens: 800, date: "2026-06-10" }),
       ],
       { board: "total", range: "7d", now },
+    );
+
+    expect(entries[0].score).toBe(100);
+  });
+
+  it("filters rows dated after the current UTC day", () => {
+    const entries = rankUsageRows(
+      [row({ totalTokens: 100 }), row({ totalTokens: 900, date: "2026-06-23" })],
+      { board: "total", range: "today", now },
     );
 
     expect(entries[0].score).toBe(100);
