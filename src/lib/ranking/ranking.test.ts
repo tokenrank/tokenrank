@@ -39,14 +39,22 @@ describe("rankUsageRows", () => {
     const entries = rankUsageRows(
       [
         row({ userId: "u1", handle: "alice", name: "Alice", totalTokens: 100 }),
+        row({
+          userId: "u1",
+          handle: "alice",
+          name: "Alice",
+          deviceId: "d2",
+          totalTokens: 250,
+        }),
         row({ userId: "u2", handle: "bob", name: "Bob", totalTokens: 200 }),
       ],
       { board: "total", range: "today", now },
     );
 
+    expect(entries).toHaveLength(2);
     expect(entries.map((entry) => [entry.rank, entry.handle, entry.score])).toEqual([
-      [1, "bob", 200],
-      [2, "alice", 100],
+      [1, "alice", 350],
+      [2, "bob", 200],
     ]);
   });
 
