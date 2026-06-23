@@ -60,7 +60,7 @@ describe("parseUploadPayload", () => {
     expect(parsed.entries).toHaveLength(TOOL_KEYS.length);
   });
 
-  it("rejects unsupported tools and negative counts", () => {
+  it("rejects unsupported tools", () => {
     expect(() =>
       parseUploadPayload({
         deviceId: "device-1",
@@ -72,8 +72,31 @@ describe("parseUploadPayload", () => {
             date: "2026-06-22",
             tool: "unknown",
             model: "model",
-            input: -1,
+            input: 0,
             output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            total: 0,
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects negative counts", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-1",
+        clientVersion: "0.1.0",
+        timezone: "Asia/Shanghai",
+        generatedAt: "2026-06-22T12:00:00.000Z",
+        entries: [
+          {
+            date: "2026-06-22",
+            tool: "codex",
+            model: "model",
+            input: -1,
+            output: 1,
             cacheRead: 0,
             cacheWrite: 0,
             total: 0,
