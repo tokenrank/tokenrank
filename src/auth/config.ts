@@ -22,6 +22,9 @@ type XIdentityUpdate = {
 };
 
 type TwitterV2Data = Partial<TwitterProfile["data"]>;
+type XProfileUser = User & {
+  xHandle?: string | null;
+};
 
 const adapterMethodNames = [
   "createUser",
@@ -93,6 +96,11 @@ function getTwitterV2Data(profile: unknown): TwitterV2Data | null {
   return profile.data as TwitterV2Data;
 }
 
+function getStringField(record: Record<string, unknown> | null, key: string): string | null {
+  const value = record?.[key];
+  return typeof value === "string" ? value : null;
+}
+
 function firstString(...values: Array<string | null | undefined>): string | null {
   for (const value of values) {
     const trimmed = value?.trim();
@@ -110,6 +118,20 @@ function normalizeXHandle(handle: string | null): string | null {
   return normalized || null;
 }
 
+function getNormalizedProfile(profile: unknown): Record<string, unknown> | null {
+  return isRecord(profile) ? profile : null;
+}
+
+function mapTwitterProfile(profile: TwitterProfile): XProfileUser {
+  return {
+    id: profile.data.id,
+    name: profile.data.name,
+    email: null,
+    image: profile.data.profile_image_url,
+    xHandle: profile.data.username,
+  };
+}
+
 export function getXIdentityUpdate({
   account,
   profile,
@@ -120,8 +142,13 @@ export function getXIdentityUpdate({
   }
 
   const data = getTwitterV2Data(profile);
+  const normalizedProfile = getNormalizedProfile(profile);
   const xHandle = normalizeXHandle(
-    typeof data?.username === "string" ? data.username : null,
+    firstString(
+      typeof data?.username === "string" ? data.username : null,
+      getStringField(normalizedProfile, "xHandle"),
+      getStringField(normalizedProfile, "username"),
+    ),
   );
 
   return {
@@ -129,10 +156,12 @@ export function getXIdentityUpdate({
     xHandle,
     displayName: firstString(
       typeof data?.name === "string" ? data.name : null,
+      getStringField(normalizedProfile, "name"),
       user?.name,
     ),
     avatarUrl: firstString(
       typeof data?.profile_image_url === "string" ? data.profile_image_url : null,
+      getStringField(normalizedProfile, "image"),
       user?.image,
     ),
     updatedAt: new Date(),
@@ -159,10 +188,11 @@ async function syncXIdentity({
 export const authOptions = {
   adapter,
   providers: [
-    Twitter({
+    Twitter<TwitterProfile>({
       clientId: process.env.AUTH_X_ID ?? "",
       clientSecret: process.env.AUTH_X_SECRET ?? "",
       version: "2.0",
+      profile: mapTwitterProfile,
     }),
   ],
   secret: process.env.AUTH_SECRET,
