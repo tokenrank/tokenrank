@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { hasAcceptedTotalTokens } from "../token-metrics";
 import { TOOL_KEYS } from "../types";
 
 const entrySchema = z
@@ -14,8 +15,8 @@ const entrySchema = z
   })
   .strict()
   .refine(
-    (entry) => entry.total === entry.input + entry.output + entry.cacheRead + entry.cacheWrite,
-    "total must equal input + output + cacheRead + cacheWrite",
+    (entry) => hasAcceptedTotalTokens(entry),
+    "total must match the provider token total",
   );
 
 const uploadSchema = z

@@ -40,6 +40,10 @@ const sourceFixturePaths = {
   "codex-cache": ".codex/cache/session/codex-cache.jsonl",
 } as const satisfies Record<(typeof TOOL_KEYS)[number], string>;
 
+function expectedFixtureTotal(tool: (typeof TOOL_KEYS)[number]) {
+  return tool === "codex" ? 3 : 10;
+}
+
 async function readRequestBody(request: IncomingMessage) {
   const chunks: Buffer[] = [];
 
@@ -185,11 +189,45 @@ describe("tokenrank collector CLI", () => {
           date: "2026-06-23",
           tool,
           model: `${tool}-model`,
-          total: 10,
+          total: expectedFixtureTotal(tool),
         }),
       ),
     );
     expect(stdout).not.toContain("must not appear");
+  });
+
+  it("does not double-count Codex cached and reasoning token detail fields", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, ".codex/sessions/codex.jsonl", {
+      timestamp: "2026-06-23T08:00:00.000Z",
+      model: "gpt-5.5",
+      usage: {
+        input_tokens: 1_000,
+        output_tokens: 200,
+        cached_input_tokens: 800,
+        reasoning_output_tokens: 50,
+        total_tokens: 1_200,
+      },
+    });
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "codex"], home);
+    const payload = JSON.parse(stdout) as {
+      entries: Array<{
+        input: number;
+        output: number;
+        cacheRead: number;
+        total: number;
+      }>;
+    };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        input: 1_000,
+        output: 200,
+        cacheRead: 800,
+        total: 1_200,
+      }),
+    ]);
   });
 
   it("uploads aggregate rows for all supported tools", async () => {
@@ -223,7 +261,7 @@ describe("tokenrank collector CLI", () => {
           TOOL_KEYS.map((tool) =>
             expect.objectContaining({
               tool,
-              total: 10,
+              total: expectedFixtureTotal(tool),
             }),
           ),
         );

@@ -421,6 +421,7 @@ describe("upsertUploadedUsage", () => {
     expect(usageInsert?.values).toMatchObject({
       userId: "user-1",
       usageDate: "2026-06-23",
+      totalTokens: 150,
     });
     expect(batchValues).toContain(hashSecret("raw-device-id"));
     expect(batchValues).not.toContain("raw-device-id");

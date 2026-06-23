@@ -1,4 +1,5 @@
 import type { TokenUsageEntry } from "./types";
+import { fullPriceInputTokens } from "./token-metrics";
 
 type Price = {
   inputPerMillion: number;
@@ -32,8 +33,9 @@ const MODEL_PRICES: Record<string, Price> = {
 
 export function estimateCostMicros(entry: TokenUsageEntry): number {
   const price = MODEL_PRICES[entry.model] ?? FALLBACK_PRICE;
+  const input = fullPriceInputTokens(entry);
   const usd =
-    (entry.input / 1_000_000) * price.inputPerMillion +
+    (input / 1_000_000) * price.inputPerMillion +
     (entry.output / 1_000_000) * price.outputPerMillion +
     (entry.cacheRead / 1_000_000) * price.cacheReadPerMillion +
     (entry.cacheWrite / 1_000_000) * price.cacheWritePerMillion;

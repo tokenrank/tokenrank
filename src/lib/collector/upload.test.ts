@@ -28,6 +28,29 @@ describe("parseUploadPayload", () => {
     expect(parsed.entries[0].total).toBe(360);
   });
 
+  it("accepts Codex provider totals that already include cached input", () => {
+    const parsed = parseUploadPayload({
+      deviceId: "device-1",
+      clientVersion: "0.1.0",
+      timezone: "Asia/Shanghai",
+      generatedAt: "2026-06-22T12:00:00.000Z",
+      entries: [
+        {
+          date: "2026-06-22",
+          tool: "codex",
+          model: "gpt-5.5",
+          input: 1_000,
+          output: 200,
+          cacheRead: 800,
+          cacheWrite: 0,
+          total: 1_200,
+        },
+      ],
+    });
+
+    expect(parsed.entries[0].total).toBe(1_200);
+  });
+
   it.each(CONTENT_FIELD_KEYS)("rejects top-level content field %s", (field) => {
     expect(() =>
       parseUploadPayload({

@@ -6,6 +6,7 @@ import { dailyUsage, devices, users, webhookTokens } from "../db/schema";
 import { estimateCostMicros } from "./pricing";
 import { getRangeStart, rankUsageRows } from "./ranking/ranking";
 import { hashSecret } from "./security/tokens";
+import { canonicalTotalTokens } from "./token-metrics";
 import type { BoardKey, RangeKey, TokenUsageEntry, UsageRow } from "./types";
 
 type UserRow = typeof users.$inferSelect;
@@ -181,6 +182,7 @@ export async function upsertUploadedUsage(
   )`;
   const usageUpserts = entries.map((entry) => {
     const estimatedCostMicros = estimateCostMicros(entry);
+    const totalTokens = canonicalTotalTokens(entry);
 
     return db
       .insert(dailyUsage)
@@ -194,7 +196,7 @@ export async function upsertUploadedUsage(
         outputTokens: entry.output,
         cacheReadTokens: entry.cacheRead,
         cacheWriteTokens: entry.cacheWrite,
-        totalTokens: entry.total,
+        totalTokens,
         estimatedCostMicros,
       })
       .onConflictDoUpdate({
@@ -210,7 +212,7 @@ export async function upsertUploadedUsage(
           outputTokens: entry.output,
           cacheReadTokens: entry.cacheRead,
           cacheWriteTokens: entry.cacheWrite,
-          totalTokens: entry.total,
+          totalTokens,
           estimatedCostMicros,
           updatedAt: sql`now()`,
         },
