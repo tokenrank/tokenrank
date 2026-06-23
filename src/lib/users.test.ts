@@ -10,6 +10,7 @@ const mockDb = vi.hoisted(() => ({
   insert: vi.fn(),
   update: vi.fn(),
   transaction: vi.fn(),
+  batch: vi.fn(),
 }));
 
 vi.mock("../db/client", () => ({
@@ -87,42 +88,106 @@ function mockWebhookSelect(rows: unknown[]) {
   return captured;
 }
 
-function mockPersistenceClient(client: {
+type PersistenceQuery = {
+  kind: "insert" | "update";
+  table: unknown;
+  values?: Record<string, unknown>;
+  conflict?: unknown;
+  set?: unknown;
+  where?: unknown;
+};
+
+function mockBatchPersistenceClient(client: {
   insert: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 }) {
-  const inserts: Array<{ table: unknown; values?: unknown; conflict?: unknown }> = [];
+  const queries: PersistenceQuery[] = [];
 
   client.insert.mockImplementation((table: unknown) => {
-    const record: { table: unknown; values?: unknown; conflict?: unknown } = { table };
-    inserts.push(record);
+    const query: PersistenceQuery = { kind: "insert", table };
+    queries.push(query);
 
     return {
-      values(values: unknown) {
-        record.values = values;
+      values(values: Record<string, unknown>) {
+        query.values = values;
 
         return {
           onConflictDoUpdate(conflict: unknown) {
-            record.conflict = conflict;
+            query.conflict = conflict;
 
-            if (table === devices) {
-              return {
-                returning: vi.fn().mockResolvedValue([{ id: "device-row-id" }]),
-              };
-            }
-
-            return Promise.resolve();
+            return query;
           },
         };
       },
     };
   });
 
-  const updateWhere = vi.fn().mockResolvedValue(undefined);
-  const updateSet = vi.fn(() => ({ where: updateWhere }));
-  client.update.mockReturnValue({ set: updateSet });
+  client.update.mockImplementation((table: unknown) => {
+    const query: PersistenceQuery = { kind: "update", table };
+    queries.push(query);
 
-  return { inserts, updateSet, updateWhere };
+    return {
+      set(set: unknown) {
+        query.set = set;
+
+        return {
+          where(where: unknown) {
+            query.where = where;
+            return query;
+          },
+        };
+      },
+    };
+  });
+
+  return { queries };
+}
+
+function collectQueryValues(value: unknown, seen = new WeakSet<object>()): unknown[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (typeof value !== "object") {
+    return [value];
+  }
+
+  if (seen.has(value)) {
+    return [];
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectQueryValues(item, seen));
+  }
+
+  const object = value as {
+    constructor?: { name?: string };
+    queryChunks?: unknown[];
+    value?: unknown;
+    values?: Record<string, unknown>;
+    set?: unknown;
+    where?: unknown;
+  };
+
+  if (object.constructor?.name === "Param") {
+    return [object.value];
+  }
+
+  if (object.queryChunks) {
+    return object.queryChunks.flatMap((chunk) => collectQueryValues(chunk, seen));
+  }
+
+  if (object.constructor?.name === "Object") {
+    return Object.values(object).flatMap((item) => collectQueryValues(item, seen));
+  }
+
+  return [
+    ...collectQueryValues(object.values, seen),
+    ...collectQueryValues(object.set, seen),
+    ...collectQueryValues(object.where, seen),
+  ];
 }
 
 const uploadEntry = {
@@ -141,6 +206,7 @@ beforeEach(() => {
   mockDb.insert.mockReset();
   mockDb.update.mockReset();
   mockDb.transaction.mockReset();
+  mockDb.batch.mockReset();
 });
 
 afterEach(() => {
@@ -232,31 +298,27 @@ describe("upsertUploadedUsage", () => {
     expect(sql.params).not.toContain("raw-token");
     expect(mockDb.insert).not.toHaveBeenCalled();
     expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockDb.batch).not.toHaveBeenCalled();
   });
 
-  it("persists valid uploads atomically with hashed token and device ID", async () => {
+  it("persists valid uploads atomically with batched queries and hashed IDs", async () => {
     const captured = mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
-    const outerPersistence = mockPersistenceClient(mockDb);
-    const tx = {
-      insert: vi.fn(),
-      update: vi.fn(),
-    };
-    const txPersistence = mockPersistenceClient(tx);
-
-    mockDb.transaction.mockImplementation(async (callback: (client: typeof tx) => unknown) =>
-      callback(tx),
-    );
+    const persistence = mockBatchPersistenceClient(mockDb);
+    mockDb.batch.mockResolvedValue([]);
 
     const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]);
     const sql = inspectSql(captured.where);
-    const deviceInsert = txPersistence.inserts.find((insert) => insert.table === devices);
-    const usageInsert = txPersistence.inserts.find((insert) => insert.table === dailyUsage);
+    const batchedQueries = mockDb.batch.mock.calls[0]?.[0] as PersistenceQuery[] | undefined;
+    const deviceInsert = persistence.queries.find((query) => query.table === devices);
+    const usageInsert = persistence.queries.find((query) => query.table === dailyUsage);
+    const batchValues = collectQueryValues(batchedQueries);
+    const usageDeviceIdSqlValues = collectQueryValues(usageInsert?.values?.deviceId);
 
     expect(result).toEqual({ ok: true, status: 200, uploaded: 1 });
-    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
-    expect(outerPersistence.inserts).toHaveLength(0);
-    expect(mockDb.update).not.toHaveBeenCalled();
-    expect(tx.update).toHaveBeenCalledTimes(1);
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockDb.batch).toHaveBeenCalledTimes(1);
+    expect(batchedQueries).toEqual(persistence.queries);
+    expect(batchedQueries).toHaveLength(3);
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(deviceInsert?.values).toMatchObject({
@@ -265,19 +327,25 @@ describe("upsertUploadedUsage", () => {
       label: "Local device",
     });
     expect(deviceInsert?.values).not.toMatchObject({ deviceHash: "raw-device-id" });
+    expect(usageDeviceIdSqlValues).toEqual(
+      expect.arrayContaining(["user-1", hashSecret("raw-device-id")]),
+    );
     expect(usageInsert?.values).toMatchObject({
       userId: "user-1",
-      deviceId: "device-row-id",
       usageDate: "2026-06-23",
     });
+    expect(batchValues).toContain(hashSecret("raw-device-id"));
+    expect(batchValues).not.toContain("raw-device-id");
+    expect(batchValues).not.toContain("raw-token");
   });
 
-  it("bubbles transaction persistence errors", async () => {
+  it("bubbles batch persistence errors", async () => {
     mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
-    mockDb.transaction.mockRejectedValue(new Error("transaction failed"));
+    mockBatchPersistenceClient(mockDb);
+    mockDb.batch.mockRejectedValue(new Error("batch failed"));
 
     await expect(upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry])).rejects.toThrow(
-      "transaction failed",
+      "batch failed",
     );
   });
 });

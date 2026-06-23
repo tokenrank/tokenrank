@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 
 import { dailyUsage, devices, users, webhookTokens } from "../db/schema";
 
@@ -8,6 +9,7 @@ import { hashSecret } from "./security/tokens";
 import type { BoardKey, RangeKey, TokenUsageEntry, UsageRow } from "./types";
 
 type UserRow = typeof users.$inferSelect;
+type PgBatchItem = BatchItem<"pg">;
 
 export type PublicProfileUser = {
   id: string;
@@ -152,63 +154,74 @@ export async function upsertUploadedUsage(
   }
 
   const deviceHash = hashSecret(deviceId);
-  await db.transaction(async (tx) => {
-    const [device] = await tx
-      .insert(devices)
+  const deviceUpsert = db
+    .insert(devices)
+    .values({
+      userId: webhook.userId,
+      deviceHash,
+      label: "Local device",
+    })
+    .onConflictDoUpdate({
+      target: [devices.userId, devices.deviceHash],
+      set: { lastSeenAt: sql`now()` },
+    });
+  const deviceIdSubquery = sql<string>`(
+    select ${devices.id}
+    from ${devices}
+    where ${devices.userId} = ${webhook.userId}
+      and ${devices.deviceHash} = ${deviceHash}
+    limit 1
+  )`;
+  const usageUpserts = entries.map((entry) => {
+    const estimatedCostMicros = estimateCostMicros(entry);
+
+    return db
+      .insert(dailyUsage)
       .values({
         userId: webhook.userId,
-        deviceHash,
-        label: "Local device",
+        deviceId: deviceIdSubquery,
+        usageDate: entry.date,
+        tool: entry.tool,
+        model: entry.model,
+        inputTokens: entry.input,
+        outputTokens: entry.output,
+        cacheReadTokens: entry.cacheRead,
+        cacheWriteTokens: entry.cacheWrite,
+        totalTokens: entry.total,
+        estimatedCostMicros,
       })
       .onConflictDoUpdate({
-        target: [devices.userId, devices.deviceHash],
-        set: { lastSeenAt: sql`now()` },
-      })
-      .returning();
-
-    for (const entry of entries) {
-      const estimatedCostMicros = estimateCostMicros(entry);
-
-      await tx
-        .insert(dailyUsage)
-        .values({
-          userId: webhook.userId,
-          deviceId: device.id,
-          usageDate: entry.date,
-          tool: entry.tool,
-          model: entry.model,
+        target: [
+          dailyUsage.userId,
+          dailyUsage.deviceId,
+          dailyUsage.usageDate,
+          dailyUsage.tool,
+          dailyUsage.model,
+        ],
+        set: {
           inputTokens: entry.input,
           outputTokens: entry.output,
           cacheReadTokens: entry.cacheRead,
           cacheWriteTokens: entry.cacheWrite,
           totalTokens: entry.total,
           estimatedCostMicros,
-        })
-        .onConflictDoUpdate({
-          target: [
-            dailyUsage.userId,
-            dailyUsage.deviceId,
-            dailyUsage.usageDate,
-            dailyUsage.tool,
-            dailyUsage.model,
-          ],
-          set: {
-            inputTokens: entry.input,
-            outputTokens: entry.output,
-            cacheReadTokens: entry.cacheRead,
-            cacheWriteTokens: entry.cacheWrite,
-            totalTokens: entry.total,
-            estimatedCostMicros,
-            updatedAt: sql`now()`,
-          },
-        });
-    }
-
-    await tx
-      .update(webhookTokens)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(webhookTokens.id, webhook.id));
+          updatedAt: sql`now()`,
+        },
+      });
   });
+  const webhookUpdate = db
+    .update(webhookTokens)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(webhookTokens.id, webhook.id));
+
+  // neon-http has no interactive transaction support; batch is atomic through
+  // the underlying Neon HTTP transaction API and requires a non-empty tuple.
+  const batchQueries = [deviceUpsert, ...usageUpserts, webhookUpdate] as [
+    PgBatchItem,
+    ...PgBatchItem[],
+  ];
+
+  await db.batch(batchQueries);
 
   return { ok: true, status: 200, uploaded: entries.length };
 }
