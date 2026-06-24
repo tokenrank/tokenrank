@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import { connect as connectSocket } from "node:net";
 import { access, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -78,6 +80,122 @@ async function withUploadServer<T>(
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+}
+
+async function withProxyUploadServer<T>(
+  handler: (payload: unknown, requestUrl: string | undefined) => void | Promise<void>,
+  callback: (proxyUrl: string) => Promise<T>,
+) {
+  const server = createServer(async (request, response) => {
+    const body = await readRequestBody(request);
+    await handler(JSON.parse(body), request.url);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ status: 0, uploaded: 1 }));
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const address = server.address();
+
+    if (!address || typeof address === "string") {
+      throw new Error("test proxy did not bind to a TCP port");
+    }
+
+    return await callback(`http://127.0.0.1:${address.port}`);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+}
+
+async function createSelfSignedCertificate(home: string) {
+  const keyPath = path.join(home, "localhost.key");
+  const certPath = path.join(home, "localhost.crt");
+
+  await execFileAsync("openssl", [
+    "req",
+    "-x509",
+    "-newkey",
+    "rsa:2048",
+    "-nodes",
+    "-keyout",
+    keyPath,
+    "-out",
+    certPath,
+    "-subj",
+    "/CN=tokenrank.invalid",
+    "-days",
+    "1",
+  ]);
+
+  return {
+    key: await readFile(keyPath),
+    cert: await readFile(certPath),
+  };
+}
+
+async function withHttpsUploadProxy<T>(
+  home: string,
+  handler: (payload: unknown) => void | Promise<void>,
+  callback: (proxyUrl: string, getTunnelTarget: () => string | undefined) => Promise<T>,
+) {
+  const cert = await createSelfSignedCertificate(home);
+  const uploadServer = createHttpsServer(cert, async (request, response) => {
+    const body = await readRequestBody(request);
+    await handler(JSON.parse(body));
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ status: 0, uploaded: 1 }));
+  });
+
+  await new Promise<void>((resolve) => uploadServer.listen(0, "127.0.0.1", resolve));
+
+  const uploadAddress = uploadServer.address();
+
+  if (!uploadAddress || typeof uploadAddress === "string") {
+    throw new Error("test HTTPS server did not bind to a TCP port");
+  }
+
+  let tunnelTarget: string | undefined;
+  const proxyServer = createServer();
+  proxyServer.on("connect", (request, clientSocket, head) => {
+    tunnelTarget = request.url;
+    const upstream = connectSocket(uploadAddress.port, "127.0.0.1", () => {
+      clientSocket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+      if (head.length) {
+        upstream.write(head);
+      }
+      upstream.pipe(clientSocket);
+      clientSocket.pipe(upstream);
+    });
+    upstream.on("error", () => clientSocket.destroy());
+    upstream.on("close", () => clientSocket.destroy());
+    clientSocket.on("error", () => upstream.destroy());
+    clientSocket.on("close", () => upstream.destroy());
+  });
+
+  await new Promise<void>((resolve) => proxyServer.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const proxyAddress = proxyServer.address();
+
+    if (!proxyAddress || typeof proxyAddress === "string") {
+      throw new Error("test proxy did not bind to a TCP port");
+    }
+
+    return await callback(
+      `http://127.0.0.1:${proxyAddress.port}`,
+      () => tunnelTarget,
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      proxyServer.close((error) => (error ? reject(error) : resolve())),
+    );
+    await new Promise<void>((resolve, reject) =>
+      uploadServer.close((error) => (error ? reject(error) : resolve())),
     );
   }
 }
@@ -308,6 +426,88 @@ describe("tokenrank collector CLI", () => {
     );
 
     expect(batchSizes).toEqual([500, 1]);
+  });
+
+  it("uploads through a configured HTTP proxy when the webhook host is unreachable", async () => {
+    const home = await tempHome();
+    const usagePath = path.join(home, "usage.json");
+    await writeFile(
+      usagePath,
+      JSON.stringify({
+        entries: [
+          {
+            date: "2026-06-23",
+            tool: "codex",
+            model: "proxy-demo",
+            input: 1,
+            output: 2,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        ],
+      }),
+    );
+
+    let proxiedUrl: string | undefined;
+
+    await withProxyUploadServer(
+      (payload, requestUrl) => {
+        proxiedUrl = requestUrl;
+        expect((payload as { entries: Array<{ model: string; total: number }> }).entries).toEqual([
+          expect.objectContaining({ model: "proxy-demo", total: 3 }),
+        ]);
+      },
+      async (proxyUrl) => {
+        await runCli(["connect", "http://tokenrank.invalid/api/collector/upload/test-token"], home);
+        const { stdout } = await runCli(["upload", "--file", usagePath], home, {
+          TOKENRANK_PROXY: proxyUrl,
+        });
+
+        expect(stdout).toContain("1 条");
+      },
+    );
+
+    expect(proxiedUrl).toBe("http://tokenrank.invalid/api/collector/upload/test-token");
+  });
+
+  it("uploads HTTPS webhooks through a configured proxy tunnel", async () => {
+    const home = await tempHome();
+    const usagePath = path.join(home, "usage.json");
+    await writeFile(
+      usagePath,
+      JSON.stringify({
+        entries: [
+          {
+            date: "2026-06-23",
+            tool: "codex",
+            model: "https-proxy-demo",
+            input: 2,
+            output: 3,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        ],
+      }),
+    );
+
+    await withHttpsUploadProxy(
+      home,
+      (payload) => {
+        expect((payload as { entries: Array<{ model: string; total: number }> }).entries).toEqual([
+          expect.objectContaining({ model: "https-proxy-demo", total: 5 }),
+        ]);
+      },
+      async (proxyUrl, getTunnelTarget) => {
+        await runCli(["connect", "https://tokenrank.invalid/api/collector/upload/test-token"], home);
+        const { stdout } = await runCli(["upload", "--file", usagePath], home, {
+          NODE_TLS_REJECT_UNAUTHORIZED: "0",
+          TOKENRANK_PROXY: proxyUrl,
+        });
+
+        expect(stdout).toContain("1 条");
+        expect(getTunnelTarget()).toBe("tokenrank.invalid:443");
+      },
+    );
   });
 
   it("rejects mismatched totals before uploading", async () => {
