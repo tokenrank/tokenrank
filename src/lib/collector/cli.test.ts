@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import { connect as connectSocket } from "node:net";
-import { access, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -17,6 +17,19 @@ const cliPath = path.resolve("bin/tokenrank.mjs");
 async function runCli(args: string[], home: string, extraEnv: NodeJS.ProcessEnv = {}) {
   return execFileAsync(process.execPath, [cliPath, ...args], {
     env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1", ...extraEnv },
+  });
+}
+
+async function runInstalledCli(args: string[], home: string) {
+  const installDir = path.join(home, ".tokenrank");
+  const installedCliPath = path.join(installDir, "tokenrank.mjs");
+
+  await mkdir(installDir, { recursive: true });
+  await copyFile(cliPath, installedCliPath);
+  await copyFile(path.resolve("package.json"), path.join(installDir, "package.json"));
+
+  return execFileAsync(process.execPath, [installedCliPath, ...args], {
+    env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1" },
   });
 }
 
@@ -257,6 +270,13 @@ describe("tokenrank collector CLI", () => {
     for (const tool of TOOL_KEYS) {
       expect(stdout).toContain(tool);
     }
+  });
+
+  it("runs from the installer layout with package metadata beside the CLI", async () => {
+    const home = await tempHome();
+    const { stdout } = await runInstalledCli(["tools"], home);
+
+    expect(stdout).toContain("codex");
   });
 
   it("stores the webhook URL in a private config file", async () => {
