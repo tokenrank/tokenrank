@@ -43,10 +43,10 @@ Production install on Windows PowerShell:
 irm "https://tokenrank.vercel.app/install.ps1" | iex
 ```
 
-After connecting your private webhook URL, enable automatic sync:
+After connecting your private webhook URL, enable automatic sync every 12 hours:
 
 ```bash
-tokenrank service install --interval 300
+tokenrank service install --interval 43200
 ```
 
 On macOS this creates a LaunchAgent, on Linux a systemd user service, and on Windows a Task Scheduler task. Use these commands to inspect or remove it:
@@ -64,7 +64,7 @@ pnpm tokenrank sources
 pnpm tokenrank preview --json
 pnpm tokenrank connect "https://your-site.example/api/collector/upload/secret"
 pnpm tokenrank upload
-pnpm tokenrank service install --interval 300
+pnpm tokenrank service install --interval 43200
 pnpm tokenrank service status
 pnpm tokenrank service uninstall
 pnpm tokenrank logout
