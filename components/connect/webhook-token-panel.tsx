@@ -122,7 +122,7 @@ export function WebhookTokenPanel() {
           <div>
             <h3 className="text-sm font-semibold text-slate-950">3. 开启后台自动同步</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              自动同步默认每 5 分钟运行一次。macOS 用 LaunchAgent，Linux 用 systemd user
+              自动同步默认每 12 小时运行一次。macOS 用 LaunchAgent，Linux 用 systemd user
               service，Windows 用任务计划程序。
             </p>
           </div>
