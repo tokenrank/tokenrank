@@ -43,6 +43,19 @@ Production install on Windows PowerShell:
 irm "https://tokenrank.vercel.app/install.ps1" | iex
 ```
 
+After connecting your private webhook URL, enable automatic sync:
+
+```bash
+tokenrank service install --interval 300
+```
+
+On macOS this creates a LaunchAgent, on Linux a systemd user service, and on Windows a Task Scheduler task. Use these commands to inspect or remove it:
+
+```bash
+tokenrank service status
+tokenrank service uninstall
+```
+
 Local development commands:
 
 ```bash

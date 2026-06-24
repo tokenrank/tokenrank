@@ -12,9 +12,9 @@ import { TOOL_KEYS } from "../types";
 const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("bin/tokenrank.mjs");
 
-async function runCli(args: string[], home: string) {
+async function runCli(args: string[], home: string, extraEnv: NodeJS.ProcessEnv = {}) {
   return execFileAsync(process.execPath, [cliPath, ...args], {
-    env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1" },
+    env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1", ...extraEnv },
   });
 }
 
@@ -422,5 +422,26 @@ describe("tokenrank collector CLI", () => {
     const uninstall = await runCli(["service", "uninstall"], home);
     expect(uninstall.stdout).toContain("已卸载");
     expect(await exists(plistPath)).toBe(false);
+  });
+
+  it("installs, reports, and uninstalls the Windows background task runner", async () => {
+    const home = await tempHome();
+    const windowsEnv = { TOKENRANK_TEST_PLATFORM: "win32" };
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, windowsEnv);
+
+    const install = await runCli(["service", "install", "--interval", "300"], home, windowsEnv);
+    const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.cmd");
+    const runner = await readFile(runnerPath, "utf8");
+
+    expect(install.stdout).toContain("已安装");
+    expect(runner).toContain("daemon --once");
+    expect(runner).toContain("tokenrank.mjs");
+
+    const status = await runCli(["service", "status"], home, windowsEnv);
+    expect(status.stdout).toContain("已安装");
+
+    const uninstall = await runCli(["service", "uninstall"], home, windowsEnv);
+    expect(uninstall.stdout).toContain("已卸载");
+    expect(await exists(runnerPath)).toBe(false);
   });
 });

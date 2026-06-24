@@ -16,8 +16,7 @@ export default async function MePage() {
           <p className="text-sm font-semibold text-emerald-700">我的 TokenRank</p>
           <h1 className="mt-1 text-3xl font-bold text-slate-950">登录后开始上榜</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            排行榜按公开 X 身份展示。登录后生成你的私有上传地址，再运行本地采集器上传 Token
-            汇总。
+            排行榜按公开 X 身份展示。登录后生成你的私有上传地址，再安装本地采集器开启自动同步。
           </p>
         </div>
 
@@ -37,10 +36,10 @@ export default async function MePage() {
       <section className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-emerald-700">我的 TokenRank</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">三步上榜</h1>
+          <h1 className="mt-1 text-3xl font-bold text-slate-950">三步开启自动上榜</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            已登录：{user.name ?? "X user"}。生成上传地址后复制命令到终端运行，你的 Token
-            汇总会进入今日、3 天、7 天、30 天和月榜。
+            已登录：{user.name ?? "X user"}。复制自动同步命令运行一次，之后本机会定时上传 Token
+            汇总到今日、3 天、7 天、30 天和月榜。
           </p>
         </div>
         <Link
@@ -67,7 +66,7 @@ export default async function MePage() {
             </p>
             <p>
               <span className="font-semibold text-slate-900">持续更新：</span>
-              之后运行页面命令里的 upload 行即可刷新。
+              自动同步默认每 5 分钟刷新一次；也可以用手动刷新命令立即上传。
             </p>
           </div>
         </section>

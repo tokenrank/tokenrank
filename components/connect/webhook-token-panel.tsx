@@ -12,13 +12,20 @@ export function WebhookTokenPanel() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedManual, setCopiedManual] = useState(false);
   const [commandTarget, setCommandTarget] = useState<CommandTarget>("unix");
   const commands = useMemo(
     () => (webhookUrl ? buildCollectorCommands(webhookUrl) : null),
     [webhookUrl],
   );
   const command = commands?.[commandTarget] ?? "";
+  const manualCommand =
+    commandTarget === "windows" ? (commands?.windowsManual ?? "") : (commands?.unixManual ?? "");
   const commandLines = useMemo(() => (command ? command.split("\n") : []), [command]);
+  const manualCommandLines = useMemo(
+    () => (manualCommand ? manualCommand.split("\n") : []),
+    [manualCommand],
+  );
 
   async function createToken() {
     setLoading(true);
@@ -34,6 +41,7 @@ export function WebhookTokenPanel() {
 
       setWebhookUrl(payload.webhookUrl);
       setCopied(false);
+      setCopiedManual(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "failed to create webhook token");
     } finally {
@@ -47,9 +55,16 @@ export function WebhookTokenPanel() {
     setCopied(true);
   }
 
+  async function copyManualCommand() {
+    if (!manualCommand) return;
+    await navigator.clipboard.writeText(manualCommand);
+    setCopiedManual(true);
+  }
+
   function selectCommandTarget(nextTarget: CommandTarget) {
     setCommandTarget(nextTarget);
     setCopied(false);
+    setCopiedManual(false);
   }
 
   return (
@@ -58,8 +73,8 @@ export function WebhookTokenPanel() {
         <div>
           <h2 className="font-semibold text-slate-950">复制命令，上榜</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            生成你的私有上传地址后，把下面命令复制到终端运行。采集器会把本机 Token
-            汇总上传到你的 X 身份，排行榜会自动更新。
+            生成你的私有上传地址后，把自动同步命令复制到终端运行一次。之后采集器会在后台定时上传本机
+            Token 汇总，排行榜自动更新。
           </p>
         </div>
         <button
@@ -81,11 +96,9 @@ export function WebhookTokenPanel() {
             <Terminal className="size-4" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-950">1. 安装本地采集器</h3>
+            <h3 className="text-sm font-semibold text-slate-950">1. 登录 X，确认公开身份</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              macOS / Linux 打开终端，Windows 打开 PowerShell。只安装一个本机命令{" "}
-              <code className="rounded bg-slate-100 px-1 py-0.5">tokenrank</code>
-              ，用于扫描本机 AI 编程工具的用量汇总。
+              当前账号会作为排行榜身份。上传地址只绑定到这个 X 账号，别人无法用自己的数据顶替你。
             </p>
           </div>
         </div>
@@ -94,9 +107,11 @@ export function WebhookTokenPanel() {
             <KeyRound className="size-4" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-950">2. 绑定你的私有上传地址</h3>
+            <h3 className="text-sm font-semibold text-slate-950">2. 安装采集器，绑定上传地址</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              上传地址决定数据写到哪个 X 账号；不要把这个地址发给别人。
+              macOS / Linux 打开终端，Windows 打开 PowerShell。命令会安装{" "}
+              <code className="rounded bg-slate-100 px-1 py-0.5">tokenrank</code>
+              ，并把私有上传地址保存在本机。
             </p>
           </div>
         </div>
@@ -105,11 +120,10 @@ export function WebhookTokenPanel() {
             <UploadCloud className="size-4" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-950">3. 预览并上传，排行榜自动计算</h3>
+            <h3 className="text-sm font-semibold text-slate-950">3. 开启后台自动同步</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              <code className="rounded bg-slate-100 px-1 py-0.5">preview</code> 先显示将上传的汇总，
-              <code className="rounded bg-slate-100 px-1 py-0.5">upload</code> 成功后会进入今日、3 天、
-              7 天、30 天和月榜。
+              自动同步默认每 5 分钟运行一次。macOS 用 LaunchAgent，Linux 用 systemd user
+              service，Windows 用任务计划程序。
             </p>
           </div>
         </div>
@@ -121,12 +135,14 @@ export function WebhookTokenPanel() {
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-slate-950">
-                  {commandTarget === "windows" ? "在 Windows PowerShell 运行" : "在 macOS / Linux 终端运行"}
+                  {commandTarget === "windows"
+                    ? "自动同步：在 Windows PowerShell 运行"
+                    : "自动同步：在 macOS / Linux 终端运行"}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500">
                   {commandTarget === "windows"
-                    ? "按 Win 键搜索 PowerShell，打开后粘贴下面命令。"
-                    : "打开 Terminal / 终端，粘贴下面命令。"}
+                    ? "按 Win 键搜索 PowerShell，打开后粘贴下面命令。它会安装任务计划程序。"
+                    : "打开 Terminal / 终端，粘贴下面命令。它会安装后台自动同步服务。"}
                 </p>
               </div>
               <span className="text-xs text-slate-500">{commandLines.length} 行</span>
@@ -171,6 +187,32 @@ export function WebhookTokenPanel() {
             )}
             {copied ? "已复制" : commandTarget === "windows" ? "复制 Windows 命令" : "复制 macOS / Linux 命令"}
           </button>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">手动刷新</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  后台同步已安装后一般不用每天手动运行；需要立刻刷新时再复制这两行。
+                </p>
+              </div>
+              <span className="text-xs text-slate-500">{manualCommandLines.length} 行</span>
+            </div>
+            <pre className="overflow-x-auto rounded-md bg-white p-3 text-sm leading-7 text-slate-800">
+              <code>{manualCommand}</code>
+            </pre>
+            <button
+              type="button"
+              onClick={copyManualCommand}
+              className="mt-3 inline-flex h-9 items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {copiedManual ? (
+                <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
+              ) : (
+                <Copy className="size-4" aria-hidden="true" />
+              )}
+              {copiedManual ? "已复制" : "复制手动刷新命令"}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">

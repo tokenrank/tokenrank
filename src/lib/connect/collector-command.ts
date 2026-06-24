@@ -1,6 +1,8 @@
 export type CollectorCommands = {
   unix: string;
   windows: string;
+  unixManual: string;
+  windowsManual: string;
 };
 
 export function buildCollectorCommand(webhookUrl: string): string {
@@ -16,12 +18,18 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
     unix: [
       `curl -fsSL "${appOrigin}/install.sh" | bash`,
       `${unixTokenrankBin} connect "${webhookUrl}"`,
-      `${unixTokenrankBin} preview`,
-      `${unixTokenrankBin} upload`,
+      `${unixTokenrankBin} service install --interval 300`,
     ].join("\n"),
     windows: [
       `irm "${appOrigin}/install.ps1" | iex`,
       `${windowsTokenrankBin} connect "${webhookUrl}"`,
+      `${windowsTokenrankBin} service install --interval 300`,
+    ].join("\n"),
+    unixManual: [
+      `${unixTokenrankBin} preview`,
+      `${unixTokenrankBin} upload`,
+    ].join("\n"),
+    windowsManual: [
       `${windowsTokenrankBin} preview`,
       `${windowsTokenrankBin} upload`,
     ].join("\n"),

@@ -11,9 +11,9 @@ export default async function ConnectPage() {
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-8">
       <div>
         <p className="text-sm font-semibold text-emerald-700">连接采集器</p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-950">把本机 Token 用量传到排行榜</h1>
+        <h1 className="mt-1 text-3xl font-bold text-slate-950">登录 X，安装采集器，自动上榜</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          先用 X 绑定公开身份，再生成私有上传地址，最后运行本地采集器上传聚合统计。
+          TokenRank 只需要你第一次完成三步。之后本机会定时上传聚合后的 Token 统计，不需要每天手动上传。
         </p>
       </div>
 
@@ -22,7 +22,7 @@ export default async function ConnectPage() {
           <>
             <h2 className="font-semibold text-slate-950">下一步：生成上榜命令</h2>
             <p className="mt-2 text-sm text-slate-600">
-              我的仪表盘会生成一组可复制的终端命令：安装采集器、绑定上传地址、预览并上传。
+              我的仪表盘会生成可复制命令：安装采集器、绑定上传地址、开启后台自动同步。
             </p>
             <Link
               href="/me"
@@ -51,9 +51,9 @@ export default async function ConnectPage() {
       <section className="mt-4 rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="font-semibold text-slate-950">用户上榜路径</h2>
         <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-          <li>1. X 登录：确认排行榜展示哪个公开身份。</li>
-          <li>2. 复制命令：生成私有上传地址并安装本地采集器。</li>
-          <li>3. 上传汇总：只上传 Token 聚合数据，排行榜自动刷新。</li>
+          <li>1. 登录 X：确认排行榜展示哪个公开身份。</li>
+          <li>2. 安装采集器：生成私有上传地址，并把它保存在本机。</li>
+          <li>3. 开启自动同步：macOS / Linux / Windows 都会定时上传 Token 聚合数据。</li>
         </ol>
       </section>
     </main>
