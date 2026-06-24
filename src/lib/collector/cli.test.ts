@@ -624,6 +624,17 @@ describe("tokenrank collector CLI", () => {
     expect(await exists(plistPath)).toBe(false);
   });
 
+  it("defaults the background service interval to 12 hours", async () => {
+    const home = await tempHome();
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home);
+
+    await runCli(["service", "install"], home);
+    const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
+    const plist = await readFile(plistPath, "utf8");
+
+    expect(plist).toContain("<integer>43200</integer>");
+  });
+
   it("installs, reports, and uninstalls the Windows background task runner", async () => {
     const home = await tempHome();
     const windowsEnv = { TOKENRANK_TEST_PLATFORM: "win32" };
