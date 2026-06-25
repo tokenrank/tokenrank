@@ -632,9 +632,15 @@ describe("tokenrank collector CLI", () => {
 
     const install = await runCli(["service", "install", "--interval", "120"], home);
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
+    const plist = await readFile(plistPath, "utf8");
 
     expect(install.stdout).toContain("已安装");
-    expect(await readFile(plistPath, "utf8")).toContain("daemon");
+    expect(plist).toContain("daemon");
+    expect(plist).toContain("<key>StartCalendarInterval</key>");
+    expect(plist).toContain("<integer>0</integer>");
+    expect(plist).toContain("<integer>12</integer>");
+    expect(plist).not.toContain("StartInterval");
+    expect(plist).not.toContain("RunAtLoad");
 
     const status = await runCli(["service", "status"], home);
     expect(status.stdout).toContain("已安装");
@@ -644,7 +650,7 @@ describe("tokenrank collector CLI", () => {
     expect(await exists(plistPath)).toBe(false);
   });
 
-  it("defaults the background service interval to 12 hours", async () => {
+  it("defaults the background service to fixed 00:00 and 12:00 collection times", async () => {
     const home = await tempHome();
     await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home);
 
@@ -652,7 +658,35 @@ describe("tokenrank collector CLI", () => {
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
     const plist = await readFile(plistPath, "utf8");
 
-    expect(plist).toContain("<integer>43200</integer>");
+    expect(plist).toContain("<key>Hour</key>\n      <integer>0</integer>");
+    expect(plist).toContain("<key>Hour</key>\n      <integer>12</integer>");
+    expect(plist).toContain("<key>Minute</key>\n      <integer>0</integer>");
+  });
+
+  it("installs a systemd user timer for fixed 00:00 and 12:00 collection times", async () => {
+    const home = await tempHome();
+    const linuxEnv = { TOKENRANK_TEST_PLATFORM: "linux" };
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, linuxEnv);
+
+    const install = await runCli(["service", "install"], home, linuxEnv);
+    const servicePath = path.join(home, ".config", "systemd", "user", "tokenrank-collector.service");
+    const timerPath = path.join(home, ".config", "systemd", "user", "tokenrank-collector.timer");
+    const service = await readFile(servicePath, "utf8");
+    const timer = await readFile(timerPath, "utf8");
+
+    expect(install.stdout).toContain("已安装");
+    expect(service).toContain("daemon --once");
+    expect(service).not.toContain("--interval");
+    expect(timer).toContain("OnCalendar=*-*-* 00:00:00");
+    expect(timer).toContain("OnCalendar=*-*-* 12:00:00");
+
+    const status = await runCli(["service", "status"], home, linuxEnv);
+    expect(status.stdout).toContain("已安装");
+
+    const uninstall = await runCli(["service", "uninstall"], home, linuxEnv);
+    expect(uninstall.stdout).toContain("已卸载");
+    expect(await exists(servicePath)).toBe(false);
+    expect(await exists(timerPath)).toBe(false);
   });
 
   it("installs, reports, and uninstalls the Windows background task runner", async () => {
@@ -660,7 +694,7 @@ describe("tokenrank collector CLI", () => {
     const windowsEnv = { TOKENRANK_TEST_PLATFORM: "win32" };
     await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, windowsEnv);
 
-    const install = await runCli(["service", "install", "--interval", "300"], home, windowsEnv);
+    const install = await runCli(["service", "install"], home, windowsEnv);
     const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.cmd");
     const runner = await readFile(runnerPath, "utf8");
 

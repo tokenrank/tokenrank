@@ -66,7 +66,7 @@ export default async function MePage() {
             </p>
             <p>
               <span className="font-semibold text-slate-900">持续更新：</span>
-              自动同步默认每 12 小时刷新一次；也可以用手动刷新命令立即上传。
+              自动同步默认每天 12:00 和 24:00 刷新；也可以用手动刷新命令立即上传。
             </p>
           </div>
         </section>

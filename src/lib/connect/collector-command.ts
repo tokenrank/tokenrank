@@ -5,8 +5,6 @@ export type CollectorCommands = {
   windowsManual: string;
 };
 
-const DEFAULT_COLLECTOR_INTERVAL_SECONDS = 12 * 60 * 60;
-
 export function buildCollectorCommand(webhookUrl: string): string {
   return buildCollectorCommands(webhookUrl).unix;
 }
@@ -20,12 +18,12 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
     unix: [
       `curl -fsSL "${appOrigin}/install.sh" | bash`,
       `${unixTokenrankBin} connect "${webhookUrl}"`,
-      `${unixTokenrankBin} service install --interval ${DEFAULT_COLLECTOR_INTERVAL_SECONDS}`,
+      `${unixTokenrankBin} service install`,
     ].join("\n"),
     windows: [
       `irm "${appOrigin}/install.ps1" | iex`,
       `${windowsTokenrankBin} connect "${webhookUrl}"`,
-      `${windowsTokenrankBin} service install --interval ${DEFAULT_COLLECTOR_INTERVAL_SECONDS}`,
+      `${windowsTokenrankBin} service install`,
     ].join("\n"),
     unixManual: [
       `${unixTokenrankBin} preview`,
