@@ -634,7 +634,8 @@ describe("tokenrank collector CLI", () => {
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
     const plist = await readFile(plistPath, "utf8");
 
-    expect(install.stdout).toContain("已安装");
+    expect(install.stdout).toContain("已忽略 --interval");
+    expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(plist).toContain("daemon");
     expect(plist).toContain("<key>StartCalendarInterval</key>");
     expect(plist).toContain("<integer>0</integer>");
@@ -674,7 +675,7 @@ describe("tokenrank collector CLI", () => {
     const service = await readFile(servicePath, "utf8");
     const timer = await readFile(timerPath, "utf8");
 
-    expect(install.stdout).toContain("已安装");
+    expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(service).toContain("daemon --once");
     expect(service).not.toContain("--interval");
     expect(timer).toContain("OnCalendar=*-*-* 00:00:00");
@@ -698,7 +699,7 @@ describe("tokenrank collector CLI", () => {
     const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.cmd");
     const runner = await readFile(runnerPath, "utf8");
 
-    expect(install.stdout).toContain("已安装");
+    expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(runner).toContain("daemon --once");
     expect(runner).toContain("tokenrank.mjs");
 
