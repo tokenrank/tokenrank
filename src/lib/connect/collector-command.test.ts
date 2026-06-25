@@ -8,6 +8,7 @@ describe("buildCollectorCommand", () => {
       [
         'curl -fsSL "https://tokenrank.test/install.sh" | bash',
         '"${HOME}/.local/bin/tokenrank" connect "https://tokenrank.test/api/collector/upload/abc123"',
+        '"${HOME}/.local/bin/tokenrank" upload',
         '"${HOME}/.local/bin/tokenrank" service install',
       ].join("\n"),
     );
@@ -18,6 +19,7 @@ describe("buildCollectorCommand", () => {
       [
         'irm "https://tokenrank.test/install.ps1" | iex',
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" connect "https://tokenrank.test/api/collector/upload/abc123"',
+        '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" upload',
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" service install',
       ].join("\n"),
     );

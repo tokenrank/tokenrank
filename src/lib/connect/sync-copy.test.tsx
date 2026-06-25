@@ -20,6 +20,7 @@ describe("collector sync interval copy", () => {
   it("describes the connect panel automatic sync schedule as 12:00 and 24:00", () => {
     render(<WebhookTokenPanel />);
 
+    expect(document.body.textContent).toContain("先上传一次当前汇总");
     expect(document.body.textContent).toContain("自动同步默认每天 12:00 和 24:00 运行");
     expect(document.body.textContent).not.toContain("每 5 分钟");
     expect(document.body.textContent).not.toContain("每 12 小时");

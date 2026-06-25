@@ -73,7 +73,7 @@ export function WebhookTokenPanel() {
         <div>
           <h2 className="font-semibold text-slate-950">复制命令，上榜</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            生成你的私有上传地址后，把自动同步命令复制到终端运行一次。之后采集器会在后台定时上传本机
+            生成你的私有上传地址后，把自动同步命令复制到终端运行一次。命令会先上传一次当前汇总，之后采集器会在后台定时上传本机
             Token 汇总，排行榜自动更新。
           </p>
         </div>
@@ -122,8 +122,8 @@ export function WebhookTokenPanel() {
           <div>
             <h3 className="text-sm font-semibold text-slate-950">3. 开启后台自动同步</h3>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              自动同步默认每天 12:00 和 24:00 运行。macOS 用 LaunchAgent，Linux 用 systemd user
-              service，Windows 用任务计划程序。
+              复制的命令会先上传一次当前汇总；自动同步默认每天 12:00 和 24:00 运行。macOS 用
+              LaunchAgent，Linux 用 systemd user service，Windows 用任务计划程序。
             </p>
           </div>
         </div>

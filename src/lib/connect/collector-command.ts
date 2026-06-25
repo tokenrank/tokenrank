@@ -18,11 +18,13 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
     unix: [
       `curl -fsSL "${appOrigin}/install.sh" | bash`,
       `${unixTokenrankBin} connect "${webhookUrl}"`,
+      `${unixTokenrankBin} upload`,
       `${unixTokenrankBin} service install`,
     ].join("\n"),
     windows: [
       `irm "${appOrigin}/install.ps1" | iex`,
       `${windowsTokenrankBin} connect "${webhookUrl}"`,
+      `${windowsTokenrankBin} upload`,
       `${windowsTokenrankBin} service install`,
     ].join("\n"),
     unixManual: [
