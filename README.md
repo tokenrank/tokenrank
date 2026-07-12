@@ -55,6 +55,8 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 本地 CLI 只采集聚合后的 Token 行。它不会上传 prompt、代码或对话内容。
 
+交互式终端采用与网站一致的骨黑、信号绿和警示橙 Scoreboard Panels，不再使用大型 Block Art。Windows、macOS 和 Linux 的彩色 TTY 共用同一套视觉；40–71 列窄终端会自动切换为紧凑布局，`NO_COLOR=1`、非 TTY、JSON 和后台模式保持纯文本或结构化输出。
+
 生产环境 macOS / Linux 安装：
 
 ```bash

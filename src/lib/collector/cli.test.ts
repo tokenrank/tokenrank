@@ -445,6 +445,7 @@ describe("tokenrank collector CLI", () => {
     expect(stdout).toContain("SUPPORTED TOOLS");
     expect(stdout).toContain("\u001b[48;2;214;255;63m");
     expect(stdout).toContain("\u001b[38;2;255;91;53m");
+    expect(stdout).not.toContain("\u001b[38;5;");
     expect(stdout).not.toMatch(/48;2;(36;255;184|0;218;255|105;48;255|255;37;141)m/);
     expect(stdout).not.toContain("████████╗");
     expect(stdout).toContain("github-copilot");
@@ -1112,7 +1113,7 @@ describe("tokenrank collector CLI", () => {
         const { stdout } = await runCli(["upload"], home);
 
         expect(stdout).toContain("1 条");
-        expect(stdout).toContain("Scan local usage");
+        expect(stdout).toContain("SCAN LOCAL USAGE");
         expect(stdout).toContain("codex");
         expect(stdout).toContain("Uploading");
       },
