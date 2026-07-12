@@ -105,6 +105,8 @@ pnpm tokenrank logout
 pnpm tokenrank upload --file usage.json
 ```
 
+CLI 默认跟随系统语言：中文系统显示中文，其他系统显示英文。可以在任意命令中用 `--lang zh` 或 `--lang en` 临时覆盖，也可以设置 `TOKENRANK_LANG=zh|en` 作为环境级默认值；使用 `--lang auto` 可恢复自动检测。
+
 不传 `--file` 时，`upload` 会扫描已知本地工具日志位置并上传聚合行。先运行 `preview --json` 可以检查将要上传的聚合 payload。CLI 会把大上传切成 500 行批次；服务端也会拒绝超出大小限制的异常 payload。
 
 `usage.json` 可以是 entry 数组，也可以是包含 `entries` 的对象：

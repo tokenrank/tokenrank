@@ -102,6 +102,7 @@ function cliEnv(home: string, extraEnv: NodeJS.ProcessEnv = {}) {
     CODEX_HOME: path.join(home, ".codex"),
     GEMINI_CLI_HOME: path.join(home, ".gemini"),
     TOKENRANK_SERVICE_NO_REGISTER: "1",
+    TOKENRANK_LANG: "en",
     ...extraEnv,
   };
 }
@@ -364,6 +365,26 @@ function stripAnsi(value: string) {
   return value.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "");
 }
 
+function terminalDisplayWidth(value: string) {
+  return [...stripAnsi(value)].reduce((width, character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    const isWide =
+      codePoint >= 0x1100 &&
+      (codePoint <= 0x115f ||
+        codePoint === 0x2329 ||
+        codePoint === 0x232a ||
+        (codePoint >= 0x2e80 && codePoint <= 0xa4cf && codePoint !== 0x303f) ||
+        (codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
+        (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+        (codePoint >= 0xfe10 && codePoint <= 0xfe19) ||
+        (codePoint >= 0xfe30 && codePoint <= 0xfe6f) ||
+        (codePoint >= 0xff00 && codePoint <= 0xff60) ||
+        (codePoint >= 0xffe0 && codePoint <= 0xffe6));
+
+    return width + (isWide ? 2 : 1);
+  }, 0);
+}
+
 async function writeAllToolFixtures(home: string) {
   await Promise.all(
     TOOL_KEYS.map((tool) =>
@@ -386,6 +407,67 @@ async function writeAllToolFixtures(home: string) {
 }
 
 describe("tokenrank collector CLI", () => {
+  it("defaults to English for non-Chinese system locales", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["help"], home, {
+      TOKENRANK_LANG: "auto",
+      LANG: "en_US.UTF-8",
+      LC_ALL: "",
+      LC_MESSAGES: "",
+    });
+
+    expect(stdout).toContain("Commands:");
+    expect(stdout).toContain("Language: auto");
+    expect(stdout).not.toContain("命令：");
+  });
+
+  it("detects Chinese from the system locale", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["help"], home, {
+      TOKENRANK_LANG: "auto",
+      LANG: "zh_CN.UTF-8",
+      LC_ALL: "",
+      LC_MESSAGES: "",
+    });
+
+    expect(stdout).toContain("命令：");
+    expect(stdout).toContain("语言：自动");
+    expect(stdout).not.toContain("Commands:");
+  });
+
+  it("lets --lang override the environment and renders the complete Chinese scoreboard", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["tools", "--lang", "zh"], home, {
+      TOKENRANK_LANG: "en",
+      TOKENRANK_TEST_TTY: "1",
+      TOKENRANK_NO_ANIMATION: "1",
+      COLUMNS: "120",
+    });
+
+    expect(stdout).toContain("公开排名信号");
+    expect(stdout).toContain("TOKEN 燃烧。");
+    expect(stdout).toContain("RANKING 狂飙。");
+    expect(stdout).toContain("支持的工具");
+    expect(stdout).not.toContain("PUBLIC RANK SIGNAL");
+    expect(stripAnsi(stdout).split("\n").every((line) => terminalDisplayWidth(line) <= 50)).toBe(true);
+  });
+
+  it("rejects unsupported explicit languages", async () => {
+    const home = await tempHome();
+
+    await expect(runCli(["tools", "--lang", "ja"], home)).rejects.toMatchObject({
+      stderr: expect.stringContaining("Unsupported language: ja"),
+    });
+  });
+
+  it("rejects an empty --lang value", async () => {
+    const home = await tempHome();
+
+    await expect(runCli(["tools", "--lang="], home)).rejects.toMatchObject({
+      stderr: expect.stringContaining("Missing a value for --lang"),
+    });
+  });
+
   it("lists every supported leaderboard tool", async () => {
     const home = await tempHome();
     const { stdout } = await runCli(["tools"], home);
@@ -424,7 +506,8 @@ describe("tokenrank collector CLI", () => {
       { TOKENRANK_NO_LOGO: "1" },
     );
 
-    expect(stdout).toContain("已保存 webhook");
+    expect(stdout).toContain("Saved webhook");
+    expect(stdout).not.toMatch(/[一-龥]/);
     expect(stdout).not.toContain("TOKENRANK");
     expect(stdout).not.toContain("AI coding usage collector");
     expect(stdout).not.toContain("next: tokenrank upload");
@@ -532,7 +615,7 @@ describe("tokenrank collector CLI", () => {
 
     const { stdout } = await runCli(["logout"], home);
 
-    expect(stdout).toContain("已移除");
+    expect(stdout).toContain("Removed local webhook configuration");
     expect(await exists(configPath)).toBe(false);
   });
 
@@ -921,7 +1004,7 @@ describe("tokenrank collector CLI", () => {
         await runCli(["connect", webhookUrl], home);
         const { stdout } = await runCli(["upload", "--file", usagePath], home);
 
-        expect(stdout).toContain(`${TOOL_KEYS.length} 条`);
+        expect(stdout).toContain(`${TOOL_KEYS.length} rows`);
       },
     );
   });
@@ -954,7 +1037,7 @@ describe("tokenrank collector CLI", () => {
         await runCli(["connect", webhookUrl], home);
         const { stdout } = await runCli(["upload", "--file", usagePath], home);
 
-        expect(stdout).toContain("501 条");
+        expect(stdout).toContain("501 rows");
       },
     );
 
@@ -996,7 +1079,7 @@ describe("tokenrank collector CLI", () => {
           TOKENRANK_PROXY: proxyUrl,
         });
 
-        expect(stdout).toContain("1 条");
+        expect(stdout).toMatch(/1 row(?:\r?\n|$)/);
       },
     );
 
@@ -1037,7 +1120,7 @@ describe("tokenrank collector CLI", () => {
           TOKENRANK_PROXY: proxyUrl,
         });
 
-        expect(stdout).toContain("1 条");
+        expect(stdout).toMatch(/1 row(?:\r?\n|$)/);
         expect(getTunnelTarget()).toBe("tokenrank.invalid:443");
       },
     );
@@ -1091,7 +1174,7 @@ describe("tokenrank collector CLI", () => {
         await runCli(["connect", webhookUrl], home);
         const { stdout } = await runCli(["upload"], home);
 
-        expect(stdout).toContain("0 条");
+        expect(stdout).toContain("0 rows");
       },
     );
   });
@@ -1117,7 +1200,7 @@ describe("tokenrank collector CLI", () => {
         await runCli(["connect", webhookUrl], home);
         const { stdout } = await runCli(["upload"], home);
 
-        expect(stdout).toContain("1 条");
+        expect(stdout).toMatch(/1 row(?:\r?\n|$)/);
         expect(stdout).toContain("SCAN LOCAL USAGE");
         expect(stdout).toContain("codex");
         expect(stdout).toContain("Uploading");
@@ -1325,8 +1408,8 @@ describe("tokenrank collector CLI", () => {
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
     const plist = await readFile(plistPath, "utf8");
 
-    expect(install.stdout).toContain("已忽略 --interval");
-    expect(install.stdout).toContain("每天 12:00 和 24:00");
+    expect(install.stdout).toContain("Ignored --interval");
+    expect(install.stdout).toContain("daily at 12:00 and 24:00");
     expect(plist).toContain("daemon");
     expect(plist).toContain("<key>StartCalendarInterval</key>");
     expect(plist).toContain("<integer>0</integer>");
@@ -1337,10 +1420,10 @@ describe("tokenrank collector CLI", () => {
     expect(plist).toContain("--scheduled");
 
     const status = await runCli(["service", "status"], home, darwinEnv);
-    expect(status.stdout).toContain("已安装");
+    expect(status.stdout).toContain("Installed");
 
     const uninstall = await runCli(["service", "uninstall"], home, darwinEnv);
-    expect(uninstall.stdout).toContain("已卸载");
+    expect(uninstall.stdout).toContain("Uninstalled");
     expect(await exists(plistPath)).toBe(false);
   });
 
@@ -1360,7 +1443,7 @@ describe("tokenrank collector CLI", () => {
       TOKENRANK_SERVICE_NO_REGISTER: "",
     };
     const status = await runCli(["service", "status"], home, missingCommandEnv);
-    expect(status.stdout).toContain("未安装");
+    expect(status.stdout).toContain("Not installed");
 
     await expect(runCli(["service", "install"], home, missingCommandEnv)).rejects.toMatchObject({
       stderr: expect.stringContaining("systemctl"),
@@ -1392,7 +1475,7 @@ describe("tokenrank collector CLI", () => {
     const service = await readFile(servicePath, "utf8");
     const timer = await readFile(timerPath, "utf8");
 
-    expect(install.stdout).toContain("每天 12:00 和 24:00");
+    expect(install.stdout).toContain("daily at 12:00 and 24:00");
     expect(service).toContain("daemon --once");
     expect(service).toContain("--scheduled");
     expect(service).not.toContain("--interval");
@@ -1400,10 +1483,10 @@ describe("tokenrank collector CLI", () => {
     expect(timer).toContain("OnCalendar=*-*-* 12:00:00");
 
     const status = await runCli(["service", "status"], home, linuxEnv);
-    expect(status.stdout).toContain("已安装");
+    expect(status.stdout).toContain("Installed");
 
     const uninstall = await runCli(["service", "uninstall"], home, linuxEnv);
-    expect(uninstall.stdout).toContain("已卸载");
+    expect(uninstall.stdout).toContain("Uninstalled");
     expect(await exists(servicePath)).toBe(false);
     expect(await exists(timerPath)).toBe(false);
   });
@@ -1421,7 +1504,7 @@ describe("tokenrank collector CLI", () => {
     expect([...taskBytes.subarray(0, 2)]).toEqual([0xff, 0xfe]);
     const task = taskBytes.subarray(2).toString("utf16le");
 
-    expect(install.stdout).toContain("每天 12:00 和 24:00");
+    expect(install.stdout).toContain("daily at 12:00 and 24:00");
     expect(runner).toContain("daemon --once");
     expect(runner).toContain("--scheduled");
     expect(runner).toContain("tokenrank.mjs");
@@ -1436,10 +1519,10 @@ describe("tokenrank collector CLI", () => {
     expect(task).toContain("-NoProfile -NonInteractive -WindowStyle Hidden");
 
     const status = await runCli(["service", "status"], home, windowsEnv);
-    expect(status.stdout).toContain("已安装");
+    expect(status.stdout).toContain("Installed");
 
     const uninstall = await runCli(["service", "uninstall"], home, windowsEnv);
-    expect(uninstall.stdout).toContain("已卸载");
+    expect(uninstall.stdout).toContain("Uninstalled");
     expect(await exists(runnerPath)).toBe(false);
     expect(await exists(taskPath)).toBe(false);
   });
