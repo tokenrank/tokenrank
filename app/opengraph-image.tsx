@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "TokenRank AI coding token leaderboard";
+export const alt = "TokenRank AI token leaderboard";
 export const size = {
   width: 1200,
   height: 630,
@@ -43,7 +43,7 @@ export default function OpenGraphImage() {
             }}
           >
             <span>LIVE BOARD // OVERALL</span>
-            <span>AI CODING LEAGUE // 2026</span>
+            <span>AI TOKEN LEAGUE // 2026</span>
           </div>
 
           <div style={{ display: "flex", flex: 1 }}>
@@ -77,17 +77,19 @@ export default function OpenGraphImage() {
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   <div style={{ fontSize: 34, fontWeight: 900 }}>TOKEN/RANK</div>
                   <div style={{ color: "#858b80", fontSize: 14, fontWeight: 800, letterSpacing: 4 }}>
-                    AI CODING LEAGUE
+                    AI TOKEN LEAGUE
                   </div>
                 </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <div style={{ color: "#ff5b35", fontSize: 18, fontWeight: 900, letterSpacing: 3 }}>
-                  PUBLIC IDENTITY // PRIVATE WORK
+                  AGGREGATE USAGE // PRIVATE CONTENT
                 </div>
                 <div
                   style={{
+                    display: "flex",
+                    flexDirection: "column",
                     fontSize: 92,
                     fontWeight: 900,
                     letterSpacing: -5,
@@ -97,7 +99,8 @@ export default function OpenGraphImage() {
                     textTransform: "uppercase",
                   }}
                 >
-                  AI coding has a scoreboard.
+                  <div>BURN TOKENS.</div>
+                  <div>ASCEND RANKS.</div>
                 </div>
               </div>
 

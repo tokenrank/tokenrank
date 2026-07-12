@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
   }
 
   const title = `${profile.user.name} (@${profile.user.handle}) on TokenRank`;
-  const description = `Public aggregate AI coding token stats for ${profile.user.name} on TokenRank.`;
+  const description = `Public aggregate AI token stats for ${profile.user.name} on TokenRank.`;
   const canonical = `/u/${profile.user.handle}`;
 
   return {

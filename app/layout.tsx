@@ -17,16 +17,16 @@ const defaultCopy = getCopy(defaultLocale);
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "TokenRank - AI coding token leaderboard",
+    default: "TokenRank - AI token leaderboard",
     template: `%s | ${siteName}`,
   },
   description: siteDescription,
   applicationName: siteName,
   keywords: [
     "TokenRank",
-    "AI Coding",
-    "Token usage",
-    "AI coding leaderboard",
+    "AI agents",
+    "AI token usage",
+    "AI leaderboard",
     "Codex",
     "Claude Code",
     "Gemini",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "TokenRank - AI coding token leaderboard",
+    title: "TokenRank - AI token leaderboard",
     description: siteDescription,
     url: "/",
     siteName,
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TokenRank - AI coding token leaderboard",
+    title: "TokenRank - AI token leaderboard",
     description: siteDescription,
   },
   robots: {
