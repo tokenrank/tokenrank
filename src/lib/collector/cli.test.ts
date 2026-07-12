@@ -430,7 +430,7 @@ describe("tokenrank collector CLI", () => {
     expect(stdout).not.toContain("next: tokenrank upload");
   });
 
-  it("renders a neon block-art command center in a wide TTY", async () => {
+  it("renders the TokenRank scoreboard brand in a wide TTY", async () => {
     const home = await tempHome();
     const { stdout } = await runCli(["tools"], home, {
       TOKENRANK_TEST_TTY: "1",
@@ -438,24 +438,33 @@ describe("tokenrank collector CLI", () => {
       COLUMNS: "120",
     });
 
-    expect(stdout).toContain("TOKENRANK // LIVE GRID");
-    expect(stdout).toContain("SUPPORTED TOOL GRID");
-    expect(stdout).toContain("\u001b[48;2;");
-    expect(stdout).toContain("████");
+    expect(stdout).toContain("TOKEN/RANK // COLLECTOR");
+    expect(stdout).toContain("BURN TOKENS.");
+    expect(stdout).toContain("ASCEND RANKS.");
+    expect(stdout).toContain("COLLECTOR ONLINE");
+    expect(stdout).toContain("SUPPORTED TOOLS");
+    expect(stdout).toContain("\u001b[48;2;214;255;63m");
+    expect(stdout).toContain("\u001b[38;2;255;91;53m");
+    expect(stdout).not.toMatch(/48;2;(36;255;184|0;218;255|105;48;255|255;37;141)m/);
+    expect(stdout).not.toContain("████████╗");
     expect(stdout).toContain("github-copilot");
   });
 
   it("uses a compact layout without overflowing a narrow terminal", async () => {
     const home = await tempHome();
-    const { stdout } = await runCli(["tools"], home, {
-      TOKENRANK_TEST_TTY: "1",
-      TOKENRANK_NO_ANIMATION: "1",
-      COLUMNS: "52",
-    });
-    const visibleLines = stripAnsi(stdout).split("\n");
 
-    expect(visibleLines.every((line) => [...line].length <= 52)).toBe(true);
-    expect(stdout).toContain("TOKENRANK // LIVE GRID");
+    for (const columns of [40, 71]) {
+      const { stdout } = await runCli(["tools"], home, {
+        TOKENRANK_TEST_TTY: "1",
+        TOKENRANK_NO_ANIMATION: "1",
+        COLUMNS: String(columns),
+      });
+      const visibleLines = stripAnsi(stdout).split("\n");
+
+      expect(visibleLines.every((line) => [...line].length <= columns)).toBe(true);
+      expect(stdout).toContain("TOKEN/RANK // COLLECTOR");
+      expect(stdout).not.toContain("BURN TOKENS.");
+    }
   });
 
   it("keeps NO_COLOR output free of ANSI control sequences", async () => {
@@ -468,7 +477,8 @@ describe("tokenrank collector CLI", () => {
     });
 
     expect(stdout).not.toContain("\u001b[");
-    expect(stdout).toContain("TOKENRANK // LIVE GRID");
+    expect(stdout).not.toContain("TOKEN/RANK // COLLECTOR");
+    expect(stdout).toContain("SUPPORTED TOOLS");
   });
 
   it("reports connection, service, and next boundary from tokenrank status", async () => {
