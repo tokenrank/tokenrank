@@ -1,30 +1,38 @@
 import Link from "next/link";
 
+import { defaultLocale, type Locale } from "@/src/i18n/config";
+import { getCopy } from "@/src/i18n/copy";
 import type { BoardKey, RangeKey } from "@/src/lib/types";
 
-const RANGES: Array<{ key: RangeKey; label: string }> = [
-  { key: "today", label: "今日" },
-  { key: "3d", label: "3天" },
-  { key: "7d", label: "7天" },
-  { key: "30d", label: "30天" },
-  { key: "month", label: "本月" },
-];
+const RANGE_KEYS: RangeKey[] = ["today", "3d", "7d", "30d", "month"];
 
-export function RangeTabs({ active, board }: { active: RangeKey; board: BoardKey }) {
+export function rangeLabel(range: RangeKey, locale: Locale = defaultLocale): string {
+  return getCopy(locale).ranges[range] ?? range;
+}
+
+export function RangeTabs({
+  active,
+  board,
+  locale = defaultLocale,
+}: {
+  active: RangeKey;
+  board: BoardKey;
+  locale?: Locale;
+}) {
   return (
-    <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-      {RANGES.map((range) => (
+    <div className="inline-flex w-full shrink-0 gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] sm:w-auto">
+      {RANGE_KEYS.map((range) => (
         <Link
-          key={range.key}
-          href={`/?board=${board}&range=${range.key}`}
-          aria-current={active === range.key ? "page" : undefined}
+          key={range}
+          href={`/?board=${board}&range=${range}`}
+          aria-current={active === range ? "page" : undefined}
           className={
-            active === range.key
-              ? "rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white"
-              : "rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+            active === range
+              ? "flex-1 bg-[color:var(--tr-orange)] px-3 py-2 text-center font-mono text-[0.7rem] font-black uppercase text-[#080705] sm:flex-none"
+              : "flex-1 bg-[color:var(--tr-surface-2)] px-3 py-2 text-center font-mono text-[0.7rem] font-bold uppercase text-[color:var(--tr-muted)] hover:bg-[color:var(--tr-surface-3)] hover:text-[color:var(--tr-ivory)] sm:flex-none"
           }
         >
-          {range.label}
+          {rangeLabel(range, locale)}
         </Link>
       ))}
     </div>

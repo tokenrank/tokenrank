@@ -15,6 +15,20 @@ describe("buildInstallScript", () => {
     expect(script).toContain('"${bin_dir}/tokenrank" tools');
   });
 
+  it("can install, connect, upload, and enable the collector from one shell script", () => {
+    const script = buildInstallScript({
+      appOrigin: "https://tokenrank.test",
+      webhookUrl: "https://tokenrank.test/api/collector/upload/abc123",
+    });
+
+    expect(script).toContain("https://tokenrank.test/tokenrank.mjs");
+    expect(script).toContain("webhook_url='https://tokenrank.test/api/collector/upload/abc123'");
+    expect(script).toContain('TOKENRANK_NO_LOGO=1 "${bin_dir}/tokenrank" connect "${webhook_url}"');
+    expect(script).toContain('"${bin_dir}/tokenrank" upload');
+    expect(script).toContain('TOKENRANK_NO_LOGO=1 "${bin_dir}/tokenrank" service install');
+    expect(script).not.toContain('"${bin_dir}/tokenrank" tools');
+  });
+
   it("installs the collector on Windows with a PowerShell script", () => {
     const script = buildWindowsInstallScript();
 
@@ -25,5 +39,21 @@ describe("buildInstallScript", () => {
     expect(script).toContain("tokenrank.cmd");
     expect(script).toContain("Invoke-WebRequest");
     expect(script).toContain("& $cmdPath tools");
+  });
+
+  it("can install, connect, upload, and enable the collector from one PowerShell script", () => {
+    const script = buildWindowsInstallScript({
+      appOrigin: "https://tokenrank.test",
+      webhookUrl: "https://tokenrank.test/api/collector/upload/abc123",
+    });
+
+    expect(script).toContain("https://tokenrank.test/tokenrank.mjs");
+    expect(script).toContain("$webhookUrl = 'https://tokenrank.test/api/collector/upload/abc123'");
+    expect(script).toContain('$env:TOKENRANK_NO_LOGO = "1"');
+    expect(script).toContain("& $cmdPath connect $webhookUrl");
+    expect(script).toContain("& $cmdPath upload");
+    expect(script).toContain("& $cmdPath service install");
+    expect(script).toContain("if ($LASTEXITCODE) { exit $LASTEXITCODE }");
+    expect(script).not.toContain("& $cmdPath tools");
   });
 });

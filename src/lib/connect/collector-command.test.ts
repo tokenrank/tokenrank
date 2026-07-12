@@ -5,23 +5,16 @@ import { buildCollectorCommand, buildCollectorCommands } from "./collector-comma
 describe("buildCollectorCommand", () => {
   it("builds a copyable onboarding command from install to first upload", () => {
     expect(buildCollectorCommand("https://tokenrank.test/api/collector/upload/abc123")).toBe(
-      [
-        'curl -fsSL "https://tokenrank.test/install.sh" | bash',
-        '"${HOME}/.local/bin/tokenrank" connect "https://tokenrank.test/api/collector/upload/abc123"',
-        '"${HOME}/.local/bin/tokenrank" upload',
-        '"${HOME}/.local/bin/tokenrank" service install',
-      ].join("\n"),
+      'curl -fsSL "https://tokenrank.test/install.sh?token=abc123" | bash',
     );
   });
 
   it("builds Windows PowerShell onboarding commands", () => {
     expect(buildCollectorCommands("https://tokenrank.test/api/collector/upload/abc123").windows).toBe(
-      [
-        'irm "https://tokenrank.test/install.ps1" | iex',
-        '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" connect "https://tokenrank.test/api/collector/upload/abc123"',
-        '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" upload',
-        '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" service install',
-      ].join("\n"),
+      'irm "https://tokenrank.test/install.ps1?token=abc123" | iex',
+    );
+    expect(buildCollectorCommands("https://tokenrank.test/api/collector/upload/abc123").windows).not.toContain(
+      "ErrorActionPreference",
     );
   });
 
@@ -32,13 +25,14 @@ describe("buildCollectorCommand", () => {
       [
         '"${HOME}/.local/bin/tokenrank" preview',
         '"${HOME}/.local/bin/tokenrank" upload',
-      ].join("\n"),
+      ].join(" && "),
     );
     expect(commands.windowsManual).toBe(
       [
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" preview',
+        "if ($LASTEXITCODE) { exit $LASTEXITCODE }",
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" upload',
-      ].join("\n"),
+      ].join("; "),
     );
   });
 });

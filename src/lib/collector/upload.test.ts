@@ -18,14 +18,14 @@ describe("parseUploadPayload", () => {
           model: "gpt-5.5",
           input: 100,
           output: 50,
-          cacheRead: 200,
+          cacheRead: 20,
           cacheWrite: 10,
-          total: 360,
+          total: 150,
         },
       ],
     });
 
-    expect(parsed.entries[0].total).toBe(360);
+    expect(parsed.entries[0].total).toBe(150);
   });
 
   it("accepts Codex provider totals that already include cached input", () => {
@@ -49,6 +49,29 @@ describe("parseUploadPayload", () => {
     });
 
     expect(parsed.entries[0].total).toBe(1_200);
+  });
+
+  it("accepts legacy summed totals for older collectors", () => {
+    const parsed = parseUploadPayload({
+      deviceId: "device-1",
+      clientVersion: "0.1.0",
+      timezone: "Asia/Shanghai",
+      generatedAt: "2026-06-22T12:00:00.000Z",
+      entries: [
+        {
+          date: "2026-06-22",
+          tool: "claude-code",
+          model: "claude-fixture",
+          input: 1_000,
+          output: 200,
+          cacheRead: 800,
+          cacheWrite: 50,
+          total: 2_050,
+        },
+      ],
+    });
+
+    expect(parsed.entries[0].total).toBe(2_050);
   });
 
   it.each(CONTENT_FIELD_KEYS)("rejects top-level content field %s", (field) => {
@@ -108,6 +131,32 @@ describe("parseUploadPayload", () => {
 
     expect(parsed.entries).toHaveLength(TOOL_KEYS.length);
   });
+
+  it.each(["cursor", "github-copilot", "continue"] as const)(
+    "accepts %s aggregate rows",
+    (tool) => {
+      const parsed = parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "Asia/Shanghai",
+        generatedAt: "2026-07-12T04:00:00.000Z",
+        entries: [
+          {
+            date: "2026-07-12",
+            tool,
+            model: `${tool}-model`,
+            input: 7,
+            output: 5,
+            cacheRead: 0,
+            cacheWrite: 0,
+            total: 12,
+          },
+        ],
+      });
+
+      expect(parsed.entries[0].tool).toBe(tool);
+    },
+  );
 
   it("rejects unsupported tools", () => {
     expect(() =>

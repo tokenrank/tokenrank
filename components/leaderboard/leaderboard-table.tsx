@@ -1,112 +1,225 @@
 import Link from "next/link";
 
+import { ProfileAvatar } from "@/components/brand/profile-avatar";
 import { boardLabel } from "@/components/leaderboard/board-tabs";
+import { defaultLocale, type Locale } from "@/src/i18n/config";
+import type { AppCopy } from "@/src/i18n/copy";
+import { text } from "@/src/i18n/copy";
 import { formatTokens, formatUsdMicros } from "@/src/lib/format";
 import { TOOL_KEYS, type BoardKey, type LeaderboardEntry, type ToolKey } from "@/src/lib/types";
 
 export function LeaderboardTable({
   board,
+  copy,
   entries,
+  locale = defaultLocale,
 }: {
   board: BoardKey;
+  copy: AppCopy["home"]["table"];
   entries: LeaderboardEntry[];
+  locale?: Locale;
 }) {
   if (!entries.length) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-        暂无数据
+      <div className="tr-shell tr-reveal overflow-hidden">
+        <div className="tr-live-tape">
+          <span>Position available</span>
+          <span>Rank / 001</span>
+        </div>
+        <div className="tr-panel grid min-h-[24rem] place-items-center p-8 text-center">
+          <div>
+            <div className="font-display text-[7rem] font-bold leading-none text-[color:var(--tr-line)] sm:text-[10rem]">
+              001
+            </div>
+            <h2 className="tr-title -mt-4 text-4xl sm:text-5xl">{copy.emptyTitle}</h2>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[color:var(--tr-muted)]">
+              {copy.emptyBody}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const scoreLabel = board === "cost" ? "消耗金额" : `${boardLabel(board)} Token`;
+  const scoreLabel =
+    board === "cost" ? copy.spendScore : text(copy.tokenScore, { board: boardLabel(board, locale) });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
-          <tr>
-            <th className="w-20 px-4 py-3">排名</th>
-            <th className="px-4 py-3">X 身份</th>
-            <th className="px-4 py-3 text-right">{scoreLabel}</th>
-            <th className="px-4 py-3 text-right">预估金额</th>
-            <th className="px-4 py-3">主要工具</th>
-          </tr>
-        </thead>
-        <tbody>
+    <section className="tr-shell tr-reveal overflow-hidden">
+      <div className="tr-live-tape">
+        <span>{copy.title}</span>
+        <span>{text(copy.count, { count: entries.length })}</span>
+      </div>
+      <div className="tr-panel overflow-hidden">
+        <header className="flex flex-col gap-2 border-b border-[color:var(--tr-line)] px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]">
+              {copy.title}
+            </h2>
+            <p className="mt-1 font-mono text-xs text-[color:var(--tr-muted)]">{copy.subtitle}</p>
+          </div>
+          <p className="tr-data-label">Data feed / verified aggregate</p>
+        </header>
+
+        <div className="grid gap-3 p-3 md:hidden">
           {entries.map((entry) => (
-            <tr key={entry.userId} className="border-t border-slate-100">
-              <td className="px-4 py-4 align-middle font-bold text-slate-500">#{entry.rank}</td>
-              <td className="px-4 py-4 align-middle">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar entry={entry} />
-                  <div className="min-w-0">
-                    <Link
-                      href={`/u/${entry.handle}`}
-                      className="block truncate font-semibold text-slate-950 hover:underline"
-                    >
-                      {entry.name}
-                    </Link>
-                    <div className="truncate text-xs text-slate-500">@{entry.handle}</div>
+            <article
+              key={entry.userId}
+              className="border border-[color:var(--tr-line)] bg-[#0a0d0a] p-4"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <RankBadge rank={entry.rank} />
+                <div className="text-right">
+                  <div className="tr-data-label">{scoreLabel}</div>
+                  <div className="tr-data-value mt-1 text-2xl text-[color:var(--tr-ivory)]">
+                    {score(entry, board, locale)}
                   </div>
                 </div>
-              </td>
-              <td className="px-4 py-4 text-right align-middle font-bold tabular-nums text-slate-950">
-                {board === "cost" ? formatUsdMicros(entry.score) : formatTokens(entry.score)}
-              </td>
-              <td className="px-4 py-4 text-right align-middle tabular-nums text-slate-500">
-                {formatUsdMicros(entry.estimatedCostMicros)}
-              </td>
-              <td className="px-4 py-4 align-middle">
-                <ToolBreakdown byTool={entry.byTool} />
-              </td>
-            </tr>
+              </div>
+              <div className="mt-5 flex min-w-0 items-center gap-3 border-t border-[color:var(--tr-line)] pt-4">
+                <Avatar entry={entry} />
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/u/${entry.handle}`}
+                    className="block truncate text-base font-black text-[color:var(--tr-ivory)] hover:text-[color:var(--tr-gold)]"
+                  >
+                    {entry.name}
+                  </Link>
+                  <div className="mt-0.5 truncate font-mono text-xs text-[color:var(--tr-muted)]">
+                    @{entry.handle}
+                  </div>
+                </div>
+                <div className="font-mono text-xs text-[color:var(--tr-muted)]">
+                  {formatUsdMicros(entry.estimatedCostMicros)}
+                </div>
+              </div>
+              <div className="mt-4">
+                <ToolBreakdown byTool={entry.byTool} copy={copy} locale={locale} />
+              </div>
+            </article>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </div>
+
+        <div className="hidden overflow-x-auto tr-scrollbar md:block">
+          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+            <thead className="bg-[#090b09] font-mono text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[color:var(--tr-muted)]">
+              <tr className="border-b border-[color:var(--tr-line)]">
+                <th className="w-24 px-5 py-3">{copy.rank}</th>
+                <th className="px-5 py-3">{copy.identity}</th>
+                <th className="px-5 py-3 text-right">{scoreLabel}</th>
+                <th className="px-5 py-3 text-right">{copy.spend}</th>
+                <th className="px-5 py-3">{copy.topTools}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr
+                  key={entry.userId}
+                  className="group border-b border-[color:var(--tr-line)] bg-[color:var(--tr-surface)] last:border-b-0 hover:bg-[color:var(--tr-surface-3)]"
+                >
+                  <td className="px-5 py-4 align-middle">
+                    <RankBadge rank={entry.rank} />
+                  </td>
+                  <td className="px-5 py-4 align-middle">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar entry={entry} />
+                      <div className="min-w-0">
+                        <Link
+                          href={`/u/${entry.handle}`}
+                          className="block truncate font-black text-[color:var(--tr-ivory)] hover:text-[color:var(--tr-gold)]"
+                        >
+                          {entry.name}
+                        </Link>
+                        <div className="truncate font-mono text-xs text-[color:var(--tr-muted)]">
+                          @{entry.handle}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-right align-middle">
+                    <span className="tr-data-value text-xl text-[color:var(--tr-ivory)]">
+                      {score(entry, board, locale)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-right align-middle font-mono text-xs text-[color:var(--tr-muted)]">
+                    {formatUsdMicros(entry.estimatedCostMicros)}
+                  </td>
+                  <td className="px-5 py-4 align-middle">
+                    <ToolBreakdown byTool={entry.byTool} copy={copy} locale={locale} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  const className =
+    rank === 1
+      ? "bg-[color:var(--tr-gold)] text-[#080b07]"
+      : rank === 2
+        ? "bg-[color:var(--tr-ivory)] text-[#080b07]"
+        : rank === 3
+          ? "bg-[color:var(--tr-orange)] text-[#080b07]"
+          : "border border-[color:var(--tr-line)] bg-[color:var(--tr-surface-2)] text-[color:var(--tr-muted)]";
+
+  return (
+    <span className={`inline-flex h-9 min-w-14 items-center justify-center px-2 font-mono text-sm font-black ${className}`}>
+      #{String(rank).padStart(2, "0")}
+    </span>
   );
 }
 
 function Avatar({ entry }: { entry: LeaderboardEntry }) {
-  if (entry.avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={entry.avatarUrl}
-        alt=""
-        className="size-10 shrink-0 rounded-full border border-slate-200 object-cover"
-      />
-    );
-  }
-
   return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
-      {entry.name.slice(0, 1).toUpperCase()}
-    </div>
+    <ProfileAvatar
+      className="size-11 shrink-0"
+      fallbackTextClassName="font-display text-xl font-bold"
+      name={entry.name}
+      src={entry.avatarUrl}
+    />
   );
 }
 
-function ToolBreakdown({ byTool }: { byTool: Record<ToolKey, number> }) {
+function ToolBreakdown({
+  byTool,
+  copy,
+  locale,
+}: {
+  byTool: Record<ToolKey, number>;
+  copy: AppCopy["home"]["table"];
+  locale: Locale;
+}) {
   const topTools = TOOL_KEYS.map((tool) => ({ tool, value: byTool[tool] }))
     .filter((item) => item.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 3);
 
   if (!topTools.length) {
-    return <span className="text-xs text-slate-400">-</span>;
+    return <span className="font-mono text-xs text-[color:var(--tr-muted)]">{copy.noTools}</span>;
   }
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {topTools.map((item) => (
+      {topTools.map((item, index) => (
         <span
           key={item.tool}
-          className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
+          className="inline-flex items-center gap-1.5 border border-[color:var(--tr-line)] bg-[#0a0d0a] px-2 py-1 font-mono text-[0.65rem] font-bold text-[color:var(--tr-ivory-soft)]"
         >
-          {boardLabel(item.tool)} {formatTokens(item.value)}
+          <span
+            className={index === 0 ? "size-1.5 bg-[color:var(--tr-gold)]" : "size-1.5 bg-[color:var(--tr-line-strong)]"}
+          />
+          {boardLabel(item.tool, locale)} {formatTokens(item.value, locale)}
         </span>
       ))}
     </div>
   );
+}
+
+function score(entry: LeaderboardEntry, board: BoardKey, locale: Locale): string {
+  return board === "cost" ? formatUsdMicros(entry.score) : formatTokens(entry.score, locale);
 }

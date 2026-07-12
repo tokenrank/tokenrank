@@ -7,8 +7,9 @@ vi.mock("@/src/lib/users", () => ({
   upsertUploadedUsage,
 }));
 
+const validToken = "a".repeat(43);
 const context = {
-  params: Promise.resolve({ token: "secret-token" }),
+  params: Promise.resolve({ token: validToken }),
 };
 
 const validPayload = {
@@ -71,7 +72,7 @@ describe("collector upload route", () => {
     upsertUploadedUsage.mockResolvedValue({ ok: false, status: 401 });
 
     const response = await POST(
-      new Request("http://localhost/api/collector/upload/secret-token", {
+      new Request(`http://localhost/api/collector/upload/${validToken}`, {
         method: "POST",
         body: JSON.stringify(validPayload),
       }),
@@ -80,13 +81,47 @@ describe("collector upload route", () => {
 
     expect(response.status).toBe(401);
     expect(upsertUploadedUsage).toHaveBeenCalledWith(
-      "secret-token",
+      validToken,
       "local-device-id",
       validPayload.entries,
     );
     await expect(response.json()).resolves.toEqual({
       status: -1,
       error: "invalid token",
+    });
+  });
+
+  it("rejects malformed collector tokens before parsing the body", async () => {
+    const response = await POST(
+      new Request("http://localhost/api/collector/upload/not-a-secret", {
+        method: "POST",
+        body: JSON.stringify(validPayload),
+      }),
+      { params: Promise.resolve({ token: "not-a-secret" }) },
+    );
+
+    expect(response.status).toBe(401);
+    expect(upsertUploadedUsage).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      status: -1,
+      error: "invalid token",
+    });
+  });
+
+  it("returns 413 before parsing oversized upload bodies", async () => {
+    const response = await POST(
+      new Request(`http://localhost/api/collector/upload/${validToken}`, {
+        method: "POST",
+        body: JSON.stringify({ padding: "x".repeat(512 * 1024) }),
+      }),
+      context,
+    );
+
+    expect(response.status).toBe(413);
+    expect(upsertUploadedUsage).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      status: -1,
+      error: "payload too large",
     });
   });
 

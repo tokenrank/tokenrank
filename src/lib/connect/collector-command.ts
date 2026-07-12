@@ -11,33 +11,37 @@ export function buildCollectorCommand(webhookUrl: string): string {
 
 export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
   const appOrigin = getAppOrigin(webhookUrl);
+  const collectorToken = getCollectorToken(webhookUrl);
+  const tokenQuery = `token=${encodeURIComponent(collectorToken)}`;
   const unixTokenrankBin = '"${HOME}/.local/bin/tokenrank"';
   const windowsTokenrankBin = '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd"';
+  const windowsGuard = "if ($LASTEXITCODE) { exit $LASTEXITCODE }";
 
   return {
-    unix: [
-      `curl -fsSL "${appOrigin}/install.sh" | bash`,
-      `${unixTokenrankBin} connect "${webhookUrl}"`,
-      `${unixTokenrankBin} upload`,
-      `${unixTokenrankBin} service install`,
-    ].join("\n"),
-    windows: [
-      `irm "${appOrigin}/install.ps1" | iex`,
-      `${windowsTokenrankBin} connect "${webhookUrl}"`,
-      `${windowsTokenrankBin} upload`,
-      `${windowsTokenrankBin} service install`,
-    ].join("\n"),
+    unix: `curl -fsSL "${appOrigin}/install.sh?${tokenQuery}" | bash`,
+    windows: `irm "${appOrigin}/install.ps1?${tokenQuery}" | iex`,
     unixManual: [
       `${unixTokenrankBin} preview`,
       `${unixTokenrankBin} upload`,
-    ].join("\n"),
+    ].join(" && "),
     windowsManual: [
       `${windowsTokenrankBin} preview`,
+      windowsGuard,
       `${windowsTokenrankBin} upload`,
-    ].join("\n"),
+    ].join("; "),
   };
 }
 
 function getAppOrigin(webhookUrl: string): string {
   return new URL(webhookUrl).origin;
+}
+
+function getCollectorToken(webhookUrl: string): string {
+  const token = new URL(webhookUrl).pathname.split("/").filter(Boolean).at(-1);
+
+  if (!token) {
+    throw new Error("webhook URL 缺少 collector token。");
+  }
+
+  return token;
 }

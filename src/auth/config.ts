@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import type { Account, Profile, User } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
@@ -25,6 +26,8 @@ type TwitterV2Data = Partial<TwitterProfile["data"]>;
 type XProfileUser = User & {
   xHandle?: string | null;
 };
+
+const X_OAUTH_TIMEOUT_MS = 30000;
 
 const adapterMethodNames = [
   "createUser",
@@ -118,6 +121,30 @@ function normalizeXHandle(handle: string | null): string | null {
   return normalized || null;
 }
 
+function normalizeProxyUrl(proxyUrl: string): string {
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(proxyUrl) ? proxyUrl : `http://${proxyUrl}`;
+}
+
+function getXOAuthHttpOptions() {
+  const proxyUrl = firstString(
+    process.env.AUTH_PROXY_URL,
+    process.env.HTTPS_PROXY,
+    process.env.HTTP_PROXY,
+    process.env.ALL_PROXY,
+  );
+
+  if (!proxyUrl) {
+    return {
+      timeout: X_OAUTH_TIMEOUT_MS,
+    };
+  }
+
+  return {
+    timeout: X_OAUTH_TIMEOUT_MS,
+    agent: new HttpsProxyAgent(normalizeProxyUrl(proxyUrl)),
+  };
+}
+
 function getNormalizedProfile(profile: unknown): Record<string, unknown> | null {
   return isRecord(profile) ? profile : null;
 }
@@ -129,6 +156,24 @@ function mapTwitterProfile(profile: TwitterProfile): XProfileUser {
     email: null,
     image: profile.data.profile_image_url,
     xHandle: profile.data.username,
+  };
+}
+
+function getTwitterProvider() {
+  return {
+    ...Twitter<TwitterProfile>({
+      clientId: process.env.AUTH_X_ID ?? "",
+      clientSecret: process.env.AUTH_X_SECRET ?? "",
+      version: "2.0",
+      authorization: {
+        params: {
+          scope: "users.read tweet.read",
+        },
+      },
+      profile: mapTwitterProfile,
+    }),
+    httpOptions: getXOAuthHttpOptions(),
+    profile: mapTwitterProfile,
   };
 }
 
@@ -187,20 +232,11 @@ async function syncXIdentity({
 
 export const authOptions = {
   adapter,
-  providers: [
-    Twitter<TwitterProfile>({
-      clientId: process.env.AUTH_X_ID ?? "",
-      clientSecret: process.env.AUTH_X_SECRET ?? "",
-      version: "2.0",
-      authorization: {
-        params: {
-          scope: "users.read tweet.read",
-        },
-      },
-      profile: mapTwitterProfile,
-    }),
-  ],
+  providers: [getTwitterProvider()],
   secret: process.env.AUTH_SECRET,
+  pages: {
+    signIn: "/auth/signin",
+  },
   session: {
     strategy: "database",
   },

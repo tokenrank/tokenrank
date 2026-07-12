@@ -1,5 +1,5 @@
-import { createServer, type IncomingMessage } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
+import { createServer, type IncomingMessage } from "node:http";
 import { connect as connectSocket } from "node:net";
 import { access, copyFile, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,9 +14,101 @@ import { TOOL_KEYS } from "../types";
 const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("bin/tokenrank.mjs");
 
+type NodeSqliteModule = {
+  DatabaseSync: new (file: string, options?: { readOnly?: boolean }) => {
+    close: () => void;
+    exec: (sql: string) => void;
+  };
+};
+
+async function importNodeSqlite(): Promise<NodeSqliteModule> {
+  const moduleName = "node:sqlite";
+  const originalEmitWarning = process.emitWarning;
+  process.emitWarning = ((warning: string | Error, ...args: unknown[]) => {
+    if (args[0] === "ExperimentalWarning" || String(warning).includes("SQLite")) {
+      return;
+    }
+
+    originalEmitWarning.call(process, warning as string, ...(args as [string?, string?, string?]));
+  }) as typeof process.emitWarning;
+
+  try {
+    return (await import(moduleName)) as NodeSqliteModule;
+  } finally {
+    process.emitWarning = originalEmitWarning;
+  }
+}
+
+const testTlsKey = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDaeBTn/zCdHU6x
+leTb1PXLXQLZ5Xs1kgMam+L7wQneoYR7Jkcls84WyC1zTWk0wGFKujgMmZjtpcC/
+PbIZ05/U437IOgvNH4WrRlcMcX6358CZiHYDbq65EJNFJ9FbWViW6Yq9GviG0bTD
+e6i2/AZsu9WuskH3NxuvKUr8Fp/0MFgmRXQZ2HGkSgaSOD9npCNNS263vnE+VOle
+IkFwOAgU6fAIXL8xyxr11oNQ1q5goihT0x4lhVSUnrwUgR5W1PvBlqUubscJkxXq
+Tx/yQwq0pacyh0PLVy1opu2vfxQevkBfXvQM1N1gPOljlyJ1g38Llp7dxqepj6Ix
+LHOne6FtAgMBAAECggEANGttsMDlfD1k/W1W7XxqwbH+liPe7VqsjfzreLa31Ihy
+zk2/8obzIzpC1ZC0dqjWb2TBQBy2ugb0ea6nBlVl22H+sLJk1IIEw7Tr/BtbaWsd
+Jnm8v1QWbmdQvt4v+Lg2bnd5B6jqCwdUVTddoxJTxFFJk1JIS7YYWW4SBOy00pU5
+hAWQB9Lrf2+U6ZmDjIc5zy9VCZlUsebhSh9XXVsYx7TFK3pbP7UlLP2gOKu7AEXD
+pCTYqeAFgM4hdClR0y+q8othDejPb12lk8vfmtPVRM5MNG9zY0WiJNHNF8D27fYX
+uQ3Wy/KZlgn7SpwdWORTAqWF5C76do0CqZ+gHT3zAQKBgQDtF4Cgnry+/Vh7r2Vx
+M5iRKIVPoxsKWsEzQjPvUfp6z+A+CBtmf0OyO9eQgPjVArAZyPFTEYmCfzXh6Jdv
+PrRlPj5PiUeiFDu6HwGsa9JTtOe7NcPuBAcckv2ll6Msfiy8snkW/CdajFMuW83z
+kIPq+suoskrkdZLO9w8C7P4vQQKBgQDr5F/89J8abhwCyKvQG3uN3ySSv/HZepAY
+GOSDLJNPyLdezqA2n2j3vhGu3xrz2qtB385LDuSqIsPV+51ESlvYIi6NAhBhLKzL
+wmw2rRTYp72DwIiJCCvR9GHUubZBN1oFiXrshKYP/vKU2DnXFMTG/UO/wFDKITFn
+yUZjaeuTLQKBgCGkCxE/VMK4ydxK59bnHkfCex/wob6XYAB47UuQ0zyn0Eac+d5S
+QnXAvfZ4BlabGgeelndV7rAAgtG6Ifqb6BbRfR/l968MtejTy3X+mopcCeFrYJCe
+K7AnPyxG1tVSVeC0ZjAXuTHE5WyXhCKCJ+WojksyeSPvdtQ9A/lDTVHBAoGAYy5D
+WZT0rGUta9I5wyc6/LycoQMJSdppaWhV8/0y9vG6f6c635yIwtlsj+0IZQ1Ewk66
+av6ZEBvL4VWImyT0ltxQXENI5cKl6IoXe6msQSfN2+6AubTwz7cDxzBKPANs2zUh
+tP5U4BbeocyEDTWTQuNLr/zJOyNXpX6QFM59GQUCgYEAssSokP7Qu1L9aWSdH3zm
+2oy++tpPzzRss1cHsD17zHLqqF7MyvEyxo976UYWHt4TCIVbDUsEkXoUhPv3MaeU
+r+J8ZeVLT+HU9g8fCw8n3Ps3f3sJ4lDFzCllj0cR8jig5fXajzpbsaai4QY8wwEP
+lgy92ktjMh5UrTe8P+ZRq3A=
+-----END PRIVATE KEY-----
+`;
+
+const testTlsCert = `-----BEGIN CERTIFICATE-----
+MIIDPTCCAiWgAwIBAgIUK6OkpFUSLKgQN9yk2qHy1RyMc+8wDQYJKoZIhvcNAQEL
+BQAwHDEaMBgGA1UEAwwRdG9rZW5yYW5rLmludmFsaWQwHhcNMjYwNjI3MTcwOTUx
+WhcNMjcwNjI3MTcwOTUxWjAcMRowGAYDVQQDDBF0b2tlbnJhbmsuaW52YWxpZDCC
+ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANp4FOf/MJ0dTrGV5NvU9ctd
+AtnlezWSAxqb4vvBCd6hhHsmRyWzzhbILXNNaTTAYUq6OAyZmO2lwL89shnTn9Tj
+fsg6C80fhatGVwxxfrfnwJmIdgNurrkQk0Un0VtZWJbpir0a+IbRtMN7qLb8Bmy7
+1a6yQfc3G68pSvwWn/QwWCZFdBnYcaRKBpI4P2ekI01Lbre+cT5U6V4iQXA4CBTp
+8AhcvzHLGvXWg1DWrmCiKFPTHiWFVJSevBSBHlbU+8GWpS5uxwmTFepPH/JDCrSl
+pzKHQ8tXLWim7a9/FB6+QF9e9AzU3WA86WOXInWDfwuWnt3Gp6mPojEsc6d7oW0C
+AwEAAaN3MHUwHQYDVR0OBBYEFO/YubzfI6AnYGJs+rTN9Up5vQU4MB8GA1UdIwQY
+MBaAFO/YubzfI6AnYGJs+rTN9Up5vQU4MA8GA1UdEwEB/wQFMAMBAf8wIgYDVR0R
+BBswGYIRdG9rZW5yYW5rLmludmFsaWSHBH8AAAEwDQYJKoZIhvcNAQELBQADggEB
+AAXDIfGPOSGHn20t066+Ct4PQrvRr8obAAdpAkCei1ZEmmJIkEEtR72jF0IRwI9R
+QICJMc8MT4TElB8I6Rti9njRCbNHxa8JuXElCVAThGfueeVndDp9oSb7/02i2A4t
+HkQFBHxJcmSLmTcxf2nj77Hot4XvOHQhj7fDpi5DOwhXnX615pVi8mUrlaVHWFVt
+YbO4Aqmi25Bfw7TBErKNfabfNnUja4cMDFgLjyicgwYuMD83Ni9QRBjArBfMImw8
+XjlkFumwUO6xw2p68m15FPI0u+lPMyucEK34qQhhyhgDZhXA3LePg10hocK0l6Mz
+mWdPBHAaoVtKmAJPHv7llu4=
+-----END CERTIFICATE-----
+`;
+
+function cliEnv(home: string, extraEnv: NodeJS.ProcessEnv = {}) {
+  return {
+    ...process.env,
+    HOME: home,
+    USERPROFILE: home,
+    APPDATA: path.join(home, "AppData", "Roaming"),
+    LOCALAPPDATA: path.join(home, "AppData", "Local"),
+    XDG_DATA_HOME: path.join(home, ".local", "share"),
+    CODEX_HOME: path.join(home, ".codex"),
+    GEMINI_CLI_HOME: path.join(home, ".gemini"),
+    TOKENRANK_SERVICE_NO_REGISTER: "1",
+    ...extraEnv,
+  };
+}
+
 async function runCli(args: string[], home: string, extraEnv: NodeJS.ProcessEnv = {}) {
   return execFileAsync(process.execPath, [cliPath, ...args], {
-    env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1", ...extraEnv },
+    env: cliEnv(home, extraEnv),
   });
 }
 
@@ -29,7 +121,7 @@ async function runInstalledCli(args: string[], home: string) {
   await copyFile(path.resolve("package.json"), path.join(installDir, "package.json"));
 
   return execFileAsync(process.execPath, [installedCliPath, ...args], {
-    env: { ...process.env, HOME: home, TOKENRANK_SERVICE_NO_REGISTER: "1" },
+    env: cliEnv(home),
   });
 }
 
@@ -42,17 +134,20 @@ const sourceFixturePaths = {
   "claude-code": ".claude/projects/demo/claude.jsonl",
   hermes: ".hermes/sessions/hermes.jsonl",
   openclaw: ".openclaw/agents/openclaw.jsonl",
-  cline: "Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/cline.json",
+  cline: "AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/cline.json",
   opencode: ".local/share/opencode/sessions/opencode.jsonl",
   workbuddy: ".workbuddy/traces/workbuddy.jsonl",
   gemini: ".gemini/tmp/boss/chats/gemini.json",
   zcode: ".zcode/sessions/zcode.jsonl",
   kimi: ".kimi/sessions/kimi.jsonl",
-  "kilo-code": "Library/Application Support/Code/User/globalStorage/kilocode.kilo-code/tasks/kilo.json",
+  "kilo-code": "AppData/Roaming/Code/User/globalStorage/kilocode.kilo-code/tasks/kilo.json",
   "codex-vps": ".codex-vps/sessions/codex-vps.jsonl",
-  "roo-code": "Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks/roo.json",
+  "roo-code": "AppData/Roaming/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks/roo.json",
   qwen: ".qwen/sessions/qwen.jsonl",
   "codex-cache": ".codex/cache/session/codex-cache.jsonl",
+  cursor: ".tokenrank/imports/cursor-usage.json",
+  "github-copilot": ".copilot/logs/copilot-usage.jsonl",
+  continue: ".continue/sessions/continue-usage.json",
 } as const satisfies Record<(typeof TOOL_KEYS)[number], string>;
 
 function expectedFixtureTotal(tool: (typeof TOOL_KEYS)[number]) {
@@ -125,29 +220,10 @@ async function withProxyUploadServer<T>(
   }
 }
 
-async function createSelfSignedCertificate(home: string) {
-  const keyPath = path.join(home, "localhost.key");
-  const certPath = path.join(home, "localhost.crt");
-
-  await execFileAsync("openssl", [
-    "req",
-    "-x509",
-    "-newkey",
-    "rsa:2048",
-    "-nodes",
-    "-keyout",
-    keyPath,
-    "-out",
-    certPath,
-    "-subj",
-    "/CN=tokenrank.invalid",
-    "-days",
-    "1",
-  ]);
-
+async function createSelfSignedCertificate() {
   return {
-    key: await readFile(keyPath),
-    cert: await readFile(certPath),
+    key: Buffer.from(testTlsKey),
+    cert: Buffer.from(testTlsCert),
   };
 }
 
@@ -156,7 +232,7 @@ async function withHttpsUploadProxy<T>(
   handler: (payload: unknown) => void | Promise<void>,
   callback: (proxyUrl: string, getTunnelTarget: () => string | undefined) => Promise<T>,
 ) {
-  const cert = await createSelfSignedCertificate(home);
+  const cert = await createSelfSignedCertificate();
   const uploadServer = createHttpsServer(cert, async (request, response) => {
     const body = await readRequestBody(request);
     await handler(JSON.parse(body));
@@ -220,16 +296,59 @@ async function writeJsonLog(home: string, relativePath: string, value: unknown) 
   await writeFile(file, body);
 }
 
+async function writeJsonLines(home: string, relativePath: string, values: unknown[]) {
+  const file = path.join(home, relativePath);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, `${values.map((value) => JSON.stringify(value)).join("\n")}\n`);
+}
+
 async function writeSqliteUsage(home: string, relativePath: string) {
   const file = path.join(home, relativePath);
   await mkdir(path.dirname(file), { recursive: true });
-  await execFileAsync("sqlite3", [
-    file,
-    [
-      "create table sessions (id text, model text, started_at integer, input_tokens integer, output_tokens integer, cache_read_tokens integer, cache_write_tokens integer);",
-      "insert into sessions values ('row-1', 'sqlite-model', 1782201600, 7, 8, 9, 10);",
-    ].join(" "),
-  ]);
+  const { DatabaseSync } = await importNodeSqlite();
+  const db = new DatabaseSync(file);
+
+  try {
+    db.exec(
+      [
+        "create table sessions (id text, model text, started_at integer, input_tokens integer, output_tokens integer, cache_read_tokens integer, cache_write_tokens integer);",
+        "insert into sessions values ('row-1', 'sqlite-model', 1782201600, 7, 8, 9, 10);",
+      ].join(" "),
+    );
+  } finally {
+    db.close();
+  }
+}
+
+async function withSequencedUploadServer<T>(
+  statuses: number[],
+  callback: (webhookUrl: string, requestCount: () => number) => Promise<T>,
+) {
+  let requests = 0;
+  const server = createServer(async (request, response) => {
+    await readRequestBody(request);
+    const status = statuses[Math.min(requests, statuses.length - 1)] ?? 200;
+    requests += 1;
+    response.writeHead(status, { "content-type": "application/json" });
+    response.end(
+      JSON.stringify(status >= 200 && status < 300 ? { status: 0, uploaded: 1 } : { status: 1, error: "temporary" }),
+    );
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+
+  try {
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("test server did not bind");
+    return await callback(
+      `http://127.0.0.1:${address.port}/api/collector/upload/test-token`,
+      () => requests,
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
 }
 
 async function exists(file: string) {
@@ -239,6 +358,10 @@ async function exists(file: string) {
   } catch {
     return false;
   }
+}
+
+function stripAnsi(value: string) {
+  return value.replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "");
 }
 
 async function writeAllToolFixtures(home: string) {
@@ -288,7 +411,100 @@ describe("tokenrank collector CLI", () => {
     const mode = (await stat(configPath)).mode & 0o777;
 
     expect(config.webhookUrl).toBe("https://tokenrank.test/api/collector/upload/secret");
-    expect(mode).toBe(0o600);
+    if (process.platform !== "win32") {
+      expect(mode).toBe(0o600);
+    }
+  });
+
+  it("can suppress the logo for chained installer steps", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(
+      ["connect", "https://tokenrank.test/api/collector/upload/secret"],
+      home,
+      { TOKENRANK_NO_LOGO: "1" },
+    );
+
+    expect(stdout).toContain("已保存 webhook");
+    expect(stdout).not.toContain("TOKENRANK");
+    expect(stdout).not.toContain("AI coding usage collector");
+    expect(stdout).not.toContain("next: tokenrank upload");
+  });
+
+  it("renders a neon block-art command center in a wide TTY", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["tools"], home, {
+      TOKENRANK_TEST_TTY: "1",
+      TOKENRANK_NO_ANIMATION: "1",
+      COLUMNS: "120",
+    });
+
+    expect(stdout).toContain("TOKENRANK // LIVE GRID");
+    expect(stdout).toContain("SUPPORTED TOOL GRID");
+    expect(stdout).toContain("\u001b[48;2;");
+    expect(stdout).toContain("████");
+    expect(stdout).toContain("github-copilot");
+  });
+
+  it("uses a compact layout without overflowing a narrow terminal", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["tools"], home, {
+      TOKENRANK_TEST_TTY: "1",
+      TOKENRANK_NO_ANIMATION: "1",
+      COLUMNS: "52",
+    });
+    const visibleLines = stripAnsi(stdout).split("\n");
+
+    expect(visibleLines.every((line) => [...line].length <= 52)).toBe(true);
+    expect(stdout).toContain("TOKENRANK // LIVE GRID");
+  });
+
+  it("keeps NO_COLOR output free of ANSI control sequences", async () => {
+    const home = await tempHome();
+    const { stdout } = await runCli(["tools"], home, {
+      TOKENRANK_TEST_TTY: "1",
+      TOKENRANK_NO_ANIMATION: "1",
+      NO_COLOR: "1",
+      COLUMNS: "120",
+    });
+
+    expect(stdout).not.toContain("\u001b[");
+    expect(stdout).toContain("TOKENRANK // LIVE GRID");
+  });
+
+  it("reports connection, service, and next boundary from tokenrank status", async () => {
+    const home = await tempHome();
+    const env = {
+      TOKENRANK_TEST_PLATFORM: "darwin",
+      TOKENRANK_NOW: "2026-07-12T05:00:00.000Z",
+      TOKENRANK_NO_LOGO: "1",
+    };
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, env);
+    await runCli(["service", "install"], home, env);
+
+    const { stdout } = await runCli(["status"], home, env);
+
+    expect(stdout).toContain("CONNECTED");
+    expect(stdout).toContain("SERVICE INSTALLED");
+    expect(stdout).toContain("NEXT BOUNDARY");
+    expect(stdout).not.toContain("/secret");
+  });
+
+  it("diagnoses exact tool sources without exposing local paths", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "doctor-codex-event",
+      timestamp: "2026-07-12T05:00:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 9, output_tokens: 3 },
+    });
+
+    const { stdout } = await runCli(["doctor"], home, { TOKENRANK_NO_LOGO: "1" });
+
+    expect(stdout).toContain("codex\tREADY");
+    expect(stdout).toContain("cursor\tEXACT SOURCE REQUIRED");
+    expect(stdout).toContain("github-copilot");
+    expect(stdout).toContain("continue");
+    expect(stdout).not.toContain(home);
   });
 
   it("removes the saved webhook config on logout", async () => {
@@ -313,25 +529,283 @@ describe("tokenrank collector CLI", () => {
     }
   });
 
-  it("previews aggregate rows scanned from local tool logs without raw content", async () => {
+  it("keeps Codex usage attributed to Codex when Cursor is the editor host", async () => {
     const home = await tempHome();
-    await writeAllToolFixtures(home);
+    await writeJsonLog(home, ".codex/sessions/cursor-hosted-codex.jsonl", {
+      id: "codex-event-in-cursor",
+      timestamp: "2026-07-12T05:00:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 11, output_tokens: 7 },
+    });
 
-    const { stdout } = await runCli(["preview", "--json"], home);
-    const payload = JSON.parse(stdout) as { entries: Array<{ tool: string; total: number }> };
+    const cursor = JSON.parse((await runCli(["preview", "--json", "--tool", "cursor"], home)).stdout) as {
+      entries: Array<{ tool: string }>;
+    };
+    const codex = JSON.parse((await runCli(["preview", "--json", "--tool", "codex"], home)).stdout) as {
+      entries: Array<{ tool: string; total: number }>;
+    };
 
-    expect(payload.entries).toHaveLength(TOOL_KEYS.length);
-    expect(payload.entries).toEqual(
-      TOOL_KEYS.map((tool) =>
-        expect.objectContaining({
-          date: "2026-06-23",
-          tool,
-          model: `${tool}-model`,
-          total: expectedFixtureTotal(tool),
-        }),
-      ),
+    expect(cursor.entries).toEqual([]);
+    expect(codex.entries).toEqual([expect.objectContaining({ tool: "codex", total: 18 })]);
+  });
+
+  it("finds VS Code extension tools under Windows APPDATA", async () => {
+    const home = await tempHome();
+    await writeJsonLog(
+      home,
+      "AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/cline.json",
+      {
+        id: "windows-cline-event",
+        timestamp: "2026-07-12T05:00:00.000Z",
+        model: "claude-sonnet-4",
+        usage: { input_tokens: 6, output_tokens: 4 },
+      },
     );
-    expect(stdout).not.toContain("must not appear");
+
+    const payload = JSON.parse(
+      (
+        await runCli(["preview", "--json", "--tool", "cline"], home, {
+          TOKENRANK_TEST_PLATFORM: "win32",
+        })
+      ).stdout,
+    ) as { entries: Array<{ tool: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({ tool: "cline", total: 10 }),
+    ]);
+  });
+
+  it("deduplicates the same provider event before daily aggregation", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.cursor, [
+      {
+        id: "cursor-request-1",
+        timestamp: "2026-07-12T05:00:00.000Z",
+        model: "claude-sonnet-4",
+        tokenUsage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 10, cacheWriteTokens: 5 },
+      },
+      {
+        id: "cursor-request-1",
+        timestamp: "2026-07-12T05:00:00.000Z",
+        model: "claude-sonnet-4",
+        tokenUsage: { inputTokens: 100, outputTokens: 20, cacheReadTokens: 10, cacheWriteTokens: 5 },
+      },
+    ]);
+
+    const payload = JSON.parse(
+      (await runCli(["preview", "--json", "--tool", "cursor"], home)).stdout,
+    ) as { entries: Array<{ tool: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({ tool: "cursor", total: 135 }),
+    ]);
+  });
+
+  it("reads GitHub Copilot OpenTelemetry token usage metrics", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, ".copilot/logs/github-copilot-otel.log", {
+      resourceMetrics: [
+        {
+          scopeMetrics: [
+            {
+              metrics: [
+                {
+                  name: "gen_ai.client.token.usage",
+                  data: {
+                    dataPoints: [
+                      {
+                        timeUnixNano: "1783828800000000000",
+                        sum: 30,
+                        attributes: [
+                          { key: "gen_ai.token.type", value: { stringValue: "input" } },
+                          { key: "gen_ai.request.model", value: { stringValue: "gpt-5" } },
+                        ],
+                      },
+                      {
+                        timeUnixNano: "1783828800000000000",
+                        sum: 12,
+                        attributes: [
+                          { key: "gen_ai.token.type", value: { stringValue: "output" } },
+                          { key: "gen_ai.request.model", value: { stringValue: "gpt-5" } },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const payload = JSON.parse(
+      (await runCli(["preview", "--json", "--tool", "github-copilot"], home)).stdout,
+    ) as { entries: Array<{ input: number; output: number; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({ input: 30, output: 12, total: 42 }),
+    ]);
+  });
+
+  it(
+    "previews aggregate rows scanned from local tool logs without raw content",
+    async () => {
+      const home = await tempHome();
+      await writeAllToolFixtures(home);
+
+      const { stdout } = await runCli(["preview", "--json"], home);
+      const payload = JSON.parse(stdout) as { entries: Array<{ tool: string; total: number }> };
+
+      expect(payload.entries).toHaveLength(TOOL_KEYS.length);
+      expect(payload.entries).toEqual(
+        TOOL_KEYS.map((tool) =>
+          expect.objectContaining({
+            date: "2026-06-23",
+            tool,
+            model: `${tool}-model`,
+            total: expectedFixtureTotal(tool),
+          }),
+        ),
+      );
+      expect(stdout).not.toContain("must not appear");
+    },
+    15_000,
+  );
+
+  it("scores Claude Code rows as raw input, output, and cache tokens", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths["claude-code"], {
+      timestamp: "2026-07-01T00:00:00.000Z",
+      type: "assistant",
+      message: {
+        model: "claude-fixture",
+        usage: {
+          input_tokens: 1_000,
+          cache_read_input_tokens: 800,
+          cache_creation_input_tokens: 50,
+          output_tokens: 200,
+        },
+      },
+    });
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "claude-code"], home);
+    const payload = JSON.parse(stdout) as {
+      entries: Array<{
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        total: number;
+      }>;
+    };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        input: 1_000,
+        output: 200,
+        cacheRead: 800,
+        cacheWrite: 50,
+        total: 2_050,
+      }),
+    ]);
+  });
+
+  it("uses a tool-specific model bucket when local logs do not expose model names", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, ".codex/sessions/codex.jsonl", {
+      timestamp: "2026-06-23T08:00:00.000Z",
+      usage: {
+        input_tokens: 10,
+        output_tokens: 5,
+      },
+    });
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "codex"], home);
+    const payload = JSON.parse(stdout) as { entries: Array<{ model: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        model: "codex-unattributed",
+        total: 15,
+      }),
+    ]);
+  });
+
+  it("carries Codex JSONL model context into later usage rows", async () => {
+    const home = await tempHome();
+    await writeJsonLines(home, ".codex/sessions/codex.jsonl", [
+      {
+        timestamp: "2026-06-23T08:00:00.000Z",
+        type: "turn_context",
+        payload: {
+          model: "gpt-5.2-codex",
+        },
+      },
+      {
+        timestamp: "2026-06-23T08:01:00.000Z",
+        type: "response_item",
+        payload: {
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+          },
+        },
+      },
+    ]);
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "codex"], home);
+    const payload = JSON.parse(stdout) as { entries: Array<{ model: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        model: "gpt-5.2-codex",
+        total: 15,
+      }),
+    ]);
+  });
+
+  it("does not carry a JSONL event id into later usage rows", async () => {
+    const home = await tempHome();
+    await writeJsonLines(home, ".codex/sessions/codex.jsonl", [
+      {
+        type: "session_meta",
+        payload: {
+          id: "codex-session-id",
+          model: "gpt-5.2-codex",
+        },
+      },
+      {
+        timestamp: "2026-06-23T08:01:00.000Z",
+        type: "response_item",
+        payload: {
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+          },
+        },
+      },
+      {
+        timestamp: "2026-06-23T08:02:00.000Z",
+        type: "response_item",
+        payload: {
+          usage: {
+            input_tokens: 12,
+            output_tokens: 7,
+          },
+        },
+      },
+    ]);
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "codex"], home);
+    const payload = JSON.parse(stdout) as { entries: Array<{ model: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        model: "gpt-5.2-codex",
+        total: 34,
+      }),
+    ]);
   });
 
   it("does not double-count Codex cached and reasoning token detail fields", async () => {
@@ -364,6 +838,29 @@ describe("tokenrank collector CLI", () => {
         output: 200,
         cacheRead: 800,
         total: 1_200,
+      }),
+    ]);
+  });
+
+  it("ignores mismatched source totals while scanning local tool logs", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.openclaw, {
+      timestamp: "2026-06-23T08:00:00.000Z",
+      model: "openclaw-total-mismatch",
+      usage: {
+        input_tokens: 7,
+        output_tokens: 8,
+        total_tokens: 999,
+      },
+    });
+
+    const { stdout } = await runCli(["preview", "--json", "--tool", "openclaw"], home);
+    const payload = JSON.parse(stdout) as { entries: Array<{ model: string; total: number }> };
+
+    expect(payload.entries).toEqual([
+      expect.objectContaining({
+        model: "openclaw-total-mismatch",
+        total: 15,
       }),
     ]);
   });
@@ -605,6 +1102,35 @@ describe("tokenrank collector CLI", () => {
         const { stdout } = await runCli(["upload"], home);
 
         expect(stdout).toContain("1 条");
+        expect(stdout).toContain("Scan local usage");
+        expect(stdout).toContain("codex");
+        expect(stdout).toContain("Uploading");
+      },
+    );
+  });
+
+  it("animates the real upload batch as an upload grid in a TTY", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "visual-upload-event",
+      timestamp: "2026-07-12T05:00:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 5, output_tokens: 6 },
+    });
+
+    await withUploadServer(
+      () => undefined,
+      async (webhookUrl) => {
+        await runCli(["connect", webhookUrl], home, { TOKENRANK_NO_LOGO: "1" });
+        const { stdout } = await runCli(["upload"], home, {
+          TOKENRANK_TEST_TTY: "1",
+          COLUMNS: "96",
+        });
+
+        expect(stdout).toContain("BOOTING TOKEN GRID");
+        expect(stdout).toContain("UPLOAD GRID");
+        expect(stdout).toContain("████");
+        expect(stdout).toContain("GRID SYNCHRONIZED");
       },
     );
   });
@@ -626,11 +1152,139 @@ describe("tokenrank collector CLI", () => {
     ]);
   });
 
+  it("uploads a missed scheduled boundary once and skips duplicate triggers", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "scheduled-codex-event",
+      timestamp: "2026-07-12T04:30:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 8, output_tokens: 4 },
+    });
+
+    await withSequencedUploadServer([200], async (webhookUrl, requestCount) => {
+      const clock = { TOKENRANK_NOW: "2026-07-12T05:00:00.000Z" };
+      await runCli(["connect", webhookUrl], home);
+      await runCli(["daemon", "--once", "--scheduled"], home, clock);
+      await runCli(["daemon", "--once", "--scheduled"], home, clock);
+
+      expect(requestCount()).toBe(1);
+      const state = JSON.parse(
+        await readFile(path.join(home, ".tokenrank", "service-state.json"), "utf8"),
+      ) as { lastScheduledBoundary: string; lastSuccessfulAt: string };
+      expect(state.lastScheduledBoundary).toBe("2026-07-12T04:00:00.000Z");
+      expect(state.lastSuccessfulAt).toBe("2026-07-12T05:00:00.000Z");
+    });
+  });
+
+  it("lets a successful manual local upload satisfy the current schedule boundary", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "manual-boundary-event",
+      timestamp: "2026-07-12T04:30:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 8, output_tokens: 4 },
+    });
+
+    await withSequencedUploadServer([200], async (webhookUrl, requestCount) => {
+      const clock = { TOKENRANK_NOW: "2026-07-12T05:00:00.000Z" };
+      await runCli(["connect", webhookUrl], home);
+      await runCli(["upload"], home, clock);
+      await runCli(["daemon", "--once", "--scheduled"], home, clock);
+
+      expect(requestCount()).toBe(1);
+      const state = JSON.parse(
+        await readFile(path.join(home, ".tokenrank", "service-state.json"), "utf8"),
+      ) as { lastScheduledBoundary: string };
+      expect(state.lastScheduledBoundary).toBe("2026-07-12T04:00:00.000Z");
+    });
+  });
+
+  it("does not let a filtered manual upload satisfy the current schedule boundary", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "filtered-manual-codex-event",
+      timestamp: "2026-07-12T04:30:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 8, output_tokens: 4 },
+    });
+    await writeJsonLog(home, sourceFixturePaths["claude-code"], {
+      id: "scheduled-claude-event",
+      timestamp: "2026-07-12T04:35:00.000Z",
+      model: "claude-sonnet-4",
+      usage: { input_tokens: 6, output_tokens: 3 },
+    });
+
+    await withSequencedUploadServer([200, 200], async (webhookUrl, requestCount) => {
+      const clock = { TOKENRANK_NOW: "2026-07-12T05:00:00.000Z" };
+      await runCli(["connect", webhookUrl], home);
+      await runCli(["upload", "--tool", "codex"], home, clock);
+      await runCli(["daemon", "--once", "--scheduled"], home, clock);
+
+      expect(requestCount()).toBe(2);
+      const state = JSON.parse(
+        await readFile(path.join(home, ".tokenrank", "service-state.json"), "utf8"),
+      ) as { lastScheduledBoundary: string };
+      expect(state.lastScheduledBoundary).toBe("2026-07-12T04:00:00.000Z");
+    });
+  });
+
+  it("retries a scheduled boundary after a failed upload", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "retry-codex-event",
+      timestamp: "2026-07-12T04:30:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 8, output_tokens: 4 },
+    });
+
+    await withSequencedUploadServer([500, 200], async (webhookUrl, requestCount) => {
+      const clock = { TOKENRANK_NOW: "2026-07-12T05:00:00.000Z" };
+      await runCli(["connect", webhookUrl], home);
+      await expect(
+        runCli(["daemon", "--once", "--scheduled"], home, clock),
+      ).rejects.toMatchObject({ stderr: expect.stringContaining("temporary") });
+      await runCli(["daemon", "--once", "--scheduled"], home, clock);
+
+      expect(requestCount()).toBe(2);
+      const state = JSON.parse(
+        await readFile(path.join(home, ".tokenrank", "service-state.json"), "utf8"),
+      ) as { lastScheduledBoundary: string; lastErrorCode: string | null };
+      expect(state.lastScheduledBoundary).toBe("2026-07-12T04:00:00.000Z");
+      expect(state.lastErrorCode).toBeNull();
+    });
+  });
+
+  it("recovers a stale collector lock instead of skipping forever", async () => {
+    const home = await tempHome();
+    await writeJsonLog(home, sourceFixturePaths.codex, {
+      id: "stale-lock-event",
+      timestamp: "2026-07-12T04:30:00.000Z",
+      model: "gpt-5-codex",
+      usage: { input_tokens: 8, output_tokens: 4 },
+    });
+    await mkdir(path.join(home, ".tokenrank"), { recursive: true });
+    await writeFile(
+      path.join(home, ".tokenrank", "collector.lock"),
+      JSON.stringify({ pid: 999_999_999, createdAt: "2026-07-11T00:00:00.000Z" }),
+    );
+
+    await withSequencedUploadServer([200], async (webhookUrl, requestCount) => {
+      await runCli(["connect", webhookUrl], home);
+      await runCli(["daemon", "--once", "--scheduled"], home, {
+        TOKENRANK_NOW: "2026-07-12T05:00:00.000Z",
+      });
+
+      expect(requestCount()).toBe(1);
+      expect(await exists(path.join(home, ".tokenrank", "collector.lock"))).toBe(false);
+    });
+  });
+
   it("installs, reports, and uninstalls the background service config", async () => {
     const home = await tempHome();
-    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home);
+    const darwinEnv = { TOKENRANK_TEST_PLATFORM: "darwin" };
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, darwinEnv);
 
-    const install = await runCli(["service", "install", "--interval", "120"], home);
+    const install = await runCli(["service", "install", "--interval", "120"], home, darwinEnv);
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
     const plist = await readFile(plistPath, "utf8");
 
@@ -641,21 +1295,47 @@ describe("tokenrank collector CLI", () => {
     expect(plist).toContain("<integer>0</integer>");
     expect(plist).toContain("<integer>12</integer>");
     expect(plist).not.toContain("StartInterval");
-    expect(plist).not.toContain("RunAtLoad");
+    expect(plist).toContain("<key>RunAtLoad</key>");
+    expect(plist).toContain("<true/>");
+    expect(plist).toContain("--scheduled");
 
-    const status = await runCli(["service", "status"], home);
+    const status = await runCli(["service", "status"], home, darwinEnv);
     expect(status.stdout).toContain("已安装");
 
-    const uninstall = await runCli(["service", "uninstall"], home);
+    const uninstall = await runCli(["service", "uninstall"], home, darwinEnv);
     expect(uninstall.stdout).toContain("已卸载");
     expect(await exists(plistPath)).toBe(false);
   });
 
+  it("propagates service registration failures and does not report config files as registered", async () => {
+    const home = await tempHome();
+    const systemdEnv = { TOKENRANK_TEST_PLATFORM: "linux" };
+    await runCli(
+      ["connect", "https://tokenrank.test/api/collector/upload/secret"],
+      home,
+      systemdEnv,
+    );
+    await runCli(["service", "install"], home, systemdEnv);
+
+    const missingCommandEnv = {
+      ...systemdEnv,
+      PATH: path.join(home, "empty-bin"),
+      TOKENRANK_SERVICE_NO_REGISTER: "",
+    };
+    const status = await runCli(["service", "status"], home, missingCommandEnv);
+    expect(status.stdout).toContain("未安装");
+
+    await expect(runCli(["service", "install"], home, missingCommandEnv)).rejects.toMatchObject({
+      stderr: expect.stringContaining("systemctl"),
+    });
+  });
+
   it("defaults the background service to fixed 00:00 and 12:00 collection times", async () => {
     const home = await tempHome();
-    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home);
+    const darwinEnv = { TOKENRANK_TEST_PLATFORM: "darwin" };
+    await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, darwinEnv);
 
-    await runCli(["service", "install"], home);
+    await runCli(["service", "install"], home, darwinEnv);
     const plistPath = path.join(home, "Library", "LaunchAgents", "com.tokenrank.collector.plist");
     const plist = await readFile(plistPath, "utf8");
 
@@ -677,6 +1357,7 @@ describe("tokenrank collector CLI", () => {
 
     expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(service).toContain("daemon --once");
+    expect(service).toContain("--scheduled");
     expect(service).not.toContain("--interval");
     expect(timer).toContain("OnCalendar=*-*-* 00:00:00");
     expect(timer).toContain("OnCalendar=*-*-* 12:00:00");
@@ -690,18 +1371,29 @@ describe("tokenrank collector CLI", () => {
     expect(await exists(timerPath)).toBe(false);
   });
 
-  it("installs, reports, and uninstalls the Windows background task runner", async () => {
+  it("installs a hidden Windows task with missed-run and logon recovery", async () => {
     const home = await tempHome();
     const windowsEnv = { TOKENRANK_TEST_PLATFORM: "win32" };
     await runCli(["connect", "https://tokenrank.test/api/collector/upload/secret"], home, windowsEnv);
 
     const install = await runCli(["service", "install"], home, windowsEnv);
-    const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.cmd");
+    const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.ps1");
+    const taskPath = path.join(home, ".tokenrank", "tokenrank-collector.xml");
     const runner = await readFile(runnerPath, "utf8");
+    const task = await readFile(taskPath, "utf8");
 
     expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(runner).toContain("daemon --once");
+    expect(runner).toContain("--scheduled");
     expect(runner).toContain("tokenrank.mjs");
+    expect(runner).toContain("TOKENRANK_NO_ANIMATION");
+    expect(runner).not.toContain("tokenrank.cmd");
+    expect(task).toContain("<LogonTrigger>");
+    expect(task.match(/<CalendarTrigger>/g)).toHaveLength(2);
+    expect(task).toContain("<StartWhenAvailable>true</StartWhenAvailable>");
+    expect(task).toContain("<Hidden>true</Hidden>");
+    expect(task).toContain("<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>");
+    expect(task).toContain("-NoProfile -NonInteractive -WindowStyle Hidden");
 
     const status = await runCli(["service", "status"], home, windowsEnv);
     expect(status.stdout).toContain("已安装");
@@ -709,5 +1401,6 @@ describe("tokenrank collector CLI", () => {
     const uninstall = await runCli(["service", "uninstall"], home, windowsEnv);
     expect(uninstall.stdout).toContain("已卸载");
     expect(await exists(runnerPath)).toBe(false);
+    expect(await exists(taskPath)).toBe(false);
   });
 });

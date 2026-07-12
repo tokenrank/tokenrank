@@ -4,12 +4,19 @@ import { drizzle } from "drizzle-orm/neon-http";
 import * as dbSchema from "../db/schema";
 import { dailyUsage, devices } from "../db/schema";
 import { hashSecret } from "./security/tokens";
-import { getProfile, getUsageRows, sanitizePublicUser, upsertUploadedUsage } from "./users";
+import {
+  getLeaderboard,
+  getProfile,
+  getUsageRows,
+  sanitizePublicUser,
+  upsertUploadedUsage,
+} from "./users";
 import type { TokenUsageEntry } from "./types";
 
 const mockDb = vi.hoisted(() => ({
   select: vi.fn(),
   insert: vi.fn(),
+  delete: vi.fn(),
   update: vi.fn(),
   transaction: vi.fn(),
   batch: vi.fn(),
@@ -119,7 +126,7 @@ function mockProfileQueries(userRows: unknown[], usageRows: unknown[]) {
 }
 
 type PersistenceQuery = {
-  kind: "insert" | "update";
+  kind: "delete" | "insert" | "update";
   table: unknown;
   values?: Record<string, unknown>;
   conflict?: unknown;
@@ -129,6 +136,7 @@ type PersistenceQuery = {
 
 function mockBatchPersistenceClient(client: {
   insert: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 }) {
   const queries: PersistenceQuery[] = [];
@@ -148,6 +156,18 @@ function mockBatchPersistenceClient(client: {
             return query;
           },
         };
+      },
+    };
+  });
+
+  client.delete.mockImplementation((table: unknown) => {
+    const query: PersistenceQuery = { kind: "delete", table };
+    queries.push(query);
+
+    return {
+      where(where: unknown) {
+        query.where = where;
+        return query;
       },
     };
   });
@@ -228,12 +248,13 @@ const uploadEntry = {
   output: 50,
   cacheRead: 20,
   cacheWrite: 10,
-  total: 180,
+  total: 150,
 } satisfies TokenUsageEntry;
 
 beforeEach(() => {
   mockDb.select.mockReset();
   mockDb.insert.mockReset();
+  mockDb.delete.mockReset();
   mockDb.update.mockReset();
   mockDb.transaction.mockReset();
   mockDb.batch.mockReset();
@@ -316,6 +337,39 @@ describe("getUsageRows", () => {
   });
 });
 
+describe("getLeaderboard", () => {
+  it("caps public leaderboard responses to the top 100 entries", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T19:15:00.000Z"));
+
+    mockUsageRowsSelect(
+      Array.from({ length: 101 }, (_, index) => ({
+        userId: `user-${index}`,
+        handle: `user${index}`,
+        name: `User ${index}`,
+        avatarUrl: null,
+        deviceId: `device-${index}`,
+        date: "2026-06-23",
+        tool: "codex",
+        model: "gpt-5.5",
+        inputTokens: index + 1,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: index + 1,
+        estimatedCostMicros: index + 1,
+        blocked: false,
+      })),
+    );
+
+    const entries = await getLeaderboard("total", "today");
+
+    expect(entries).toHaveLength(100);
+    expect(entries[0]).toMatchObject({ userId: "user-100", rank: 1, score: 101 });
+    expect(entries.at(-1)).toMatchObject({ rank: 100, score: 2 });
+  });
+});
+
 describe("getProfile", () => {
   it("returns sanitized public user data and filters blocked public usage", async () => {
     const captured = mockProfileQueries(
@@ -385,6 +439,7 @@ describe("upsertUploadedUsage", () => {
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.delete).not.toHaveBeenCalled();
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockDb.batch).not.toHaveBeenCalled();
   });
@@ -398,7 +453,9 @@ describe("upsertUploadedUsage", () => {
     const sql = inspectSql(captured.where);
     const batchedQueries = mockDb.batch.mock.calls[0]?.[0] as PersistenceQuery[] | undefined;
     const deviceInsert = persistence.queries.find((query) => query.table === devices);
-    const usageInsert = persistence.queries.find((query) => query.table === dailyUsage);
+    const usageInsert = persistence.queries.find(
+      (query) => query.kind === "insert" && query.table === dailyUsage,
+    );
     const batchValues = collectQueryValues(batchedQueries);
     const usageDeviceIdSqlValues = collectQueryValues(usageInsert?.values?.deviceId);
 
@@ -406,7 +463,7 @@ describe("upsertUploadedUsage", () => {
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockDb.batch).toHaveBeenCalledTimes(1);
     expect(batchedQueries).toEqual(persistence.queries);
-    expect(batchedQueries).toHaveLength(3);
+    expect(batchedQueries).toHaveLength(4);
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(deviceInsert?.values).toMatchObject({
@@ -424,6 +481,7 @@ describe("upsertUploadedUsage", () => {
       totalTokens: 150,
     });
     expect(batchValues).toContain(hashSecret("raw-device-id"));
+    expect(batchValues).toContain("codex-unattributed");
     expect(batchValues).not.toContain("raw-device-id");
     expect(batchValues).not.toContain("raw-token");
   });
@@ -451,6 +509,9 @@ describe("upsertUploadedUsage", () => {
     mockDb.insert.mockImplementation((table: Parameters<typeof realDb.insert>[0]) =>
       realDb.insert(table),
     );
+    mockDb.delete.mockImplementation((table: Parameters<typeof realDb.delete>[0]) =>
+      realDb.delete(table),
+    );
     mockDb.update.mockImplementation((table: Parameters<typeof realDb.update>[0]) =>
       realDb.update(table),
     );
@@ -462,11 +523,12 @@ describe("upsertUploadedUsage", () => {
     const builtQueries = queries.map((query) => query.toSQL());
     const allParams = builtQueries.flatMap((query) => query.params);
 
-    expect(queries).toHaveLength(3);
+    expect(queries).toHaveLength(4);
     expect(queries.every((query) => typeof query._prepare === "function")).toBe(true);
     expect(builtQueries[0].sql).toContain('insert into "devices"');
-    expect(builtQueries[1].sql).toContain('select "devices"."id"');
-    expect(builtQueries[2].sql).toContain('update "webhook_tokens"');
+    expect(builtQueries[1].sql).toContain('delete from "daily_usage"');
+    expect(builtQueries[2].sql).toContain('select "devices"."id"');
+    expect(builtQueries[3].sql).toContain('update "webhook_tokens"');
     expect(allParams).toContain(hashSecret("raw-device-id"));
     expect(allParams).not.toContain("raw-device-id");
     expect(allParams).not.toContain("raw-token");

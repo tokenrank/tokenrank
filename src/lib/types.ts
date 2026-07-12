@@ -15,6 +15,9 @@ export const TOOL_KEYS = [
   "roo-code",
   "qwen",
   "codex-cache",
+  "cursor",
+  "github-copilot",
+  "continue",
 ] as const;
 export const BOARD_KEYS = ["total", "cost", ...TOOL_KEYS] as const;
 

@@ -31,6 +31,9 @@ export const toolEnum = pgEnum("tool", [
   "roo-code",
   "qwen",
   "codex-cache",
+  "cursor",
+  "github-copilot",
+  "continue",
 ]);
 export const tokenStatusEnum = pgEnum("token_status", ["active", "revoked"]);
 export const anomalyStatusEnum = pgEnum("anomaly_status", ["open", "resolved"]);
