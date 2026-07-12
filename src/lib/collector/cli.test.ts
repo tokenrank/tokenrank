@@ -430,7 +430,7 @@ describe("tokenrank collector CLI", () => {
     expect(stdout).not.toContain("next: tokenrank upload");
   });
 
-  it("renders the TokenRank scoreboard brand in a wide TTY", async () => {
+  it("renders the selected B Scoreboard Panels composition in a wide TTY", async () => {
     const home = await tempHome();
     const { stdout } = await runCli(["tools"], home, {
       TOKENRANK_TEST_TTY: "1",
@@ -438,13 +438,18 @@ describe("tokenrank collector CLI", () => {
       COLUMNS: "120",
     });
 
-    expect(stdout).toContain("TOKEN/RANK // COLLECTOR");
+    const visibleLines = stripAnsi(stdout).split("\n");
+
+    expect(visibleLines[0]).toMatch(/^TOKEN\/RANK \/\/ LIVE\s+01$/);
+    expect(stdout).toContain("TOKEN/RANK // LIVE");
+    expect(stdout).toContain("PUBLIC RANK SIGNAL");
     expect(stdout).toContain("BURN TOKENS.");
     expect(stdout).toContain("ASCEND RANKS.");
-    expect(stdout).toContain("COLLECTOR ONLINE");
     expect(stdout).toContain("SUPPORTED TOOLS");
     expect(stdout).toContain("\u001b[48;2;214;255;63m");
     expect(stdout).toContain("\u001b[38;2;255;91;53m");
+    expect(stdout).not.toContain("TOKEN/RANK // COLLECTOR");
+    expect(stdout).not.toContain("STATUS / 001");
     expect(stdout).not.toContain("\u001b[38;5;");
     expect(stdout).not.toMatch(/48;2;(36;255;184|0;218;255|105;48;255|255;37;141)m/);
     expect(stdout).not.toContain("████████╗");
@@ -463,7 +468,7 @@ describe("tokenrank collector CLI", () => {
       const visibleLines = stripAnsi(stdout).split("\n");
 
       expect(visibleLines.every((line) => [...line].length <= columns)).toBe(true);
-      expect(stdout).toContain("TOKEN/RANK // COLLECTOR");
+      expect(stdout).toContain("TOKEN/RANK // LIVE");
       expect(stdout).not.toContain("BURN TOKENS.");
     }
   });
@@ -1120,7 +1125,7 @@ describe("tokenrank collector CLI", () => {
     );
   });
 
-  it("animates the real upload batch with restrained scoreboard progress in a TTY", async () => {
+  it("renders a real upload as compact Scoreboard Panels without a scan log wall", async () => {
     const home = await tempHome();
     await writeJsonLog(home, sourceFixturePaths.codex, {
       id: "visual-upload-event",
@@ -1135,12 +1140,31 @@ describe("tokenrank collector CLI", () => {
         await runCli(["connect", webhookUrl], home, { TOKENRANK_NO_LOGO: "1" });
         const { stdout } = await runCli(["upload"], home, {
           TOKENRANK_TEST_TTY: "1",
+          TOKENRANK_NO_ANIMATION: "1",
           COLUMNS: "96",
         });
 
-        expect(stdout).toContain("COLLECTOR ONLINE");
-        expect(stdout).toContain("UPLOAD PROGRESS");
+        const plain = stripAnsi(stdout);
+
+        expect(stdout).toContain("TOKEN/RANK // LIVE");
+        expect(stdout).toContain("PUBLIC RANK SIGNAL");
+        expect(stdout).toContain("UPLOAD ENDPOINT");
+        expect(stdout).toContain("CONNECTED");
+        expect(stdout).toContain("LOCAL SOURCES");
+        expect(stdout).toContain("Codex");
+        expect(stdout).toContain(
+          "\u001b[38;2;214;255;63m██████████\u001b[0m\u001b[38;2;133;139;128m░░░░",
+        );
+        expect(stdout).toContain("DONE");
+        expect(stdout).toContain("SKIPPED");
+        expect(stdout).toContain("RANK SIGNAL");
+        expect(stdout).toContain("PRIVATE CONTENT NEVER LEAVES THIS MACHINE");
         expect(stdout).toContain("UPLOAD COMPLETE");
+        expect(plain).not.toContain("Scanning Codex");
+        expect(plain).not.toContain("scope: all tools");
+        expect(plain).not.toContain("Build payload");
+        expect(plain).not.toContain("batch 1/1");
+        expect(plain.split("\n").every((line) => [...line].length <= 50)).toBe(true);
         expect(stdout).not.toContain("BOOTING TOKEN GRID");
         expect(stdout).not.toContain("GRID SYNCHRONIZED");
         expect(stdout).not.toMatch(/48;2;(105;48;255|255;37;141)m/);
