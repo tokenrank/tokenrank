@@ -8,6 +8,7 @@
 - 将 Windows 自动同步从两个可见 `.cmd` 任务迁移为单个隐藏 Task Scheduler XML 任务，使用非交互 PowerShell，定时运行不再弹窗。
 - 新增 00:00/12:00 同步边界状态、登录触发补跑、失败重试和进程锁；用户错过计划时间后会在下次登录补传一次，重复触发不会重复上传。
 - 将 CLI 从青紫粉 Neon telemetry wall 重做为与网站一致的骨黑、信号绿、警示橙 Scoreboard Panels；移除大型 Block Art 和全行闪色，启动仅保留短状态点，上传改为单行进度，并补齐窄终端、`NO_COLOR`、非 TTY 与后台模式回归。
+- 修复 Windows Task Scheduler 无法导入 UTF-8 任务 XML 的问题；计划任务配置现在使用带 BOM 的 UTF-16LE 写盘，并新增字节级回归测试。
 - 新增 `cursor`、`github-copilot`、`continue` 工具键、数据库迁移、排行榜/仪表盘标签和精确数据来源说明。
 - 新增工具专属来源、provider event 指纹和来源优先级去重；Cursor 内运行的 Codex、Cline、Roo Code、Kilo Code 仍归属实际 AI 工具。
 - 新增 `tokenrank status` 与 `tokenrank doctor`，用于检查连接、任务、最后同步、待补跑边界和各工具精确来源状态。

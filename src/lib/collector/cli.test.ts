@@ -1393,7 +1393,9 @@ describe("tokenrank collector CLI", () => {
     const runnerPath = path.join(home, ".tokenrank", "tokenrank-collector.ps1");
     const taskPath = path.join(home, ".tokenrank", "tokenrank-collector.xml");
     const runner = await readFile(runnerPath, "utf8");
-    const task = await readFile(taskPath, "utf8");
+    const taskBytes = await readFile(taskPath);
+    expect([...taskBytes.subarray(0, 2)]).toEqual([0xff, 0xfe]);
+    const task = taskBytes.subarray(2).toString("utf16le");
 
     expect(install.stdout).toContain("每天 12:00 和 24:00");
     expect(runner).toContain("daemon --once");
@@ -1401,6 +1403,7 @@ describe("tokenrank collector CLI", () => {
     expect(runner).toContain("tokenrank.mjs");
     expect(runner).toContain("TOKENRANK_NO_ANIMATION");
     expect(runner).not.toContain("tokenrank.cmd");
+    expect(task).toContain('<?xml version="1.0" encoding="UTF-16"?>');
     expect(task).toContain("<LogonTrigger>");
     expect(task.match(/<CalendarTrigger>/g)).toHaveLength(2);
     expect(task).toContain("<StartWhenAvailable>true</StartWhenAvailable>");
