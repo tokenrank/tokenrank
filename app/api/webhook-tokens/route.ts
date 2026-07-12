@@ -4,7 +4,7 @@ import { auth } from "@/src/auth/config";
 import { webhookTokens } from "@/src/db/schema";
 import { createWebhookSecret, hashSecret } from "@/src/lib/security/tokens";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const session = await auth();
 
@@ -21,7 +21,11 @@ export async function POST() {
       label: "default",
     });
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const appUrl =
+      process.env.NODE_ENV === "production" && configuredAppUrl
+        ? configuredAppUrl.replace(/\/$/, "")
+        : new URL(request.url).origin;
 
     return NextResponse.json({
       status: 0,

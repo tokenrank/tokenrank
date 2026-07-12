@@ -26,6 +26,11 @@ vi.mock("@/src/lib/security/tokens", () => ({
 }));
 
 const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+const originalNodeEnv = process.env.NODE_ENV;
+
+function webhookRequest(origin = "http://localhost:3000") {
+  return new Request(`${origin}/api/webhook-tokens`, { method: "POST" });
+}
 
 beforeEach(() => {
   auth.mockReset();
@@ -33,18 +38,20 @@ beforeEach(() => {
   hashSecret.mockReset();
   db.insert.mockClear();
   insertValues.mockReset();
-  process.env.NEXT_PUBLIC_APP_URL = "https://tokenrank.test/";
+  process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3010";
+  process.env.NODE_ENV = "test";
 });
 
 afterEach(() => {
   process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+  process.env.NODE_ENV = originalNodeEnv;
 });
 
 describe("webhook token route", () => {
   it("returns 401 when unauthenticated", async () => {
     auth.mockResolvedValue(null);
 
-    const response = await POST();
+    const response = await POST(webhookRequest());
 
     expect(response.status).toBe(401);
     expect(db.insert).not.toHaveBeenCalled();
@@ -60,7 +67,7 @@ describe("webhook token route", () => {
     hashSecret.mockReturnValue("hashed-webhook-secret");
     insertValues.mockResolvedValue(undefined);
 
-    const response = await POST();
+    const response = await POST(webhookRequest());
 
     expect(response.status).toBe(200);
     expect(insertValues).toHaveBeenCalledWith({
@@ -70,7 +77,23 @@ describe("webhook token route", () => {
     });
     await expect(response.json()).resolves.toEqual({
       status: 0,
-      webhookUrl: "https://tokenrank.test/api/collector/upload/plain-webhook-secret",
+      webhookUrl: "http://localhost:3000/api/collector/upload/plain-webhook-secret",
+    });
+  });
+
+  it("uses the configured canonical URL in production", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.NEXT_PUBLIC_APP_URL = "https://tokenrank.example/";
+    auth.mockResolvedValue({ user: { id: "user-1" } });
+    createWebhookSecret.mockReturnValue("plain-webhook-secret");
+    hashSecret.mockReturnValue("hashed-webhook-secret");
+    insertValues.mockResolvedValue(undefined);
+
+    const response = await POST(webhookRequest("http://internal-host:3000"));
+
+    await expect(response.json()).resolves.toEqual({
+      status: 0,
+      webhookUrl: "https://tokenrank.example/api/collector/upload/plain-webhook-secret",
     });
   });
 
@@ -80,7 +103,7 @@ describe("webhook token route", () => {
     hashSecret.mockReturnValue("hashed-webhook-secret");
     insertValues.mockRejectedValue(new Error("database unavailable"));
 
-    const response = await POST();
+    const response = await POST(webhookRequest());
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
