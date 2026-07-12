@@ -56,7 +56,7 @@ await expect(
 
 - [ ] **Step 2: 运行首页 e2e 并确认测试先失败**
 
-Run: `pnpm test:e2e --grep "leaderboard renders|language switch"`
+Run: `pnpm exec playwright test --grep "leaderboard renders|language switch"`
 
 Expected: FAIL，失败信息包含旧标题 `AI coding has a scoreboard.` 或找不到新标题 `BURN TOKENS. ASCEND RANKS.`。
 
@@ -141,7 +141,7 @@ locale === "zh"
 
 - [ ] **Step 4: 运行首页 e2e 并确认通过**
 
-Run: `pnpm test:e2e --grep "leaderboard renders|language switch"`
+Run: `pnpm exec playwright test --grep "leaderboard renders|language switch"`
 
 Expected: 2 tests PASS。
 
@@ -263,7 +263,7 @@ Run: `pnpm test -- --runInBand`
 
 Expected: 全部 Vitest tests PASS。
 
-Run: `pnpm test:e2e`
+Run: `pnpm exec playwright test`
 
 Expected: 全部 Playwright tests PASS。
 

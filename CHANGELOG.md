@@ -2,6 +2,8 @@
 
 ## 2026-07-12
 
+- 将品牌定位从“AI Coding Token 排行榜”扩展为面向所有 AI 使用者的 Token 排行榜，启用英文口号 `BURN TOKENS. ASCEND RANKS.` 与中文口号 `TOKEN 燃烧。RANKING 狂飙。`。
+- 同步更新首页、Logo 副标、规则与分享文案、SEO metadata、Open Graph 图片、个人页描述、`llms.txt` 和 README；隐私说明改为明确区分聚合用量与不上传的 prompt、代码、对话内容。
 - 将 Windows 自动同步从两个可见 `.cmd` 任务迁移为单个隐藏 Task Scheduler XML 任务，使用非交互 PowerShell，定时运行不再弹窗。
 - 新增 00:00/12:00 同步边界状态、登录触发补跑、失败重试和进程锁；用户错过计划时间后会在下次登录补传一次，重复触发不会重复上传。
 - CLI 重做为高饱和 Neon telemetry wall：TrueColor 大色块、响应式 Block Art、启动脉冲、逐工具扫描卡片、真实 batch 上传动画和静态成功终帧；后台、JSON、非 TTY 与 `NO_COLOR` 保持纯净。
