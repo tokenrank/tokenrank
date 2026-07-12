@@ -97,6 +97,20 @@ describe("webhook token route", () => {
     });
   });
 
+  it("normalizes a wildcard development origin to localhost", async () => {
+    auth.mockResolvedValue({ user: { id: "user-1" } });
+    createWebhookSecret.mockReturnValue("plain-webhook-secret");
+    hashSecret.mockReturnValue("hashed-webhook-secret");
+    insertValues.mockResolvedValue(undefined);
+
+    const response = await POST(webhookRequest("http://0.0.0.0:3000"));
+
+    await expect(response.json()).resolves.toEqual({
+      status: 0,
+      webhookUrl: "http://localhost:3000/api/collector/upload/plain-webhook-secret",
+    });
+  });
+
   it("returns 500 JSON for unexpected token creation errors", async () => {
     auth.mockResolvedValue({ user: { id: "user-1" } });
     createWebhookSecret.mockReturnValue("plain-webhook-secret");

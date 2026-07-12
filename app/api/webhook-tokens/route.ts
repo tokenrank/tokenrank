@@ -22,10 +22,16 @@ export async function POST(request: Request) {
     });
 
     const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const requestUrl = new URL(request.url);
+
+    if (requestUrl.hostname === "0.0.0.0" || requestUrl.hostname === "[::]") {
+      requestUrl.hostname = "localhost";
+    }
+
     const appUrl =
       process.env.NODE_ENV === "production" && configuredAppUrl
         ? configuredAppUrl.replace(/\/$/, "")
-        : new URL(request.url).origin;
+        : requestUrl.origin;
 
     return NextResponse.json({
       status: 0,

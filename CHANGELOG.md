@@ -2,7 +2,7 @@
 
 ## 2026-07-12
 
-- 修复本地生成上传地址时错误复用 `NEXT_PUBLIC_APP_URL` 端口的问题：开发环境现在按当前请求 origin 动态生成，生产环境继续使用配置的 canonical URL。
+- 修复本地生成上传地址时错误复用 `NEXT_PUBLIC_APP_URL` 端口的问题：开发环境现在按当前请求 origin 动态生成，并把 `0.0.0.0` 等通配监听地址规范化为 `localhost`；生产环境继续使用配置的 canonical URL。
 - 将品牌定位从“AI Coding Token 排行榜”扩展为面向所有 AI 使用者的 Token 排行榜，启用英文口号 `BURN TOKENS. ASCEND RANKS.` 与中文口号 `TOKEN 燃烧。RANKING 狂飙。`。
 - 同步更新首页、Logo 副标、规则与分享文案、SEO metadata、Open Graph 图片、个人页描述、`llms.txt` 和 README；隐私说明改为明确区分聚合用量与不上传的 prompt、代码、对话内容。
 - 将 Windows 自动同步从两个可见 `.cmd` 任务迁移为单个隐藏 Task Scheduler XML 任务，使用非交互 PowerShell，定时运行不再弹窗。
