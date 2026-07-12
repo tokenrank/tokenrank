@@ -18,7 +18,7 @@ export function TokenRankLogo({
             Token<span className="text-[color:var(--tr-gold)]">/</span>Rank
           </span>
           <span className="mt-1 hidden font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-[color:var(--tr-muted)] sm:block">
-            AI coding league
+            AI token league
           </span>
         </span>
       )}

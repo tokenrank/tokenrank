@@ -4,7 +4,15 @@ test("leaderboard renders the public board controls", async ({ page }) => {
   await page.context().clearCookies();
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "AI coding has a scoreboard." })).toBeVisible();
+  await expect(page).toHaveTitle("TokenRank - AI token leaderboard");
+  await expect(
+    page.getByRole("heading", { name: "BURN TOKENS. ASCEND RANKS." }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Track the tokens you put to work across AI agents and see where you rank. Only aggregate usage is uploaded—never your prompts, code, or chats.",
+    ),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Overall" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Spend" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Qwen" })).toBeVisible();
@@ -19,9 +27,17 @@ test("leaderboard renders the public board controls", async ({ page }) => {
 test("language switch renders the Chinese brand copy", async ({ page }) => {
   await page.context().clearCookies();
   await page.goto("/");
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "中文" }).click();
 
-  await expect(page.getByRole("heading", { name: "AI 编程也该有一张战绩榜。" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "TOKEN 燃烧。 RANKING 狂飙。" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "汇总你在各类 Agent 与 AI 工具中的 Token 用量，与真正把 AI 用起来的人同榜竞技。只上传聚合用量，不上传 prompt、代码或对话。",
+    ),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "总榜" })).toBeVisible();
   await expect(page.getByText("分享榜单")).toBeVisible();
 });

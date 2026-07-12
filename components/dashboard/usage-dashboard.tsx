@@ -47,8 +47,8 @@ export function UsageDashboard({
   const topModel = summary.byModel[0];
   const shareText =
     locale === "zh"
-      ? `我在 TokenRank 已经消耗 ${formatTokens(summary.totalTokens, locale)} AI Coding Token。`
-      : `I have logged ${formatTokens(summary.totalTokens, locale)} AI coding tokens on TokenRank.`;
+      ? `我在 TokenRank 已经使用 ${formatTokens(summary.totalTokens, locale)} AI Token。`
+      : `I have logged ${formatTokens(summary.totalTokens, locale)} AI tokens on TokenRank.`;
   const profileUrl = `${siteUrl}/u/${encodeURIComponent(handle)}`;
   const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n${profileUrl}`)}`;
   const summaryParts = [

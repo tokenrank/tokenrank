@@ -4,8 +4,8 @@ const en = {
   common: {
     brand: {
       name: "TokenRank",
-      tagline: "AI coding token leaderboard",
-      shortTagline: "Token intelligence",
+      tagline: "AI token leaderboard",
+      shortTagline: "Token usage ranking",
     },
     nav: {
       leaderboard: "Board",
@@ -63,13 +63,13 @@ const en = {
     month: "Month",
   },
   home: {
-    metaTitle: "AI coding token leaderboard",
+    metaTitle: "AI token leaderboard",
     metaDescription:
-      "TokenRank ranks public X identities by aggregate AI coding token usage. No prompts, code, chats, filenames, or file contents are uploaded.",
+      "TokenRank ranks people putting AI to work by aggregate token usage across supported agents and AI tools. Only aggregate usage is uploaded—never prompts, code, chats, filenames, or file contents.",
     hero: {
-      eyebrow: "Public leaderboard",
-      title: "AI coding has a scoreboard.",
-      body: "Rank builders by aggregate AI coding token usage across Codex, Claude Code, Gemini, Qwen, and more. Public identity, private work.",
+      eyebrow: "AI token leaderboard",
+      title: "BURN TOKENS.\nASCEND RANKS.",
+      body: "Track the tokens you put to work across AI agents and see where you rank. Only aggregate usage is uploaded—never your prompts, code, or chats.",
       primary: "Join the board",
       secondary: "Read rules",
     },
@@ -92,9 +92,9 @@ const en = {
       copy: "Copy post",
       copied: "Copied",
       leader:
-        "Watching TokenRank {range} {board}: {name} (@{handle}) leads with {score}. Who is actually putting AI coding tokens to work?",
+        "Watching TokenRank {range} {board}: {name} (@{handle}) leads with {score}. Who is actually putting AI tokens to work?",
       empty:
-        "Watching TokenRank {range} {board}: the first spot is still open. Who is actually putting AI coding tokens to work?",
+        "Watching TokenRank {range} {board}: the first spot is still open. Who is actually putting AI tokens to work?",
     },
     table: {
       emptyTitle: "No data yet",
@@ -119,7 +119,7 @@ const en = {
     hero: {
       eyebrow: "Rules",
       title: "Measure usage. Protect the work.",
-      body: "TokenRank is a public leaderboard for AI coding activity. It is built for transparent comparison and sharing, not formal audit.",
+      body: "TokenRank is a public leaderboard for aggregate AI activity. It is built for transparent comparison and sharing, not formal audit.",
       cta: "Join the board",
     },
     privacy: {
@@ -269,7 +269,7 @@ const en = {
     usage: {
       heroEyebrow: "Public record",
       heroBody:
-        "Shareable aggregate AI coding token data by client, tool, model, day, and activity rhythm.",
+        "Shareable aggregate AI token data by client, tool, model, day, and activity rhythm.",
       totalOverview: "Total overview",
       noClient: "No client data",
       mainClient: "Main client: {value}",
@@ -357,7 +357,7 @@ const en = {
   auth: {
     metaTitle: "Sign in to TokenRank",
     metaDescription:
-      "Sign in with X, generate a private upload URL, and start automatic AI coding token sync.",
+      "Sign in with X, generate a private upload URL, and start automatic AI token sync.",
     hero: {
       eyebrow: "Sign in",
       title: "Use X as your public rank identity.",
@@ -410,8 +410,8 @@ const zh = {
   common: {
     brand: {
       name: "TokenRank",
-      tagline: "AI Coding Token 排行榜",
-      shortTagline: "Token 情报榜",
+      tagline: "AI Token 排行榜",
+      shortTagline: "Token 使用榜",
     },
     nav: {
       leaderboard: "榜单",
@@ -469,13 +469,13 @@ const zh = {
     month: "本月",
   },
   home: {
-    metaTitle: "AI Coding Token 排行榜",
+    metaTitle: "AI Token 排行榜",
     metaDescription:
-      "TokenRank 按公开 X 身份展示 AI Coding Token 聚合用量排行。不上传 prompt、源码、对话、文件名或文件内容。",
+      "TokenRank 按公开 X 身份展示 Agent 与 AI 工具的聚合 Token 用量排行，只上传聚合用量，不上传 prompt、代码、对话、文件名或文件内容。",
     hero: {
-      eyebrow: "公开排行榜",
-      title: "AI 编程也该有一张战绩榜。",
-      body: "按聚合后的 Token 用量排名，覆盖 Codex、Claude Code、Gemini、Qwen 等工具。公开身份，私有工作。",
+      eyebrow: "AI Token 排行榜",
+      title: "TOKEN 燃烧。\nRANKING 狂飙。",
+      body: "汇总你在各类 Agent 与 AI 工具中的 Token 用量，与真正把 AI 用起来的人同榜竞技。只上传聚合用量，不上传 prompt、代码或对话。",
       primary: "开始上榜",
       secondary: "查看规则",
     },
@@ -498,9 +498,9 @@ const zh = {
       copy: "复制文案",
       copied: "已复制",
       leader:
-        "我正在看 TokenRank {range}{board}：{name}（@{handle}）以 {score} 暂列第一。谁把 AI Coding Token 真用起来了？",
+        "我正在看 TokenRank {range}{board}：{name}（@{handle}）以 {score} 暂列第一。谁把 AI Token 真用起来了？",
       empty:
-        "我正在看 TokenRank {range}{board}：榜单正在等第一位上榜。谁把 AI Coding Token 真用起来了？",
+        "我正在看 TokenRank {range}{board}：榜单正在等第一位上榜。谁把 AI Token 真用起来了？",
     },
     table: {
       emptyTitle: "暂无数据",
@@ -525,7 +525,7 @@ const zh = {
     hero: {
       eyebrow: "规则",
       title: "记录用量，不暴露作品。",
-      body: "TokenRank 是 AI 编程活动的公开排行榜，适合透明对比和分享，不是严肃审计工具。",
+      body: "TokenRank 是 AI 使用活动的公开排行榜，适合透明对比和分享，不是严肃审计工具。",
       cta: "开始上榜",
     },
     privacy: {
@@ -673,7 +673,7 @@ const zh = {
     },
     usage: {
       heroEyebrow: "公开战绩",
-      heroBody: "可分享的 AI Coding Token 聚合数据，按客户端、工具、模型、日期和活跃节奏展示。",
+      heroBody: "可分享的 AI Token 聚合数据，按客户端、工具、模型、日期和活跃节奏展示。",
       totalOverview: "上传数据总览",
       noClient: "暂无客户端数据",
       mainClient: "主要客户端：{value}",
@@ -760,7 +760,7 @@ const zh = {
   },
   auth: {
     metaTitle: "登录 TokenRank",
-    metaDescription: "使用 X 登录，生成私有上传地址，并开启 AI Coding Token 自动同步。",
+    metaDescription: "使用 X 登录，生成私有上传地址，并开启 AI Token 自动同步。",
     hero: {
       eyebrow: "登录",
       title: "用 X 作为你的公开排名身份。",

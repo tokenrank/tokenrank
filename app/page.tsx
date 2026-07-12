@@ -62,7 +62,7 @@ export default async function Home({
             <div className="relative z-10 flex h-full max-w-5xl flex-col justify-between">
               <div>
                 <p className="tr-kicker">{copy.home.hero.eyebrow}</p>
-                <h1 className="tr-title mt-8 max-w-5xl text-[clamp(4rem,10vw,9.5rem)]">
+                <h1 className="tr-title mt-8 max-w-5xl whitespace-pre-line text-[clamp(4rem,10vw,9.5rem)]">
                   {copy.home.hero.title}
                 </h1>
                 <p className="tr-body mt-7 max-w-2xl text-base sm:text-lg">
