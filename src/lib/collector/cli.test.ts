@@ -1119,7 +1119,7 @@ describe("tokenrank collector CLI", () => {
     );
   });
 
-  it("animates the real upload batch as an upload grid in a TTY", async () => {
+  it("animates the real upload batch with restrained scoreboard progress in a TTY", async () => {
     const home = await tempHome();
     await writeJsonLog(home, sourceFixturePaths.codex, {
       id: "visual-upload-event",
@@ -1137,10 +1137,12 @@ describe("tokenrank collector CLI", () => {
           COLUMNS: "96",
         });
 
-        expect(stdout).toContain("BOOTING TOKEN GRID");
-        expect(stdout).toContain("UPLOAD GRID");
-        expect(stdout).toContain("████");
-        expect(stdout).toContain("GRID SYNCHRONIZED");
+        expect(stdout).toContain("COLLECTOR ONLINE");
+        expect(stdout).toContain("UPLOAD PROGRESS");
+        expect(stdout).toContain("UPLOAD COMPLETE");
+        expect(stdout).not.toContain("BOOTING TOKEN GRID");
+        expect(stdout).not.toContain("GRID SYNCHRONIZED");
+        expect(stdout).not.toMatch(/48;2;(105;48;255|255;37;141)m/);
       },
     );
   });
