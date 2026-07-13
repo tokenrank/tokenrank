@@ -30,7 +30,7 @@ export function Footer({ locale }: { locale: Locale }) {
           <Link href="/onboard" className="hover:text-[color:var(--tr-gold)]">
             {copy.common.nav.start}
           </Link>
-          <span className="text-[color:var(--tr-line-strong)]">TR / 2026</span>
+          <span className="text-[color:var(--tr-muted)]">TR / 2026</span>
         </div>
       </div>
     </footer>

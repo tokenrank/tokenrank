@@ -2,26 +2,67 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 
+import { JsonLd } from "@/components/seo/json-ld";
 import { defaultLocale } from "@/src/i18n/config";
 import { getCopy } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
+import { absoluteUrl, siteName } from "@/src/lib/site";
 
 const metadataCopy = getCopy(defaultLocale).rules;
+const rulesUrl = absoluteUrl("/rules");
 export const metadata: Metadata = {
   title: metadataCopy.metaTitle,
   description: metadataCopy.metaDescription,
   alternates: {
-    canonical: "/rules",
+    canonical: rulesUrl,
+  },
+  openGraph: {
+    title: metadataCopy.metaTitle,
+    description: metadataCopy.metaDescription,
+    url: rulesUrl,
+    siteName,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: metadataCopy.metaTitle,
+    description: metadataCopy.metaDescription,
   },
 };
 
 export default async function RulesPage() {
   const locale = await getRequestLocale();
   const copy = getCopy(locale);
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: locale === "zh" ? "榜单" : "Leaderboard",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: copy.rules.metaTitle,
+        item: rulesUrl,
+      },
+    ],
+  };
 
   return (
     <main className="tr-page w-full flex-1">
+      <JsonLd data={breadcrumbJsonLd} />
       <section className="tr-container py-8 sm:py-12 lg:py-16">
+        <nav aria-label={locale === "zh" ? "面包屑" : "Breadcrumb"} className="mb-5 font-mono text-xs font-bold uppercase text-[color:var(--tr-muted)]">
+          <Link href="/" className="hover:text-[color:var(--tr-gold)]">
+            {locale === "zh" ? "榜单" : "Leaderboard"}
+          </Link>
+          <span className="px-2 text-[color:var(--tr-line-strong)]" aria-hidden="true">/</span>
+          <span aria-current="page">{locale === "zh" ? "规则" : "Rules"}</span>
+        </nav>
         <div className="tr-live-tape tr-reveal">
           <span>Protocol / public trust</span>
           <span>Revision / 07</span>

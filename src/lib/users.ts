@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import { dailyUsage, devices, users, webhookTokens } from "../db/schema";
@@ -199,6 +199,23 @@ export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
 export async function getLeaderboard(board: BoardKey, range: RangeKey) {
   const rows = await getUsageRows(range);
   return rankUsageRows(rows, { board, range }).slice(0, LEADERBOARD_LIMIT);
+}
+
+export async function getPublicProfileSitemapEntries() {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      handle: users.xHandle,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .where(and(eq(users.profilePublic, true), isNotNull(users.xHandle)))
+    .orderBy(desc(users.updatedAt));
+
+  return rows.flatMap((row) => {
+    const handle = row.handle?.trim();
+    return handle ? [{ handle, updatedAt: row.updatedAt }] : [];
+  });
 }
 
 export async function getProfile(handle: string) {

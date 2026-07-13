@@ -52,7 +52,7 @@ export function LeaderboardShare({
         <a
           href={xShareUrl}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           aria-label={copy.post}
           className="tr-button h-11 min-h-11 px-4 py-2 text-sm"
         >

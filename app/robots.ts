@@ -15,7 +15,7 @@ const publicCrawlers = [
 export default function robots(): MetadataRoute.Robots {
   const shared = {
     allow: "/",
-    disallow: ["/api/", "/dashboard"],
+    disallow: ["/api/"],
   };
 
   return {

@@ -63,9 +63,9 @@ const en = {
     month: "Month",
   },
   home: {
-    metaTitle: "AI token leaderboard",
+    metaTitle: "AI Token Usage Leaderboard for Coding Agents | TokenRank",
     metaDescription:
-      "TokenRank ranks people putting AI to work by aggregate token usage across supported agents and AI tools. Only aggregate usage is uploaded—never prompts, code, chats, filenames, or file contents.",
+      "Compare aggregate AI token usage across Codex, Claude Code, Gemini, Qwen, and more. Join the public leaderboard without sharing prompts, code, or chats.",
     hero: {
       eyebrow: "AI token leaderboard",
       title: "BURN TOKENS.\nASCEND RANKS.",
@@ -111,11 +111,69 @@ const en = {
       tokenScore: "{board} tokens",
       spendScore: "Spend",
     },
+    answer: {
+      eyebrow: "Quick answer",
+      title: "What is TokenRank?",
+      body: "TokenRank is a public AI token usage leaderboard. It compares aggregate usage from supported coding agents and AI tools while keeping prompts, source code, chats, filenames, and file contents off the server.",
+    },
+    how: {
+      eyebrow: "How it works",
+      title: "From local usage to a public rank",
+      steps: [
+        {
+          title: "Connect your identity",
+          body: "Sign in with X so every public ranking has a clear owner.",
+        },
+        {
+          title: "Collect aggregate totals",
+          body: "The local collector reads supported tools and sends token totals by date, tool, and model—not your work.",
+        },
+        {
+          title: "Compare on one board",
+          body: "TokenRank validates the rows, applies the published rules, and ranks public profiles by window and tool.",
+        },
+      ],
+    },
+    faq: {
+      eyebrow: "Common questions",
+      title: "TokenRank FAQ",
+      items: [
+        {
+          question: "What does TokenRank measure?",
+          answer: "It measures aggregate input, output, cache, and total token usage reported by supported AI coding agents and tools.",
+        },
+        {
+          question: "Does TokenRank upload prompts or source code?",
+          answer: "No. The collector excludes prompts, source code, chats, filenames, and file contents and uploads aggregate usage rows only.",
+        },
+        {
+          question: "Which AI tools can appear on the leaderboard?",
+          answer: "The board supports Codex, Claude Code, Gemini, Qwen, Cursor, GitHub Copilot, and other agents listed in the board selector.",
+        },
+        {
+          question: "How does TokenRank avoid duplicate usage?",
+          answer: "A repeated upload for the same device, date, tool, and model replaces the earlier row instead of adding a duplicate.",
+        },
+        {
+          question: "How do I join the AI token leaderboard?",
+          answer: "Open the onboarding flow, sign in with X, run the one-line collector command, and wait for the first aggregate upload.",
+        },
+      ],
+    },
+    explore: {
+      eyebrow: "Related",
+      title: "Explore TokenRank",
+      links: [
+        { href: "/rules", title: "Scoring and privacy rules", body: "See exactly what is counted, excluded, and protected." },
+        { href: "/onboard", title: "Join the leaderboard", body: "Connect your identity and start automatic aggregate sync." },
+        { href: "/llms.txt", title: "Machine-readable overview", body: "Read the concise product, endpoint, and privacy summary." },
+      ],
+    },
   },
   rules: {
-    metaTitle: "Rules",
+    metaTitle: "AI Token Leaderboard Scoring Rules & Privacy",
     metaDescription:
-      "How TokenRank scores raw token totals, protects private work, limits device gaming, and handles suspicious data.",
+      "Learn how TokenRank scores raw AI token totals, protects private work, prevents duplicate device usage, and handles suspicious leaderboard data.",
     hero: {
       eyebrow: "Rules",
       title: "Measure usage. Protect the work.",
@@ -469,9 +527,9 @@ const zh = {
     month: "本月",
   },
   home: {
-    metaTitle: "AI Token 排行榜",
+    metaTitle: "AI Token 用量排行榜：Codex、Claude Code 等 | TokenRank",
     metaDescription:
-      "TokenRank 按公开 X 身份展示 Agent 与 AI 工具的聚合 Token 用量排行，只上传聚合用量，不上传 prompt、代码、对话、文件名或文件内容。",
+      "比较 Codex、Claude Code、Gemini、Qwen 等 AI 工具的聚合 Token 用量；公开上榜，但不上传 prompt、代码或对话。",
     hero: {
       eyebrow: "AI Token 排行榜",
       title: "TOKEN 燃烧。\nRANKING 狂飙。",
@@ -517,11 +575,69 @@ const zh = {
       tokenScore: "{board} Token",
       spendScore: "消耗金额",
     },
+    answer: {
+      eyebrow: "快速回答",
+      title: "TokenRank 是什么？",
+      body: "TokenRank 是公开的 AI Token 用量排行榜。它比较各类 Coding Agent 与 AI 工具的聚合用量，同时确保 prompt、源码、对话、文件名和文件内容不会上传到服务器。",
+    },
+    how: {
+      eyebrow: "运行方式",
+      title: "从本地用量到公开排名",
+      steps: [
+        {
+          title: "连接公开身份",
+          body: "使用 X 登录，让每一条公开排名都有明确归属。",
+        },
+        {
+          title: "采集聚合总量",
+          body: "本地采集器读取支持的工具，只发送按日期、工具和模型汇总的 Token，不发送你的作品。",
+        },
+        {
+          title: "按统一规则排名",
+          body: "TokenRank 校验聚合行，应用公开规则，再按周期与工具生成公开排名。",
+        },
+      ],
+    },
+    faq: {
+      eyebrow: "常见问题",
+      title: "TokenRank FAQ",
+      items: [
+        {
+          question: "TokenRank 统计什么？",
+          answer: "它统计支持的 AI Coding Agent 与工具上报的聚合 input、output、cache 和 total token 用量。",
+        },
+        {
+          question: "TokenRank 会上传 prompt 或源码吗？",
+          answer: "不会。采集器排除 prompt、源码、对话、文件名和文件内容，只上传聚合用量行。",
+        },
+        {
+          question: "哪些 AI 工具可以进入排行榜？",
+          answer: "榜单支持 Codex、Claude Code、Gemini、Qwen、Cursor、GitHub Copilot，以及榜单选择器中列出的其他 Agent。",
+        },
+        {
+          question: "TokenRank 如何避免重复计算？",
+          answer: "同一设备、日期、工具和模型的重复上传会覆盖旧行，不会叠加成重复用量。",
+        },
+        {
+          question: "如何加入 AI Token 排行榜？",
+          answer: "打开上榜流程，使用 X 登录，运行一行采集命令，然后等待首次聚合上传完成。",
+        },
+      ],
+    },
+    explore: {
+      eyebrow: "相关内容",
+      title: "继续了解 TokenRank",
+      links: [
+        { href: "/rules", title: "计分与隐私规则", body: "查看统计、排除和隐私保护的准确口径。" },
+        { href: "/onboard", title: "加入排行榜", body: "连接公开身份并开启自动聚合同步。" },
+        { href: "/llms.txt", title: "机器可读简介", body: "读取精简的产品、接口和隐私边界说明。" },
+      ],
+    },
   },
   rules: {
-    metaTitle: "规则",
+    metaTitle: "AI Token 排行榜计分规则与隐私",
     metaDescription:
-      "了解 TokenRank 如何计算 raw token、保护私有工作、限制刷设备，并处理异常数据。",
+      "了解 TokenRank 如何计算 raw token、保护私有工作、避免重复设备用量，并处理可疑排行榜数据。",
     hero: {
       eyebrow: "规则",
       title: "记录用量，不暴露作品。",

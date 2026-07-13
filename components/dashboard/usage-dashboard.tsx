@@ -83,7 +83,7 @@ export function UsageDashboard({
             <a
               href={shareUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 border border-black bg-[#080b07] px-4 font-mono text-xs font-black uppercase text-[color:var(--tr-gold)] transition hover:bg-[color:var(--tr-orange)] hover:text-[#080b07]"
             >
               <Share2 className="size-4" aria-hidden="true" />

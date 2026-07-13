@@ -13,6 +13,8 @@ export function GET() {
     "## Core Pages",
     "",
     `- [Leaderboard](${absoluteUrl("/")}) - Public ranking by total tokens, estimated cost, and individual AI agents and tools.`,
+    `- [How TokenRank works](${absoluteUrl("/#how-it-works")}) - Three-step explanation of identity, local aggregation, and ranking.`,
+    `- [FAQ](${absoluteUrl("/#faq")}) - Direct answers about measurement, privacy, supported tools, deduplication, and joining.`,
     `- [Rules](${absoluteUrl("/rules")}) - Privacy, fair-play, and scoring rules.`,
     `- [Onboarding](${absoluteUrl("/onboard")}) - Login, collector setup, first upload, and dashboard handoff flow.`,
     "",

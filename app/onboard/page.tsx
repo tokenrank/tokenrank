@@ -11,19 +11,33 @@ import { getXSignInGuard } from "@/src/auth/sign-in-guard";
 import { defaultLocale } from "@/src/i18n/config";
 import { getCopy, text } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
+import { absoluteUrl, siteName } from "@/src/lib/site";
 import { getUserUploadStatus } from "@/src/lib/users";
 
 export const dynamic = "force-dynamic";
 const metadataCopy = getCopy(defaultLocale).onboard;
+const onboardUrl = absoluteUrl("/onboard");
 export const metadata: Metadata = {
   title: metadataCopy.metaTitle,
   description: metadataCopy.metaDescription,
   alternates: {
-    canonical: "/onboard",
+    canonical: onboardUrl,
   },
   robots: {
     index: false,
     follow: false,
+  },
+  openGraph: {
+    title: metadataCopy.metaTitle,
+    description: metadataCopy.metaDescription,
+    url: onboardUrl,
+    siteName,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: metadataCopy.metaTitle,
+    description: metadataCopy.metaDescription,
   },
 };
 

@@ -15,7 +15,7 @@ describe("SEO and AI crawler routes", () => {
         expect.objectContaining({
           userAgent: "*",
           allow: "/",
-          disallow: ["/api/", "/dashboard"],
+          disallow: ["/api/"],
         }),
         expect.objectContaining({
           userAgent: expect.arrayContaining(["GPTBot", "PerplexityBot", "ClaudeBot"]),
@@ -25,14 +25,21 @@ describe("SEO and AI crawler routes", () => {
     );
   });
 
-  it("includes public pages in the sitemap", () => {
-    const urls = sitemap().map((entry) => entry.url);
+  it("includes indexable public pages and excludes noindex onboarding", async () => {
+    const previousDatabaseUrl = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    const urls = (await sitemap()).map((entry) => entry.url);
+    if (previousDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = previousDatabaseUrl;
+    }
 
     expect(urls).toEqual([
       "https://tokenrank.vercel.app/",
       "https://tokenrank.vercel.app/rules",
-      "https://tokenrank.vercel.app/onboard",
     ]);
+    expect(urls).not.toContain("https://tokenrank.vercel.app/onboard");
   });
 
   it("serves llms.txt with extractable product context", async () => {
@@ -42,6 +49,7 @@ describe("SEO and AI crawler routes", () => {
     expect(response.headers.get("content-type")).toContain("text/plain");
     expect(text).toContain("# TokenRank");
     expect(text).toContain("https://tokenrank.vercel.app/onboard");
+    expect(text).toContain("https://tokenrank.vercel.app/#faq");
     expect(text).not.toContain("https://tokenrank.vercel.app/connect");
     expect(text).toContain("Raw prompts, code, conversations, filenames, and file contents");
     expect(text).toContain("https://tokenrank.vercel.app/api/leaderboard");

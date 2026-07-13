@@ -18,7 +18,7 @@ export async function Header({ locale: providedLocale }: { locale?: Locale } = {
     <header className="sticky top-0 z-40 border-b border-[color:var(--tr-line)] bg-[#070907]/92 backdrop-blur-xl">
       <div className="tr-container">
         <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 py-3 sm:flex-nowrap">
-          <Link href="/" className="group min-w-0 shrink-0" aria-label="TokenRank home">
+          <Link href="/" className="group min-w-0 shrink-0">
             <TokenRankLogo />
           </Link>
 
