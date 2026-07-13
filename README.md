@@ -35,6 +35,7 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 - 中文文案是英文源文案的地道翻译，集中维护在 `src/i18n/copy.ts`。
 - Antonio Variable 与 IBM Plex Sans Variable 通过 `@fontsource-variable` 在仓库内自托管，生产构建不依赖 Google Fonts。
 - 新品牌组件由 `app/globals.css`、`components/brand/*`、全站 shell 与各页面共同组成：直角数据面板、实时信号带、超窄赛事标题、等宽数字、信号绿主操作和警示橙状态反馈。
+- favicon、Apple Touch Icon、PWA 192/512、maskable 与 Safari pinned tab 共用 TokenRank 品牌标记；修改图标生成器后运行 `pnpm icons:generate` 重建二进制资源。
 - 英文 Token 紧凑单位使用 `K/M/B`，中文使用 `万/亿`；远程头像加载失败时自动回退到用户首字母。
 
 ## 公开页面与接口
@@ -44,7 +45,7 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 - `/onboard`：登录 X、生成上传地址、安装本地 collector、检测首次上传的四阶段上榜流程。
 - `/dashboard`：登录用户的私有战绩面板，展示热力图、趋势、客户端/工具/模型分布和隐私设置。
 - `/u/[handle]`：公开个人战绩，包括统计、热力图、趋势、分布和带粘性表头的明细数据窗。
-- `/robots.txt`、`/sitemap.xml`、`/llms.txt`：搜索引擎和 AI crawler 可读入口。
+- `/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/manifest.webmanifest`：搜索引擎、AI crawler 与可安装 Web App 的机器可读入口。
 - `/api/boards`：可用榜单和工具 key。
 - `/api/leaderboard`：公开榜单数据。
 - `/api/dashboard`：当前登录用户的设置和上传状态。

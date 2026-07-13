@@ -21,6 +21,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
     "e2e": "playwright test",
+    "icons:generate": "tsx scripts/generate-brand-icons.tsx",
     "tokenrank": "node bin/tokenrank.mjs"
   },
   "dependencies": {

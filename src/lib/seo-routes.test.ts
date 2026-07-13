@@ -1,10 +1,38 @@
 import { describe, expect, it } from "vitest";
 
 import * as llms from "../../app/llms.txt/route";
+import manifest from "../../app/manifest";
+import * as openGraphImage from "../../app/opengraph-image";
 import robots from "../../app/robots";
 import sitemap from "../../app/sitemap";
+import * as twitterImage from "../../app/twitter-image";
 
 describe("SEO and AI crawler routes", () => {
+  it("publishes a complete installable icon manifest", () => {
+    const file = manifest();
+
+    expect(file.name).toContain("TokenRank");
+    expect(file.display).toBe("standalone");
+    expect(file.background_color).toBe("#070907");
+    expect(file.theme_color).toBe("#070907");
+    expect(file.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ src: "/icon-192.png", sizes: "192x192" }),
+        expect.objectContaining({ src: "/icon-512.png", sizes: "512x512" }),
+        expect.objectContaining({ src: "/icon-maskable-512.png", purpose: "maskable" }),
+      ]),
+    );
+  });
+
+  it("publishes correctly sized Open Graph and Twitter cards", () => {
+    expect(openGraphImage.alt).toBe("TokenRank AI token leaderboard");
+    expect(openGraphImage.size).toEqual({ width: 1200, height: 630 });
+    expect(openGraphImage.contentType).toBe("image/png");
+    expect(twitterImage.alt).toBe(openGraphImage.alt);
+    expect(twitterImage.size).toEqual(openGraphImage.size);
+    expect(twitterImage.contentType).toBe(openGraphImage.contentType);
+  });
+
   it("publishes robots rules with sitemap discovery", () => {
     const file = robots();
 
