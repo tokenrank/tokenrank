@@ -25,6 +25,9 @@
     "NEXTAUTH_URL": "https://tokenrank.org",
     "NEXT_PUBLIC_APP_URL": "https://tokenrank.org"
   },
+  "secrets": {
+    "required": ["AUTH_SECRET", "AUTH_X_ID", "AUTH_X_SECRET", "DATABASE_URL"]
+  },
   "routes": [
     {
       "pattern": "tokenrank.org",
