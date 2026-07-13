@@ -16,7 +16,7 @@ async function main() {
   }
 
   const faviconPng = await renderIcon(48);
-  await writeFile(resolve("app/favicon.ico"), createIco(faviconPng, 48));
+  await writeFile(resolve("public/favicon.ico"), createIco(faviconPng, 48));
 }
 
 async function renderIcon(size: number): Promise<Buffer> {

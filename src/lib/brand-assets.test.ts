@@ -20,7 +20,7 @@ describe("brand icon assets", () => {
   });
 
   it("ships a real 48px TokenRank favicon instead of the placeholder", async () => {
-    const favicon = await readFile(resolve("app/favicon.ico"));
+    const favicon = await readFile(resolve("public/favicon.ico"));
 
     expect(favicon.subarray(0, 6).toString("hex")).toBe("000001000100");
     expect(favicon.readUInt8(6)).toBe(48);
