@@ -8,6 +8,7 @@ import OnboardPage from "../../../app/onboard/page";
 
 const originalNavigatorPlatform = window.navigator.platform;
 const originalNavigatorUserAgent = window.navigator.userAgent;
+const originalScrollIntoView = Element.prototype.scrollIntoView;
 const getXSignInGuard = vi.hoisted(() => vi.fn(async () => ({})));
 const getUserUploadStatus = vi.hoisted(() =>
   vi.fn(async () => ({
@@ -68,6 +69,10 @@ afterEach(() => {
     configurable: true,
     value: originalNavigatorUserAgent,
   });
+  Object.defineProperty(Element.prototype, "scrollIntoView", {
+    configurable: true,
+    value: originalScrollIntoView,
+  });
 });
 
 describe("collector sync interval copy", () => {
@@ -114,6 +119,52 @@ describe("collector sync interval copy", () => {
     expect(container.querySelector("pre.overflow-x-scroll code")?.textContent).toContain(
       "very-long-private-webhook-token-for-layout-regression",
     );
+  });
+
+  it("scrolls to the command copy section after generating an upload URL", async () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Linux x86_64",
+    });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (X11; Linux x86_64)",
+    });
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/scroll-to-command-token",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const { getByRole } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    });
+
+    const scrolledSection = scrollIntoView.mock.instances[0] as Element;
+    expect(scrolledSection.querySelector("pre.overflow-x-scroll code")?.textContent).toContain(
+      "scroll-to-command-token",
+    );
+
+    fireEvent.click(getByRole("button", { name: "Windows PowerShell" }));
+    await waitFor(() => {
+      expect(scrolledSection.textContent).toContain("install.ps1?token=scroll-to-command-token");
+    });
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
   it("auto-selects the Windows command tab on Windows browsers", async () => {

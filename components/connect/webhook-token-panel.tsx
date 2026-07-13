@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy, KeyRound, ShieldCheck, Terminal, UploadCloud } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { defaultCopy, text, type AppCopy } from "@/src/i18n/copy";
 import { buildCollectorCommands } from "@/src/lib/connect/collector-command";
@@ -47,12 +47,21 @@ export function WebhookTokenPanel({
   const [copied, setCopied] = useState(false);
   const [copiedManual, setCopiedManual] = useState(false);
   const [commandTarget, setCommandTarget] = useState<CommandTarget>(detectCommandTarget);
+  const commandSectionRef = useRef<HTMLDivElement>(null);
 
   const commands = useMemo(() => (webhookUrl ? buildCollectorCommands(webhookUrl) : null), [webhookUrl]);
   const command = targetUsesWindowsCommand(commandTarget) ? (commands?.windows ?? "") : (commands?.unix ?? "");
   const manualCommand = targetUsesWindowsCommand(commandTarget)
     ? (commands?.windowsManual ?? "")
     : (commands?.unixManual ?? "");
+
+  useEffect(() => {
+    if (!webhookUrl) return;
+    const commandSection = commandSectionRef.current;
+    if (typeof commandSection?.scrollIntoView === "function") {
+      commandSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [webhookUrl]);
 
   async function createToken() {
     setLoading(true);
@@ -131,7 +140,7 @@ export function WebhookTokenPanel({
         </div>
 
         {command ? (
-          <div className="mt-5 space-y-4">
+          <div ref={commandSectionRef} className="mt-5 scroll-mt-24 space-y-4">
             <div>
               <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
