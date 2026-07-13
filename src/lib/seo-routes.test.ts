@@ -8,8 +8,8 @@ describe("SEO and AI crawler routes", () => {
   it("publishes robots rules with sitemap discovery", () => {
     const file = robots();
 
-    expect(file.sitemap).toBe("https://tokenrank.vercel.app/sitemap.xml");
-    expect(file.host).toBe("https://tokenrank.vercel.app");
+    expect(file.sitemap).toBe("https://tokenrank.org/sitemap.xml");
+    expect(file.host).toBe("https://tokenrank.org");
     expect(file.rules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -36,10 +36,10 @@ describe("SEO and AI crawler routes", () => {
     }
 
     expect(urls).toEqual([
-      "https://tokenrank.vercel.app/",
-      "https://tokenrank.vercel.app/rules",
+      "https://tokenrank.org/",
+      "https://tokenrank.org/rules",
     ]);
-    expect(urls).not.toContain("https://tokenrank.vercel.app/onboard");
+    expect(urls).not.toContain("https://tokenrank.org/onboard");
   });
 
   it("serves llms.txt with extractable product context", async () => {
@@ -48,10 +48,10 @@ describe("SEO and AI crawler routes", () => {
 
     expect(response.headers.get("content-type")).toContain("text/plain");
     expect(text).toContain("# TokenRank");
-    expect(text).toContain("https://tokenrank.vercel.app/onboard");
-    expect(text).toContain("https://tokenrank.vercel.app/#faq");
-    expect(text).not.toContain("https://tokenrank.vercel.app/connect");
+    expect(text).toContain("https://tokenrank.org/onboard");
+    expect(text).toContain("https://tokenrank.org/#faq");
+    expect(text).not.toContain("https://tokenrank.org/connect");
     expect(text).toContain("Raw prompts, code, conversations, filenames, and file contents");
-    expect(text).toContain("https://tokenrank.vercel.app/api/leaderboard");
+    expect(text).toContain("https://tokenrank.org/api/leaderboard");
   });
 });

@@ -12,6 +12,8 @@ node_modules/
 !.yarn/versions
 
 .next/
+.open-next/
+.wrangler/
 out/
 dist/
 coverage/

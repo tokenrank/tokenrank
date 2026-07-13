@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tokenrank",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-13",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "tokenrank"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "tokenrank-opennext-cache"
+    }
+  ],
+  "vars": {
+    "AUTH_TRUST_HOST": "true",
+    "NEXTAUTH_URL": "https://tokenrank.org",
+    "NEXT_PUBLIC_APP_URL": "https://tokenrank.org"
+  },
+  "routes": [
+    {
+      "pattern": "tokenrank.org",
+      "custom_domain": true
+    }
+  ],
+  "placement": {
+    "mode": "smart"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

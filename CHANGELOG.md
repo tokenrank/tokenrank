@@ -2,6 +2,8 @@
 
 ## 2026-07-13
 
+- 新增 Cloudflare Workers + OpenNext 生产部署配置，绑定 `tokenrank.org`，补齐可重复的 Workers Builds 命令、R2 增量缓存、Smart Placement 与生产域名默认值。
+- 修复 Windows 安装器只生成 `tokenrank.cmd`、却未注册命令路径的问题；安装目录现在会幂等写入用户 PATH，并立即加入当前 PowerShell 的 PATH，安装结束后可直接调用 `tokenrank`。
 - Onboard 生成上传地址成功后会自动平滑滚动到同步命令复制区域，让用户直接看到对应平台命令和 Copy 按钮。
 - CLI 新增完整中英文支持：默认跟随系统语言，并支持 `--lang en|zh|auto` 与 `TOKENRANK_LANG` 显式覆盖；同步补齐双语错误、状态、服务、上传与 Scoreboard Panels 文案，以及中文双列宽度计算和翻译键完整性校验。
 - 修复 Dashboard 的客户端、工具和模型分布卡片截断页面滚动的问题；内部列表到达边界后，鼠标滚轮现在会自然继续滚动整页。

@@ -6,8 +6,8 @@ describe("buildInstallScript", () => {
   it("installs the collector into a local bin path from the TokenRank hosted source", () => {
     const script = buildInstallScript();
 
-    expect(script).toContain("https://tokenrank.vercel.app/tokenrank.mjs");
-    expect(script).toContain("https://tokenrank.vercel.app/tokenrank-package.json");
+    expect(script).toContain("https://tokenrank.org/tokenrank.mjs");
+    expect(script).toContain("https://tokenrank.org/tokenrank-package.json");
     expect(script).not.toContain("raw.githubusercontent.com");
     expect(script).toContain("${HOME}/.tokenrank");
     expect(script).toContain("${HOME}/.local/bin");
@@ -32,13 +32,26 @@ describe("buildInstallScript", () => {
   it("installs the collector on Windows with a PowerShell script", () => {
     const script = buildWindowsInstallScript();
 
-    expect(script).toContain("https://tokenrank.vercel.app/tokenrank.mjs");
-    expect(script).toContain("https://tokenrank.vercel.app/tokenrank-package.json");
+    expect(script).toContain("https://tokenrank.org/tokenrank.mjs");
+    expect(script).toContain("https://tokenrank.org/tokenrank-package.json");
     expect(script).not.toContain("raw.githubusercontent.com");
     expect(script).toContain("$env:USERPROFILE");
     expect(script).toContain("tokenrank.cmd");
     expect(script).toContain("Invoke-WebRequest");
     expect(script).toContain("& $cmdPath tools");
+  });
+
+  it("adds the Windows install directory to the current and future user PATH without duplicates", () => {
+    const script = buildWindowsInstallScript();
+
+    expect(script).toContain('[Environment]::GetEnvironmentVariable("Path", "User")');
+    expect(script).toContain('[Environment]::SetEnvironmentVariable("Path", $updatedUserPath, "User")');
+    expect(script).toContain('$env:Path = "$processPath;$installDir"');
+    expect(script).toContain('$normalizedUserPathEntries -notcontains $normalizedInstallDir');
+    expect(script).toContain('$normalizedProcessPathEntries -notcontains $normalizedInstallDir');
+    expect(script.indexOf('[Environment]::SetEnvironmentVariable("Path"')).toBeLessThan(
+      script.indexOf("& $cmdPath tools"),
+    );
   });
 
   it("can install, connect, upload, and enable the collector from one PowerShell script", () => {

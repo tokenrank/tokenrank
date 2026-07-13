@@ -1,5 +1,5 @@
 export const siteName = "TokenRank";
-export const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://tokenrank.vercel.app").replace(
+export const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://tokenrank.org").replace(
   /\/$/,
   "",
 );
