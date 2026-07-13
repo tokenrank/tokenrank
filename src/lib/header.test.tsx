@@ -40,6 +40,19 @@ describe("Header", () => {
     expect(document.body.textContent).toContain("Join");
   });
 
+  it("renders four mobile bottom navigation actions and restores the desktop header layout", async () => {
+    delete process.env.DATABASE_URL;
+
+    render(await Header());
+
+    const navigation = document.querySelector("header nav");
+    expect(navigation).not.toBeNull();
+    expect(Array.from(navigation?.classList ?? [])).toEqual(
+      expect.arrayContaining(["fixed", "bottom-0", "grid-cols-4", "sm:static"]),
+    );
+    expect(navigation?.querySelectorAll("a")).toHaveLength(4);
+  });
+
   it("shows the signed-in account shortcut when session storage is available", async () => {
     process.env.DATABASE_URL = "postgresql://tokenrank.test/db";
     auth.mockResolvedValue({ user: { id: "user-1" } });

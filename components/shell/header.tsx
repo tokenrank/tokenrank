@@ -15,29 +15,36 @@ export async function Header({ locale: providedLocale }: { locale?: Locale } = {
   const user = await getHeaderUser();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[color:var(--tr-line)] bg-[#070907]/92 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[color:var(--tr-line)] bg-[#070907] sm:bg-[#070907]/92 sm:backdrop-blur-xl">
       <div className="tr-container">
-        <div className="flex min-h-20 flex-wrap items-center justify-between gap-3 py-3 sm:flex-nowrap">
+        <div className="flex min-h-16 items-center justify-between gap-3 py-2 sm:min-h-20 sm:py-3">
           <Link href="/" className="group min-w-0 shrink-0">
             <TokenRankLogo />
           </Link>
 
-          <nav className="order-3 flex w-full min-w-0 items-center gap-px overflow-x-auto border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] tr-scrollbar sm:order-none sm:ml-auto sm:w-auto">
+          <nav
+            aria-label={locale === "zh" ? "主导航" : "Primary navigation"}
+            className="tr-mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 gap-px border-t border-[color:var(--tr-line)] bg-[color:var(--tr-line)] shadow-[0_-12px_32px_rgb(0_0_0/0.42)] sm:static sm:z-auto sm:ml-auto sm:flex sm:w-auto sm:items-center sm:border sm:shadow-none"
+          >
             <NavLink href="/" label={copy.common.nav.leaderboard} />
             <NavLink href="/rules" label={copy.common.nav.rules} />
             {user ? (
               <Link
                 href="/dashboard"
-                className="inline-flex h-10 flex-1 items-center justify-center gap-2 bg-[color:var(--tr-surface)] px-2 pr-3 font-mono text-xs font-bold uppercase text-[color:var(--tr-ivory-soft)] hover:bg-[color:var(--tr-gold)] hover:text-[#080705] sm:flex-none"
+                className="inline-flex h-14 min-w-0 items-center justify-center gap-1.5 bg-[color:var(--tr-surface)] px-1 font-mono text-[0.65rem] font-bold uppercase leading-tight text-[color:var(--tr-ivory-soft)] hover:bg-[color:var(--tr-gold)] hover:text-[#080705] sm:h-10 sm:flex-none sm:gap-2 sm:px-2 sm:pr-3 sm:text-xs"
                 aria-label={text(copy.common.nav.openDashboard, { name: user.name })}
               >
                 <Avatar name={user.name} src={user.avatarUrl} />
+                <span className="min-w-0 truncate sm:hidden">{copy.common.nav.dashboard}</span>
                 <span className="hidden max-w-28 truncate sm:inline">@{user.handle}</span>
               </Link>
             ) : (
               <NavLink href="/dashboard" label={copy.common.nav.dashboard} />
             )}
-            <Link href="/onboard" className="tr-button h-10 min-h-10 flex-1 border-0 px-4 py-1 shadow-none hover:shadow-none sm:flex-none">
+            <Link
+              href="/onboard"
+              className="tr-button h-14 min-h-14 min-w-0 border-0 px-1 py-2 text-center text-[0.65rem] leading-tight shadow-none hover:shadow-none sm:h-10 sm:min-h-10 sm:flex-none sm:px-4 sm:py-1 sm:text-xs"
+            >
               {copy.common.nav.start}
             </Link>
           </nav>
@@ -53,7 +60,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="h-10 flex-1 bg-[color:var(--tr-surface)] px-3.5 py-3 text-center font-mono text-xs font-bold uppercase tracking-[0.03em] text-[color:var(--tr-muted)] hover:bg-[color:var(--tr-surface-3)] hover:text-[color:var(--tr-gold)] sm:flex-none"
+      className="inline-flex h-14 min-w-0 items-center justify-center bg-[color:var(--tr-surface)] px-1 py-2 text-center font-mono text-[0.65rem] font-bold uppercase leading-tight tracking-[0.03em] text-[color:var(--tr-muted)] hover:bg-[color:var(--tr-surface-3)] hover:text-[color:var(--tr-gold)] sm:h-10 sm:flex-none sm:px-3.5 sm:py-3 sm:text-xs"
     >
       {label}
     </Link>
@@ -74,5 +81,5 @@ async function getHeaderUser() {
 }
 
 function Avatar({ name, src }: { name: string; src: string | null }) {
-  return <ProfileAvatar className="size-7" fallbackTextClassName="font-mono text-xs" name={name} src={src} />;
+  return <ProfileAvatar className="size-6 sm:size-7" fallbackTextClassName="font-mono text-xs" name={name} src={src} />;
 }

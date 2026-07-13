@@ -56,6 +56,26 @@ body {
   overflow-x: hidden;
 }
 
+.tr-mobile-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 639px) {
+  html {
+    scroll-padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+
+  body {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 640px) {
+  .tr-mobile-bottom-nav {
+    padding-bottom: 0;
+  }
+}
+
 body::before {
   background-image:
     linear-gradient(rgb(242 241 232 / 0.028) 1px, transparent 1px),
