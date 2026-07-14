@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 
 import { boardLabel, BoardTabs } from "@/components/leaderboard/board-tabs";
 import { LeaderboardShare } from "@/components/leaderboard/leaderboard-share";
@@ -118,7 +118,13 @@ export default async function Home({
             <div className="relative z-10 flex h-full max-w-5xl flex-col justify-between">
               <div>
                 <p className="tr-kicker">{copy.home.hero.eyebrow}</p>
-                <h1 className="tr-title mt-8 max-w-5xl whitespace-pre-line text-[clamp(4rem,10vw,9.5rem)]">
+                <h1
+                  className={`tr-title mt-8 max-w-5xl ${
+                    locale === "zh"
+                      ? "whitespace-pre text-[clamp(2.5rem,7vw,6.5rem)]"
+                      : "whitespace-pre-line text-[clamp(4rem,10vw,9.5rem)]"
+                  }`}
+                >
                   {copy.home.hero.title}
                 </h1>
                 <p className="tr-body mt-7 max-w-2xl text-base sm:text-lg">
@@ -131,8 +137,8 @@ export default async function Home({
                   {copy.home.hero.primary}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
-                <Link href="/rules" className="tr-button-secondary">
-                  <ShieldCheck className="size-4" aria-hidden="true" />
+                <Link href="#leaderboard" className="tr-button-secondary">
+                  <Trophy className="size-4" aria-hidden="true" />
                   {copy.home.hero.secondary}
                 </Link>
               </div>

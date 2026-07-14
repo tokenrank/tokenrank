@@ -71,7 +71,7 @@ const en = {
       title: "BURN TOKENS.\nASCEND RANKS.",
       body: "Track the tokens you put to work across AI agents and see where you rank. Only aggregate usage is uploaded—never your prompts, code, or chats.",
       primary: "Join the board",
-      secondary: "Read rules",
+      secondary: "View leaderboard",
     },
     stats: {
       leader: "Current leader",
@@ -532,10 +532,10 @@ const zh = {
       "比较 Codex、Claude Code、Gemini、Qwen 等 AI 工具的聚合 Token 用量；公开上榜，但不上传 prompt、代码或对话。",
     hero: {
       eyebrow: "AI Token 排行榜",
-      title: "TOKEN 燃烧。\nRANKING 狂飙。",
+      title: "TOKEN 燃烧\nRANKING 狂飙",
       body: "汇总你在各类 Agent 与 AI 工具中的 Token 用量，与真正把 AI 用起来的人同榜竞技。只上传聚合用量，不上传 prompt、代码或对话。",
       primary: "开始上榜",
-      secondary: "查看规则",
+      secondary: "查看榜单",
     },
     stats: {
       leader: "当前第一",
@@ -640,7 +640,7 @@ const zh = {
       "了解 TokenRank 如何计算 raw token、保护私有工作、避免重复设备用量，并处理可疑排行榜数据。",
     hero: {
       eyebrow: "规则",
-      title: "记录用量，不暴露作品。",
+      title: "记录用量，不暴露作品",
       body: "TokenRank 是 AI 使用活动的公开排行榜，适合透明对比和分享，不是严肃审计工具。",
       cta: "开始上榜",
     },
@@ -685,7 +685,7 @@ const zh = {
       "在一个流程里完成 X 登录、私有上传地址生成、采集器安装和首次上传检测。",
     hero: {
       eyebrow: "上榜流程",
-      title: "连接一次，自动上榜。",
+      title: "连接一次，自动上榜",
       body: "登录、复制一行命令，然后保持页面打开。首次上传到达后，TokenRank 会自动进入你的面板。",
     },
     signedIn: {
@@ -769,7 +769,7 @@ const zh = {
       "查看你的 TokenRank 热力图、趋势、客户端分布、工具分布、模型分布、上传明细和公开设置。",
     signedOut: {
       eyebrow: "面板",
-      title: "登录后查看你的战绩。",
+      title: "登录后查看你的战绩",
       body: "面板是你的私有上传视图。还没上榜的话，登录后继续走同一套上榜流程。",
       onboard: "去上榜流程",
     },
@@ -879,11 +879,11 @@ const zh = {
     metaDescription: "使用 X 登录，生成私有上传地址，并开启 AI Token 自动同步。",
     hero: {
       eyebrow: "登录",
-      title: "用 X 作为你的公开排名身份。",
+      title: "用 X 作为你的公开排名身份",
       body: "登录完成后，TokenRank 会回到上榜流程，继续生成私有上传地址和同步命令。",
     },
     security: {
-      title: "只确认身份，不触碰作品。",
+      title: "只确认身份，不触碰作品",
       body: "登录只用于确认排行榜展示的 X 资料。采集器仍然只上传聚合 Token 行。",
     },
     nextTitle: "登录后继续做什么",

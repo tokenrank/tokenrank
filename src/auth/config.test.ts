@@ -8,7 +8,7 @@ const rawTwitterProfile = {
     id: "123456",
     name: "Token Rank",
     username: "TokenRankHQ",
-    profile_image_url: "https://pbs.twimg.com/profile_images/avatar.jpg",
+    profile_image_url: "https://pbs.twimg.com/profile_images/avatar_normal.jpg",
   },
 } satisfies TwitterProfile;
 
@@ -34,7 +34,7 @@ describe("getXIdentityUpdate", () => {
       xId: "123456",
       xHandle: "tokenrankhq",
       displayName: "Token Rank",
-      avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg",
+      avatarUrl: "https://pbs.twimg.com/profile_images/avatar_400x400.jpg",
     });
     expect(update?.updatedAt).toBeInstanceOf(Date);
   });
@@ -48,7 +48,7 @@ describe("getXIdentityUpdate", () => {
       profile: {
         id: "123456",
         name: "Token Rank",
-        image: "https://pbs.twimg.com/profile_images/avatar.jpg",
+        image: "https://pbs.twimg.com/profile_images/avatar_normal.jpg",
         xHandle: "@TokenRankHQ",
       },
       user: {
@@ -61,7 +61,7 @@ describe("getXIdentityUpdate", () => {
       xId: "123456",
       xHandle: "tokenrankhq",
       displayName: "Token Rank",
-      avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg",
+      avatarUrl: "https://pbs.twimg.com/profile_images/avatar_400x400.jpg",
     });
   });
 });
@@ -88,7 +88,7 @@ describe("Twitter provider profile", () => {
     expect(normalized).toMatchObject({
       id: "123456",
       name: "Token Rank",
-      image: "https://pbs.twimg.com/profile_images/avatar.jpg",
+      image: "https://pbs.twimg.com/profile_images/avatar_400x400.jpg",
       xHandle: "TokenRankHQ",
     });
   });

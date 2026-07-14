@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { highResolutionXAvatarUrl } from "@/src/lib/avatar";
+
 export function ProfileAvatar({
   className = "size-11",
   fallbackTextClassName = "text-sm",
@@ -14,32 +16,33 @@ export function ProfileAvatar({
   src?: string | null;
 }) {
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const displaySrc = highResolutionXAvatarUrl(src);
 
   useEffect(() => {
-    if (!src) {
+    if (!displaySrc) {
       return;
     }
 
     let active = true;
     const image = new Image();
     image.onload = () => {
-      if (active) setLoadedSrc(src);
+      if (active) setLoadedSrc(displaySrc);
     };
     image.onerror = () => {
       if (active) setLoadedSrc(null);
     };
-    image.src = src;
+    image.src = displaySrc;
 
     return () => {
       active = false;
     };
-  }, [src]);
+  }, [displaySrc]);
 
-  if (src && loadedSrc === src) {
+  if (displaySrc && loadedSrc === displaySrc) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src}
+        src={displaySrc}
         alt=""
         className={`${className} object-cover`}
         onError={() => setLoadedSrc(null)}

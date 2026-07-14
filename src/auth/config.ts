@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth/next";
 import Twitter, { type TwitterProfile } from "next-auth/providers/twitter";
 
 import { accounts, sessions, users, verificationTokens } from "../db/schema";
+import { highResolutionXAvatarUrl } from "../lib/avatar";
 
 type XIdentityInput = {
   account: Pick<Account, "provider" | "providerAccountId"> | null;
@@ -154,7 +155,7 @@ function mapTwitterProfile(profile: TwitterProfile): XProfileUser {
     id: profile.data.id,
     name: profile.data.name,
     email: null,
-    image: profile.data.profile_image_url,
+    image: highResolutionXAvatarUrl(profile.data.profile_image_url),
     xHandle: profile.data.username,
   };
 }
@@ -204,10 +205,12 @@ export function getXIdentityUpdate({
       getStringField(normalizedProfile, "name"),
       user?.name,
     ),
-    avatarUrl: firstString(
-      typeof data?.profile_image_url === "string" ? data.profile_image_url : null,
-      getStringField(normalizedProfile, "image"),
-      user?.image,
+    avatarUrl: highResolutionXAvatarUrl(
+      firstString(
+        typeof data?.profile_image_url === "string" ? data.profile_image_url : null,
+        getStringField(normalizedProfile, "image"),
+        user?.image,
+      ),
     ),
     updatedAt: new Date(),
   };
