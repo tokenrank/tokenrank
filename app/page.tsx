@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Trophy } from "lucide-react";
 
+import { HomeAnswerStrip } from "@/components/home/home-answer-strip";
 import { boardLabel, BoardTabs } from "@/components/leaderboard/board-tabs";
 import { LeaderboardShare } from "@/components/leaderboard/leaderboard-share";
 import { LeaderboardTable } from "@/components/leaderboard/leaderboard-table";
@@ -168,6 +169,8 @@ export default async function Home({
           </div>
         </div>
 
+        <HomeAnswerStrip copy={copy.home.answer} />
+
         <div className="grid border-x border-b border-[color:var(--tr-line)] bg-[#0a0d0a] sm:grid-cols-3">
           <ScoreDatum label={copy.home.stats.leader} value={leaderScore} />
           <ScoreDatum
@@ -178,23 +181,6 @@ export default async function Home({
             label={copy.home.stats.scope}
             value={`${activeRange} / ${activeBoard} / ${text(copy.home.stats.users, { count: entries.length })}`}
           />
-        </div>
-      </section>
-
-      <section className="tr-container pb-10" aria-labelledby="what-is-tokenrank">
-        <div className="tr-shell tr-reveal">
-          <div className="tr-panel grid gap-5 p-6 sm:p-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
-            <p className="tr-kicker">{copy.home.answer.eyebrow}</p>
-            <div>
-              <h2
-                id="what-is-tokenrank"
-                className="font-display text-4xl font-bold uppercase tracking-[-0.035em] text-[color:var(--tr-ivory)] sm:text-5xl"
-              >
-                {copy.home.answer.title}
-              </h2>
-              <p className="tr-body mt-5 max-w-4xl text-base sm:text-lg">{copy.home.answer.body}</p>
-            </div>
-          </div>
         </div>
       </section>
 

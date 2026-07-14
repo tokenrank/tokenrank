@@ -112,8 +112,7 @@ const en = {
       spendScore: "Spend",
     },
     answer: {
-      eyebrow: "Quick answer",
-      title: "What is TokenRank?",
+      title: "WHAT IS TOKENRANK",
       body: "TokenRank is a public AI token usage leaderboard. It compares aggregate usage from supported coding agents and AI tools while keeping prompts, source code, chats, filenames, and file contents off the server.",
     },
     how: {
@@ -576,8 +575,7 @@ const zh = {
       spendScore: "消耗金额",
     },
     answer: {
-      eyebrow: "快速回答",
-      title: "TokenRank 是什么？",
+      title: "TOKENRANK 是什么",
       body: "TokenRank 是公开的 AI Token 用量排行榜。它比较各类 Coding Agent 与 AI 工具的聚合用量，同时确保 prompt、源码、对话、文件名和文件内容不会上传到服务器。",
     },
     how: {
