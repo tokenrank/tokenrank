@@ -8,6 +8,7 @@ import OnboardPage from "../../../app/onboard/page";
 
 const originalNavigatorPlatform = window.navigator.platform;
 const originalNavigatorUserAgent = window.navigator.userAgent;
+const originalNavigatorClipboard = window.navigator.clipboard;
 const originalScrollIntoView = Element.prototype.scrollIntoView;
 const getXSignInGuard = vi.hoisted(() => vi.fn(async () => ({})));
 const getUserUploadStatus = vi.hoisted(() =>
@@ -69,6 +70,10 @@ afterEach(() => {
     configurable: true,
     value: originalNavigatorUserAgent,
   });
+  Object.defineProperty(window.navigator, "clipboard", {
+    configurable: true,
+    value: originalNavigatorClipboard,
+  });
   Object.defineProperty(Element.prototype, "scrollIntoView", {
     configurable: true,
     value: originalScrollIntoView,
@@ -79,13 +84,103 @@ describe("collector sync interval copy", () => {
   it("describes the onboarding panel automatic sync schedule as 12:00 and 24:00", () => {
     render(<WebhookTokenPanel />);
 
-    expect(document.body.textContent).toContain("uploads once immediately");
+    expect(document.body.textContent).toContain("give the secure prompt to a trusted coding agent");
+    expect(document.body.textContent).toContain("run the platform command yourself");
     expect(document.body.textContent).toContain("Automatic sync runs at 12:00 and 24:00 by default");
-    expect(document.body.textContent).toContain("runs silently in the background");
     expect(document.body.textContent).toContain("recovers once after your next login");
-    expect(document.body.textContent).toContain("actual AI tool without double counting");
     expect(document.body.textContent).not.toContain("每 5 分钟");
     expect(document.body.textContent).not.toContain("每 12 小时");
+  });
+
+  it("defaults to the Agent method and copies the private one-sentence prompt", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(window.navigator, "platform", { configurable: true, value: "Linux x86_64" });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (X11; Linux x86_64)",
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/agent-prompt-token",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByRole, queryByRole } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+
+    const agentTab = await waitFor(() => getByRole("tab", { name: "Ask an agent" }));
+    expect(agentTab.getAttribute("aria-selected")).toBe("true");
+    expect(queryByRole("tabpanel", { name: "Run in terminal" })).toBeNull();
+    expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
+      "https://tokenrank.org/skill.md",
+    );
+
+    fireEvent.click(getByRole("button", { name: "Copy Agent prompt" }));
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        expect.stringContaining("install.sh?token=agent-prompt-token"),
+      );
+    });
+  });
+
+  it("shows terminal commands only after selecting the terminal method", async () => {
+    Object.defineProperty(window.navigator, "platform", { configurable: true, value: "Linux x86_64" });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (X11; Linux x86_64)",
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/terminal-tab-token",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByRole, queryByText } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+    await waitFor(() => getByRole("tab", { name: "Run in terminal" }));
+
+    expect(queryByText("Manual refresh")).toBeNull();
+    fireEvent.click(getByRole("tab", { name: "Run in terminal" }));
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain("Manual refresh");
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      "install.sh?token=terminal-tab-token",
+    );
+  });
+
+  it("supports arrow-key method switching and keeps the platform-specific prompt in sync", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/keyboard-tab-token",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByRole } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+    const agentTab = await waitFor(() => getByRole("tab", { name: "Ask an agent" }));
+
+    fireEvent.keyDown(agentTab, { key: "ArrowRight" });
+    expect(getByRole("tab", { name: "Run in terminal" }).getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(getByRole("button", { name: "Windows PowerShell" }));
+    fireEvent.keyDown(getByRole("tab", { name: "Run in terminal" }), { key: "ArrowLeft" });
+    expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
+      "install.ps1?token=keyboard-tab-token",
+    );
   });
 
   it("keeps generated one-line commands inside a horizontally scrollable row", async () => {
@@ -105,6 +200,8 @@ describe("collector sync interval copy", () => {
 
     const { getByRole, container } = render(<WebhookTokenPanel />);
     fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+
+    fireEvent.click(await waitFor(() => getByRole("tab", { name: "Run in terminal" })));
 
     await waitFor(() => {
       expect(container.querySelector("pre.overflow-x-scroll")).not.toBeNull();
@@ -156,10 +253,12 @@ describe("collector sync interval copy", () => {
     });
 
     const scrolledSection = scrollIntoView.mock.instances[0] as Element;
-    expect(scrolledSection.querySelector("pre.overflow-x-scroll code")?.textContent).toContain(
+    expect(scrolledSection.textContent).toContain("https://tokenrank.org/skill.md");
+    expect(scrolledSection.textContent).toContain(
       "scroll-to-command-token",
     );
 
+    fireEvent.click(getByRole("tab", { name: "Run in terminal" }));
     fireEvent.click(getByRole("button", { name: "Windows PowerShell" }));
     await waitFor(() => {
       expect(scrolledSection.textContent).toContain("install.ps1?token=scroll-to-command-token");
@@ -190,12 +289,12 @@ describe("collector sync interval copy", () => {
       ),
     );
 
-    const { getByRole, container } = render(<WebhookTokenPanel />);
+    const { getByRole } = render(<WebhookTokenPanel />);
     fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
 
     await waitFor(() => {
       expect(getByRole("button", { name: "Windows PowerShell" }).className).toContain("bg-[color:var(--tr-gold)]");
-      expect(container.querySelector("pre.overflow-x-scroll code")?.textContent).toContain(
+      expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
         "install.ps1?token=windows-auto-select-token",
       );
     });

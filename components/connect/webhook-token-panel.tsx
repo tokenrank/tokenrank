@@ -1,12 +1,13 @@
 "use client";
 
-import { CheckCircle2, Copy, KeyRound, ShieldCheck, Terminal, UploadCloud } from "lucide-react";
+import { Bot, CheckCircle2, Copy, KeyRound, ShieldAlert, ShieldCheck, Terminal, UploadCloud } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { defaultCopy, text, type AppCopy } from "@/src/i18n/copy";
-import { buildCollectorCommands } from "@/src/lib/connect/collector-command";
+import { buildAgentPrompt, buildCollectorCommands } from "@/src/lib/connect/collector-command";
 
 type CommandTarget = "macos" | "linux" | "windows";
+type ConnectionMethod = "agent" | "terminal";
 
 function detectCommandTarget(): CommandTarget {
   if (typeof navigator === "undefined") {
@@ -44,13 +45,18 @@ export function WebhookTokenPanel({
   const [webhookUrl, setWebhookUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [connectionMethod, setConnectionMethod] = useState<ConnectionMethod>("agent");
+  const [copiedAgent, setCopiedAgent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedManual, setCopiedManual] = useState(false);
   const [commandTarget, setCommandTarget] = useState<CommandTarget>(detectCommandTarget);
   const commandSectionRef = useRef<HTMLDivElement>(null);
+  const agentTabRef = useRef<HTMLButtonElement>(null);
+  const terminalTabRef = useRef<HTMLButtonElement>(null);
 
   const commands = useMemo(() => (webhookUrl ? buildCollectorCommands(webhookUrl) : null), [webhookUrl]);
   const command = targetUsesWindowsCommand(commandTarget) ? (commands?.windows ?? "") : (commands?.unix ?? "");
+  const agentPrompt = command ? buildAgentPrompt(command) : "";
   const manualCommand = targetUsesWindowsCommand(commandTarget)
     ? (commands?.windowsManual ?? "")
     : (commands?.unixManual ?? "");
@@ -76,6 +82,8 @@ export function WebhookTokenPanel({
       }
 
       setWebhookUrl(payload.webhookUrl);
+      setConnectionMethod("agent");
+      setCopiedAgent(false);
       setCopied(false);
       setCopiedManual(false);
     } catch (caught) {
@@ -83,6 +91,12 @@ export function WebhookTokenPanel({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function copyAgentPrompt() {
+    if (!agentPrompt) return;
+    await navigator.clipboard.writeText(agentPrompt);
+    setCopiedAgent(true);
   }
 
   async function copyCommand() {
@@ -99,8 +113,29 @@ export function WebhookTokenPanel({
 
   function selectCommandTarget(nextTarget: CommandTarget) {
     setCommandTarget(nextTarget);
+    setCopiedAgent(false);
     setCopied(false);
     setCopiedManual(false);
+  }
+
+  function handleMethodKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    let nextMethod: ConnectionMethod | null = null;
+
+    if (event.key === "ArrowLeft") {
+      nextMethod = connectionMethod === "agent" ? "terminal" : "agent";
+    } else if (event.key === "ArrowRight") {
+      nextMethod = connectionMethod === "agent" ? "terminal" : "agent";
+    } else if (event.key === "Home") {
+      nextMethod = "agent";
+    } else if (event.key === "End") {
+      nextMethod = "terminal";
+    }
+
+    if (!nextMethod) return;
+
+    event.preventDefault();
+    setConnectionMethod(nextMethod);
+    (nextMethod === "agent" ? agentTabRef : terminalTabRef).current?.focus();
   }
 
   const targetLabel = copy.targetLabels[commandTarget];
@@ -142,76 +177,162 @@ export function WebhookTokenPanel({
         {command ? (
           <div ref={commandSectionRef} className="mt-5 scroll-mt-24 space-y-4">
             <div>
-              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">
-                    {targetUsesWindowsCommand(commandTarget)
-                      ? copy.autoTitle.windows
-                      : text(copy.autoTitle.unix, { target: targetLabel })}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold text-[color:var(--tr-muted)]">
-                    {targetUsesWindowsCommand(commandTarget) ? copy.autoBody.windows : copy.autoBody.unix}
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-[color:var(--tr-muted)]">{copy.oneLine}</span>
-              </div>
-              <div className="mb-3 inline-flex gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1">
-                <TargetButton active={commandTarget === "macos"} onClick={() => selectCommandTarget("macos")}>
-                  macOS
-                </TargetButton>
-                <TargetButton active={commandTarget === "linux"} onClick={() => selectCommandTarget("linux")}>
-                  Linux
-                </TargetButton>
-                <TargetButton active={commandTarget === "windows"} onClick={() => selectCommandTarget("windows")}>
-                  Windows PowerShell
-                </TargetButton>
-              </div>
-              <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden border border-[color:var(--tr-line)] bg-black/45 p-2 shadow-inner">
-                <pre className="min-w-0 overflow-x-scroll px-3 py-2 text-sm leading-7 text-[color:var(--tr-ivory)] [scrollbar-gutter:stable] tr-scrollbar">
-                  <code className="block w-max min-w-full whitespace-pre">{command}</code>
-                </pre>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.12em] text-[color:var(--tr-muted)]">
+                {copy.methodLabel}
+              </p>
+              <div
+                role="tablist"
+                aria-label={copy.methodLabel}
+                className="inline-flex gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1"
+              >
                 <button
+                  ref={agentTabRef}
+                  id="connection-method-agent-tab"
                   type="button"
-                  onClick={copyCommand}
-                  aria-label={`${actions.copy} ${targetLabel}`}
-                  className="tr-button min-h-10 shrink-0 px-3 py-2 text-sm"
+                  role="tab"
+                  aria-selected={connectionMethod === "agent"}
+                  aria-controls="connection-method-agent-panel"
+                  tabIndex={connectionMethod === "agent" ? 0 : -1}
+                  onClick={() => setConnectionMethod("agent")}
+                  onKeyDown={handleMethodKeyDown}
+                  className={
+                    connectionMethod === "agent"
+                      ? "flex items-center gap-2 bg-[color:var(--tr-gold)] px-4 py-2 text-sm font-black text-[#080705]"
+                      : "flex items-center gap-2 bg-[color:var(--tr-surface-2)] px-4 py-2 text-sm font-bold text-[color:var(--tr-muted)] hover:text-[color:var(--tr-ivory)]"
+                  }
                 >
-                  {copied ? (
-                    <CheckCircle2 className="size-4" aria-hidden="true" />
-                  ) : (
-                    <Copy className="size-4" aria-hidden="true" />
-                  )}
-                  <span className="whitespace-nowrap">{copied ? actions.copied : actions.copy}</span>
+                  <Bot className="size-4" aria-hidden="true" />
+                  {copy.methods.agent}
+                </button>
+                <button
+                  ref={terminalTabRef}
+                  id="connection-method-terminal-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={connectionMethod === "terminal"}
+                  aria-controls="connection-method-terminal-panel"
+                  tabIndex={connectionMethod === "terminal" ? 0 : -1}
+                  onClick={() => setConnectionMethod("terminal")}
+                  onKeyDown={handleMethodKeyDown}
+                  className={
+                    connectionMethod === "terminal"
+                      ? "flex items-center gap-2 bg-[color:var(--tr-gold)] px-4 py-2 text-sm font-black text-[#080705]"
+                      : "flex items-center gap-2 bg-[color:var(--tr-surface-2)] px-4 py-2 text-sm font-bold text-[color:var(--tr-muted)] hover:text-[color:var(--tr-ivory)]"
+                  }
+                >
+                  <Terminal className="size-4" aria-hidden="true" />
+                  {copy.methods.terminal}
                 </button>
               </div>
             </div>
-            <div className="tr-card-soft p-4">
-              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+
+            {connectionMethod === "agent" ? (
+              <div
+                id="connection-method-agent-panel"
+                role="tabpanel"
+                aria-labelledby="connection-method-agent-tab"
+                className="space-y-4"
+              >
                 <div>
-                  <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">{copy.manualTitle}</h3>
-                  <p className="mt-1 text-xs font-semibold text-[color:var(--tr-muted)]">{copy.manualBody}</p>
+                  <div className="flex items-center gap-2">
+                    <Bot className="size-4 text-[color:var(--tr-gold-bright)]" aria-hidden="true" />
+                    <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">{copy.agentTitle}</h3>
+                  </div>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-[color:var(--tr-muted)]">{copy.agentBody}</p>
                 </div>
-                <span className="text-xs font-bold text-[color:var(--tr-muted)]">{copy.oneLine}</span>
+                <CommandTargetSelector
+                  active={commandTarget}
+                  ariaLabel={copy.platformLabel}
+                  onSelect={selectCommandTarget}
+                />
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 border border-[color:var(--tr-line)] bg-black/45 p-2">
+                  <pre className="min-w-0 whitespace-pre-wrap break-words px-3 py-2 text-sm leading-6 text-[color:var(--tr-ivory)] [overflow-wrap:anywhere]">
+                    <code>{agentPrompt}</code>
+                  </pre>
+                  <button type="button" onClick={copyAgentPrompt} aria-label={copy.agentCopyLabel} className="tr-button min-h-10 shrink-0 px-3 py-2 text-sm">
+                    {copiedAgent ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+                    <span className="whitespace-nowrap">{copiedAgent ? actions.copied : actions.copy}</span>
+                  </button>
+                </div>
+                <div className="flex gap-3 border-l-4 border-[color:var(--tr-orange)] bg-[color:var(--tr-orange-soft)]/25 p-4 text-xs leading-5 text-[color:var(--tr-ivory-soft)]">
+                  <ShieldAlert className="mt-0.5 size-4 shrink-0 text-[color:var(--tr-orange)]" aria-hidden="true" />
+                  <p>{copy.agentSecurity}</p>
+                </div>
               </div>
-              <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden border border-[color:var(--tr-line)] bg-black/30 p-2">
-                <pre className="min-w-0 overflow-x-scroll px-2 py-2 text-sm leading-7 text-[color:var(--tr-ivory-soft)] [scrollbar-gutter:stable] tr-scrollbar">
-                  <code className="block w-max min-w-full whitespace-pre">{manualCommand}</code>
-                </pre>
-                <button
-                  type="button"
-                  onClick={copyManualCommand}
-                  aria-label={actions.copy}
-                  className="tr-button-secondary min-h-10 shrink-0 px-3 py-2 text-sm"
-                >
-                  {copiedManual ? (
-                    <CheckCircle2 className="size-4 text-[color:var(--tr-green)]" aria-hidden="true" />
-                  ) : (
-                    <Copy className="size-4" aria-hidden="true" />
-                  )}
-                  <span className="whitespace-nowrap">{copiedManual ? actions.copied : actions.copy}</span>
-                </button>
+            ) : (
+              <div
+                id="connection-method-terminal-panel"
+                role="tabpanel"
+                aria-labelledby="connection-method-terminal-tab"
+                className="space-y-4"
+              >
+                <CommandTargetSelector
+                  active={commandTarget}
+                  ariaLabel={copy.platformLabel}
+                  onSelect={selectCommandTarget}
+                />
+                <div>
+                  <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">
+                        {targetUsesWindowsCommand(commandTarget)
+                          ? copy.autoTitle.windows
+                          : text(copy.autoTitle.unix, { target: targetLabel })}
+                      </h3>
+                      <p className="mt-1 text-xs font-semibold text-[color:var(--tr-muted)]">
+                        {targetUsesWindowsCommand(commandTarget) ? copy.autoBody.windows : copy.autoBody.unix}
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-[color:var(--tr-muted)]">{copy.oneLine}</span>
+                  </div>
+                  <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden border border-[color:var(--tr-line)] bg-black/45 p-2 shadow-inner">
+                    <pre className="min-w-0 overflow-x-scroll px-3 py-2 text-sm leading-7 text-[color:var(--tr-ivory)] [scrollbar-gutter:stable] tr-scrollbar">
+                      <code className="block w-max min-w-full whitespace-pre">{command}</code>
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={copyCommand}
+                      aria-label={`${actions.copy} ${targetLabel}`}
+                      className="tr-button min-h-10 shrink-0 px-3 py-2 text-sm"
+                    >
+                      {copied ? (
+                        <CheckCircle2 className="size-4" aria-hidden="true" />
+                      ) : (
+                        <Copy className="size-4" aria-hidden="true" />
+                      )}
+                      <span className="whitespace-nowrap">{copied ? actions.copied : actions.copy}</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="tr-card-soft p-4">
+                  <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">{copy.manualTitle}</h3>
+                      <p className="mt-1 text-xs font-semibold text-[color:var(--tr-muted)]">{copy.manualBody}</p>
+                    </div>
+                    <span className="text-xs font-bold text-[color:var(--tr-muted)]">{copy.oneLine}</span>
+                  </div>
+                  <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden border border-[color:var(--tr-line)] bg-black/30 p-2">
+                    <pre className="min-w-0 overflow-x-scroll px-2 py-2 text-sm leading-7 text-[color:var(--tr-ivory-soft)] [scrollbar-gutter:stable] tr-scrollbar">
+                      <code className="block w-max min-w-full whitespace-pre">{manualCommand}</code>
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={copyManualCommand}
+                      aria-label={actions.copy}
+                      className="tr-button-secondary min-h-10 shrink-0 px-3 py-2 text-sm"
+                    >
+                      {copiedManual ? (
+                        <CheckCircle2 className="size-4 text-[color:var(--tr-green)]" aria-hidden="true" />
+                      ) : (
+                        <Copy className="size-4" aria-hidden="true" />
+                      )}
+                      <span className="whitespace-nowrap">{copiedManual ? actions.copied : actions.copy}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="mt-5 border border-dashed border-[color:var(--tr-line)] bg-black/20 p-4 font-mono text-xs leading-6 text-[color:var(--tr-muted)]">
@@ -242,6 +363,34 @@ function StepCard({ icon, title, children }: { icon: React.ReactNode; title: str
   );
 }
 
+function CommandTargetSelector({
+  active,
+  ariaLabel,
+  onSelect,
+}: {
+  active: CommandTarget;
+  ariaLabel: string;
+  onSelect: (target: CommandTarget) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className="inline-flex gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1"
+    >
+      <TargetButton active={active === "macos"} onClick={() => onSelect("macos")}>
+        macOS
+      </TargetButton>
+      <TargetButton active={active === "linux"} onClick={() => onSelect("linux")}>
+        Linux
+      </TargetButton>
+      <TargetButton active={active === "windows"} onClick={() => onSelect("windows")}>
+        Windows PowerShell
+      </TargetButton>
+    </div>
+  );
+}
+
 function TargetButton({
   active,
   children,
@@ -255,6 +404,7 @@ function TargetButton({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={
         active
           ? "bg-[color:var(--tr-gold)] px-3 py-1.5 font-mono text-xs font-black uppercase text-[#080705]"

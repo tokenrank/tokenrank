@@ -254,11 +254,21 @@ const en = {
       },
     ],
     webhook: {
-      title: "Copy the sync command",
-      body: "Generate a private upload URL, then paste the automatic sync command into your terminal. It uploads once immediately, runs silently in the background, and attributes every event to its actual AI tool without double counting.",
+      title: "Choose how to connect",
+      body: "Generate a private upload URL, then give the secure prompt to a trusted coding agent or run the platform command yourself. Either method installs the collector, uploads once, and schedules background sync.",
       generate: "Generate upload URL",
       generating: "Generating",
       errorFallback: "failed to create webhook token",
+      methodLabel: "Connection method",
+      methods: {
+        agent: "Ask an agent",
+        terminal: "Run in terminal",
+      },
+      agentTitle: "Connect with an agent",
+      agentBody: "Copy this prompt to Codex, Claude Code, or another trusted coding agent.",
+      agentCopyLabel: "Copy Agent prompt",
+      agentSecurity: "This prompt contains your private setup token. Share it only with an agent you trust, and never post or commit it.",
+      platformLabel: "Setup platform",
       cards: [
         {
           title: "1. Identity is already linked",
@@ -290,7 +300,7 @@ const en = {
       manualTitle: "Manual refresh",
       manualBody:
         "Background sync handles daily updates. Use this command only when you want an immediate refresh.",
-      empty: "Click \"Generate upload URL\" first. The install, connect, and upload commands will appear here.",
+      empty: "Click \"Generate upload URL\" first. Then choose an Agent prompt or a terminal command.",
       privacy:
         "Only aggregate token counts and estimated cost by date, tool, and model are uploaded. Code, prompts, chats, and file contents are excluded.",
     },
@@ -717,11 +727,21 @@ const zh = {
       },
     ],
     webhook: {
-      title: "复制同步命令",
-      body: "生成私有上传地址后，把自动同步命令粘到终端。它会立刻上传一次，在后台静默同步，并按实际 AI 工具归属去重统计。",
+      title: "选择接入方式",
+      body: "生成私有上传地址后，可以把安全 Prompt 交给可信编码 Agent，或者自己运行对应系统的命令。两种方式都会安装采集器、立即上传一次并开启后台同步。",
       generate: "生成上传地址",
       generating: "生成中",
       errorFallback: "创建 webhook token 失败",
+      methodLabel: "接入方式",
+      methods: {
+        agent: "交给 Agent",
+        terminal: "使用命令行",
+      },
+      agentTitle: "让 Agent 帮你接入",
+      agentBody: "把这段 Prompt 复制给 Codex、Claude Code 或其他你信任的编码 Agent。",
+      agentCopyLabel: "复制 Agent Prompt",
+      agentSecurity: "这段 Prompt 包含你的私有 setup token，只能交给可信 Agent，不要发布或提交到仓库。",
+      platformLabel: "接入系统",
       cards: [
         {
           title: "1. 身份已经绑定",
@@ -752,7 +772,7 @@ const zh = {
       oneLine: "1 行",
       manualTitle: "手动刷新",
       manualBody: "后台同步会处理日常更新；只有想立刻刷新时才需要这条命令。",
-      empty: "先点「生成上传地址」。生成后，这里会出现安装、连接和上传命令。",
+      empty: "先点「生成上传地址」，然后选择复制 Agent Prompt 或终端命令。",
       privacy:
         "只上传按日期、工具、模型聚合后的 Token 数和预估金额；不上传代码、prompt、对话或文件内容。",
     },
