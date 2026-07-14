@@ -267,7 +267,8 @@ const en = {
       agentTitle: "Connect with an agent",
       agentBody: "Copy this prompt to Codex, Claude Code, or another trusted coding agent.",
       agentCopyLabel: "Copy Agent prompt",
-      agentSecurity: "This prompt contains your private setup token. Share it only with an agent you trust, and never post or commit it.",
+      agentSecurity: "This prompt contains your private setup token. Share it only with an agent you trust. Never post, screenshot, or commit it, and make sure the agent does not repeat it in its final response.",
+      copyError: "Copy failed. Select the text and copy it manually.",
       platformLabel: "Setup platform",
       cards: [
         {
@@ -740,7 +741,8 @@ const zh = {
       agentTitle: "让 Agent 帮你接入",
       agentBody: "把这段 Prompt 复制给 Codex、Claude Code 或其他你信任的编码 Agent。",
       agentCopyLabel: "复制 Agent Prompt",
-      agentSecurity: "这段 Prompt 包含你的私有 setup token，只能交给可信 Agent，不要发布或提交到仓库。",
+      agentSecurity: "这段 Prompt 包含你的私有 setup token，只能交给可信 Agent。不要发布、截图或提交到仓库，并确保 Agent 不在最终回复中重复秘密。",
+      copyError: "复制失败，请选中文本后手动复制。",
       platformLabel: "接入系统",
       cards: [
         {

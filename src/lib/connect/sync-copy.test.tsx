@@ -5,6 +5,7 @@ import { UploadCompletionRedirect } from "../../../components/connect/upload-com
 import { WebhookTokenPanel } from "../../../components/connect/webhook-token-panel";
 import DashboardPage from "../../../app/dashboard/page";
 import OnboardPage from "../../../app/onboard/page";
+import { defaultCopy, getCopy } from "../../i18n/copy";
 
 const originalNavigatorPlatform = window.navigator.platform;
 const originalNavigatorUserAgent = window.navigator.userAgent;
@@ -92,6 +93,15 @@ describe("collector sync interval copy", () => {
     expect(document.body.textContent).not.toContain("每 12 小时");
   });
 
+  it("warns users not to expose the private setup token in screenshots or final responses", () => {
+    expect(defaultCopy.onboard.webhook.agentSecurity).toBe(
+      "This prompt contains your private setup token. Share it only with an agent you trust. Never post, screenshot, or commit it, and make sure the agent does not repeat it in its final response.",
+    );
+    expect(getCopy("zh").onboard.webhook.agentSecurity).toBe(
+      "这段 Prompt 包含你的私有 setup token，只能交给可信 Agent。不要发布、截图或提交到仓库，并确保 Agent 不在最终回复中重复秘密。",
+    );
+  });
+
   it("defaults to the Agent method and copies the private one-sentence prompt", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, "clipboard", {
@@ -129,6 +139,71 @@ describe("collector sync interval copy", () => {
         expect.stringContaining("install.sh?token=agent-prompt-token"),
       );
     });
+  });
+
+  it("shows an accessible fallback when Agent prompt copying is rejected", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("clipboard denied"));
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/agent-copy-rejected-token",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByRole } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+    const copyButton = await waitFor(() => getByRole("button", { name: "Copy Agent prompt" }));
+    fireEvent.click(copyButton);
+
+    expect((await waitFor(() => getByRole("alert"))).textContent).toContain(
+      "Copy failed. Select the text and copy it manually.",
+    );
+    expect(copyButton.textContent).not.toContain("Copied");
+    expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
+      "agent-copy-rejected-token",
+    );
+  });
+
+  it("shows an accessible fallback when the terminal clipboard API is missing", async () => {
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(window.navigator, "platform", { configurable: true, value: "Linux x86_64" });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (X11; Linux x86_64)",
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          status: 0,
+          webhookUrl: "https://tokenrank.test/api/collector/upload/terminal-copy-missing-token",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const { getByRole } = render(<WebhookTokenPanel />);
+    fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
+    fireEvent.click(await waitFor(() => getByRole("tab", { name: "Run in terminal" })));
+    const copyButton = getByRole("button", { name: "Copy Linux shell" });
+    fireEvent.click(copyButton);
+
+    expect((await waitFor(() => getByRole("alert"))).textContent).toContain(
+      "Copy failed. Select the text and copy it manually.",
+    );
+    expect(copyButton.textContent).not.toContain("Copied");
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      "terminal-copy-missing-token",
+    );
   });
 
   it("shows terminal commands only after selecting the terminal method", async () => {

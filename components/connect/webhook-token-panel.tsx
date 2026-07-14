@@ -49,6 +49,7 @@ export function WebhookTokenPanel({
   const [copiedAgent, setCopiedAgent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedManual, setCopiedManual] = useState(false);
+  const [copyError, setCopyError] = useState("");
   const [commandTarget, setCommandTarget] = useState<CommandTarget>(detectCommandTarget);
   const commandSectionRef = useRef<HTMLDivElement>(null);
   const agentTabRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +73,7 @@ export function WebhookTokenPanel({
   async function createToken() {
     setLoading(true);
     setError("");
+    setCopyError("");
 
     try {
       const response = await fetch("/api/webhook-tokens", { method: "POST" });
@@ -93,22 +95,37 @@ export function WebhookTokenPanel({
     }
   }
 
+  async function copyText(value: string, setCopiedState: (copied: boolean) => void) {
+    setCopiedState(false);
+    setCopyError("");
+
+    try {
+      const clipboard = navigator.clipboard;
+      if (!clipboard?.writeText) {
+        throw new Error("Clipboard API unavailable");
+      }
+
+      await clipboard.writeText(value);
+      setCopiedState(true);
+    } catch {
+      setCopiedState(false);
+      setCopyError(copy.copyError);
+    }
+  }
+
   async function copyAgentPrompt() {
     if (!agentPrompt) return;
-    await navigator.clipboard.writeText(agentPrompt);
-    setCopiedAgent(true);
+    await copyText(agentPrompt, setCopiedAgent);
   }
 
   async function copyCommand() {
     if (!command) return;
-    await navigator.clipboard.writeText(command);
-    setCopied(true);
+    await copyText(command, setCopied);
   }
 
   async function copyManualCommand() {
     if (!manualCommand) return;
-    await navigator.clipboard.writeText(manualCommand);
-    setCopiedManual(true);
+    await copyText(manualCommand, setCopiedManual);
   }
 
   function selectCommandTarget(nextTarget: CommandTarget) {
@@ -116,6 +133,12 @@ export function WebhookTokenPanel({
     setCopiedAgent(false);
     setCopied(false);
     setCopiedManual(false);
+    setCopyError("");
+  }
+
+  function selectConnectionMethod(nextMethod: ConnectionMethod) {
+    setConnectionMethod(nextMethod);
+    setCopyError("");
   }
 
   function handleMethodKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
@@ -134,7 +157,7 @@ export function WebhookTokenPanel({
     if (!nextMethod) return;
 
     event.preventDefault();
-    setConnectionMethod(nextMethod);
+    selectConnectionMethod(nextMethod);
     (nextMethod === "agent" ? agentTabRef : terminalTabRef).current?.focus();
   }
 
@@ -193,7 +216,7 @@ export function WebhookTokenPanel({
                   aria-selected={connectionMethod === "agent"}
                   aria-controls="connection-method-agent-panel"
                   tabIndex={connectionMethod === "agent" ? 0 : -1}
-                  onClick={() => setConnectionMethod("agent")}
+                  onClick={() => selectConnectionMethod("agent")}
                   onKeyDown={handleMethodKeyDown}
                   className={
                     connectionMethod === "agent"
@@ -212,7 +235,7 @@ export function WebhookTokenPanel({
                   aria-selected={connectionMethod === "terminal"}
                   aria-controls="connection-method-terminal-panel"
                   tabIndex={connectionMethod === "terminal" ? 0 : -1}
-                  onClick={() => setConnectionMethod("terminal")}
+                  onClick={() => selectConnectionMethod("terminal")}
                   onKeyDown={handleMethodKeyDown}
                   className={
                     connectionMethod === "terminal"
@@ -333,6 +356,11 @@ export function WebhookTokenPanel({
                 </div>
               </div>
             )}
+            {copyError ? (
+              <p role="alert" className="text-sm font-bold text-[color:var(--tr-red)]">
+                {copyError}
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="mt-5 border border-dashed border-[color:var(--tr-line)] bg-black/20 p-4 font-mono text-xs leading-6 text-[color:var(--tr-muted)]">
