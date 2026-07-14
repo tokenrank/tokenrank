@@ -21,7 +21,7 @@ export function Footer({ locale }: { locale: Locale }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3 font-mono text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[color:var(--tr-muted)]">
-          <Link href="/" className="hover:text-[color:var(--tr-gold)]">
+          <Link href="/#leaderboard" className="hover:text-[color:var(--tr-gold)]">
             {copy.common.nav.leaderboard}
           </Link>
           <Link href="/rules" className="hover:text-[color:var(--tr-gold)]">

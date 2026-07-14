@@ -51,6 +51,9 @@ describe("Header", () => {
       expect.arrayContaining(["fixed", "bottom-0", "grid-cols-4", "sm:static"]),
     );
     expect(navigation?.querySelectorAll("a")).toHaveLength(4);
+    const leaderboardLink = navigation?.querySelector('a[href="/#leaderboard"]');
+    expect(leaderboardLink).not.toBeNull();
+    expect(leaderboardLink?.textContent).toBe("Leaderboard");
   });
 
   it("shows the signed-in account shortcut when session storage is available", async () => {

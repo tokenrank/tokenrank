@@ -8,7 +8,7 @@ const en = {
       shortTagline: "Token usage ranking",
     },
     nav: {
-      leaderboard: "Board",
+      leaderboard: "Leaderboard",
       rules: "Rules",
       dashboard: "Dashboard",
       start: "Join",

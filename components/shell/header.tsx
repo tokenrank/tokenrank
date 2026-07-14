@@ -26,7 +26,7 @@ export async function Header({ locale: providedLocale }: { locale?: Locale } = {
             aria-label={locale === "zh" ? "主导航" : "Primary navigation"}
             className="tr-mobile-bottom-nav fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 gap-px border-t border-[color:var(--tr-line)] bg-[color:var(--tr-line)] shadow-[0_-12px_32px_rgb(0_0_0/0.42)] sm:static sm:z-auto sm:ml-auto sm:flex sm:w-auto sm:items-center sm:border sm:shadow-none"
           >
-            <NavLink href="/" label={copy.common.nav.leaderboard} />
+            <NavLink href="/#leaderboard" label={copy.common.nav.leaderboard} />
             <NavLink href="/rules" label={copy.common.nav.rules} />
             {user ? (
               <Link
