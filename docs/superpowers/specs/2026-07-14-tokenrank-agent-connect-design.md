@@ -6,7 +6,7 @@
 ## 目标
 
 1. 在 `https://tokenrank.org/skill.md` 提供可被 Codex、Claude Code 等编码 Agent 直接读取的公开接入说明。
-2. 用户在 Onboard 页面点击 `Generate upload URL` 后，同时获得现有终端命令和一条可直接复制给 Agent 的 Prompt。
+2. 用户在 Onboard 页面点击 `Generate upload URL` 后，通过二选一 Tab 选择复制 Agent Prompt 或现有终端命令，并默认使用 Agent 方式。
 3. Agent Prompt 携带当前账号、当前系统对应的私有安装命令，使 Agent 能真正完成账号绑定、首次聚合上传和定时同步安装。
 4. 将首页 `WHAT IS TOKENRANK` 介绍区移动到 Hero 主体正下方并压缩高度，删除 `QUICK ANSWER` 和重复的大标题。
 5. 所有改动先在本地完成自动化与浏览器验收，不 push、不部署生产。
@@ -63,17 +63,18 @@
 
 ### 生成后的页面结构
 
-点击 `Generate upload URL` 并成功获得私有 webhook URL 后，命令区域显示：
+点击 `Generate upload URL` 并成功获得私有 webhook URL 后，结果区显示一个接入方式 Tab 组，同一时间只展示一种方式：
 
-1. `CONNECT WITH AN AGENT`：Agent Prompt、复制按钮、安全提示；
-2. 现有自动同步终端命令；
-3. 现有手动刷新命令。
+1. `ASK AN AGENT` / `交给 Agent`：默认选中，展示 Agent Prompt、复制按钮和安全提示；
+2. `RUN IN TERMINAL` / `使用命令行`：展示现有自动同步终端命令和手动刷新命令。
 
-当前 macOS、Linux、Windows PowerShell 切换继续保留。切换系统时，终端命令和 Agent Prompt 必须同步更新，所有复制成功状态重置。
+默认选择 Agent 是因为非开发者通常不需要理解或操作命令行。用户主动切换到命令行 Tab 后才显示终端相关内容，避免两套接入方式同时出现造成选择负担。
+
+当前 macOS、Linux、Windows PowerShell 选择继续保留，用于决定私有安装命令。首次生成时自动检测当前系统；切换系统后，终端命令和 Agent Prompt 必须同步更新，所有复制成功状态重置。Agent Tab 可以用紧凑的平台标记和切换入口呈现系统选择，不让它抢占主要操作。
 
 ### Agent Prompt
 
-英文固定模板：
+Agent Tab 中展示的英文固定模板：
 
 ```text
 Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup command: {{command}}
@@ -180,7 +181,7 @@ Report only:
 2. 现有 `/api/webhook-tokens` 创建并返回属于该用户的私有上传 URL。
 3. 客户端从 URL 构建 macOS/Linux 与 Windows 安装命令。
 4. 客户端按当前选择的系统生成终端命令和 Agent Prompt。
-5. 用户复制终端命令自行执行，或复制 Agent Prompt 给可信 Agent。
+5. 结果区默认打开 Agent Tab；用户复制 Agent Prompt 给可信 Agent，或主动切到命令行 Tab 后复制终端命令自行执行。
 6. Agent 获取公共 `/skill.md`，验证私有命令域名，执行官方安装器。
 7. 安装器完成连接、首次上传和后台服务安装。
 8. Agent 使用绝对路径运行 `tokenrank status` 并返回脱敏结果。
@@ -200,6 +201,9 @@ Report only:
 ### 自动化测试
 
 - Agent Prompt 构建函数包含准确的 `/skill.md` URL 和当前系统命令。
+- 生成成功后默认选中 Agent Tab，命令行内容不在页面中同时展开。
+- 切换到命令行 Tab 后显示自动同步命令和手动刷新命令，Agent Prompt 面板隐藏。
+- 接入方式 Tab 使用正确的 `tablist`、`tab`、`tabpanel` 与选中状态，支持键盘访问。
 - macOS/Linux 与 Windows 命令切换时 Prompt 同步变化。
 - 生成成功后显示 Agent 区域并滚动到结果区。
 - Agent Prompt 复制按钮写入完整单句，复制状态正确重置。
@@ -209,8 +213,8 @@ Report only:
 
 ### 浏览器验收
 
-- 430–488px 移动端：首页说明条紧凑、标题不跨成大型区块；Onboard Prompt 可完整阅读和复制。
-- 1280px 以上桌面端：首页说明条横向紧凑；Onboard 命令与按钮不溢出。
+- 430–488px 移动端：首页说明条紧凑、标题不跨成大型区块；Onboard 默认只展示 Agent Prompt，Tab、文本和复制按钮不溢出。
+- 1280px 以上桌面端：首页说明条横向紧凑；Onboard 两个接入方式切换清晰，命令与按钮不溢出。
 - 生成后切换三个系统，Prompt 与终端命令一一对应。
 - 直接访问 `/skill.md` 可读取纯 Markdown，不渲染 HTML 页面。
 
