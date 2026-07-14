@@ -13,7 +13,7 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
   const appOrigin = getAppOrigin(webhookUrl);
   const collectorToken = getCollectorToken(webhookUrl);
   const tokenQuery = `token=${encodeURIComponent(collectorToken)}`;
-  const unixTokenrankBin = '"${HOME}/.local/bin/tokenrank"';
+  const unixTokenrankBin = '"${HOME}/.tokenrank/bin/tokenrank"';
   const windowsTokenrankBin = '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd"';
   const windowsGuard = "if ($LASTEXITCODE) { exit $LASTEXITCODE }";
 

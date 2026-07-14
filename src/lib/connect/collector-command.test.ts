@@ -23,8 +23,8 @@ describe("buildCollectorCommand", () => {
 
     expect(commands.unixManual).toBe(
       [
-        '"${HOME}/.local/bin/tokenrank" preview',
-        '"${HOME}/.local/bin/tokenrank" upload',
+        '"${HOME}/.tokenrank/bin/tokenrank" preview',
+        '"${HOME}/.tokenrank/bin/tokenrank" upload',
       ].join(" && "),
     );
     expect(commands.windowsManual).toBe(

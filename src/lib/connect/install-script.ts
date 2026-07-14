@@ -46,9 +46,23 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 install_dir="\${TOKENRANK_HOME:-\${HOME}/.tokenrank}"
-bin_dir="\${TOKENRANK_BIN_DIR:-\${HOME}/.local/bin}"
+bin_dir="\${TOKENRANK_BIN_DIR:-\${install_dir}/bin}"
 
-mkdir -p "\${install_dir}" "\${bin_dir}"
+if ! mkdir -p "\${install_dir}" "\${bin_dir}" 2>/dev/null; then
+  echo "TokenRank cannot create its install directories:" >&2
+  echo "  \${install_dir}" >&2
+  echo "  \${bin_dir}" >&2
+  echo "Set TOKENRANK_HOME and TOKENRANK_BIN_DIR to directories owned by your user, then retry." >&2
+  exit 1
+fi
+
+if [[ ! -w "\${install_dir}" || ! -w "\${bin_dir}" ]]; then
+  echo "TokenRank cannot write to its install directories:" >&2
+  echo "  \${install_dir}" >&2
+  echo "  \${bin_dir}" >&2
+  echo "Set TOKENRANK_HOME and TOKENRANK_BIN_DIR to directories owned by your user, then retry." >&2
+  exit 1
+fi
 
 curl -fsSL "${cliSourceUrl}" -o "\${install_dir}/tokenrank.mjs"
 curl -fsSL "${packageSourceUrl}" -o "\${install_dir}/package.json"
@@ -58,7 +72,7 @@ ln -sf "\${install_dir}/tokenrank.mjs" "\${bin_dir}/tokenrank"
 echo "TokenRank collector installed: \${bin_dir}/tokenrank"
 if ! command -v tokenrank >/dev/null 2>&1; then
   echo "Add this to your shell PATH if tokenrank is not found:"
-  echo "  export PATH=\\"\\$HOME/.local/bin:\\$PATH\\""
+  printf '  export PATH="%s:$PATH"\n' "\${bin_dir}"
 fi
 ${webhookFlow}`;
 }

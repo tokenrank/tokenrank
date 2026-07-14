@@ -10,9 +10,18 @@ describe("buildInstallScript", () => {
     expect(script).toContain("https://tokenrank.org/tokenrank-package.json");
     expect(script).not.toContain("raw.githubusercontent.com");
     expect(script).toContain("${HOME}/.tokenrank");
-    expect(script).toContain("${HOME}/.local/bin");
+    expect(script).toContain("${install_dir}/bin");
+    expect(script).not.toContain("${HOME}/.local/bin");
     expect(script).toContain("${bin_dir}/tokenrank");
     expect(script).toContain('"${bin_dir}/tokenrank" tools');
+  });
+
+  it("fails with an actionable message when the Unix install directories are not writable", () => {
+    const script = buildInstallScript();
+
+    expect(script).toContain('if ! mkdir -p "${install_dir}" "${bin_dir}" 2>/dev/null; then');
+    expect(script).toContain('[[ ! -w "${install_dir}" || ! -w "${bin_dir}" ]]');
+    expect(script).toContain("Set TOKENRANK_HOME and TOKENRANK_BIN_DIR");
   });
 
   it("can install, connect, upload, and enable the collector from one shell script", () => {
