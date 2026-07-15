@@ -30,5 +30,6 @@ build/
 next-env.d.ts
 
 .codegraph/
+.superpowers/
 .worktrees/
 tmp-tokenrank-*.png

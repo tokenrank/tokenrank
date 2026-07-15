@@ -22,7 +22,8 @@ export function BoardTabs({
       {BOARD_KEYS.map((board, index) => (
         <Link
           key={board}
-          href={`/?board=${board}&range=${range}`}
+          href={`/?board=${board}&range=${range}#leaderboard`}
+          scroll={false}
           aria-current={active === board ? "page" : undefined}
           className={
             active === board

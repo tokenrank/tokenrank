@@ -8,6 +8,10 @@
 - Web 保留 `/install.sh`、`/install.ps1`、`/tokenrank.mjs` 与 `/tokenrank-package.json` 兼容入口；安装脚本只注入用户私人 webhook，再转交给独立 CLI 最新 release。
 - Web package 更名为 `tokenrank-web`，移除 CLI bin、CLI 回归测试和本地 `pnpm tokenrank` 脚本，明确两项目只通过上传 API 契约协作。
 - ESLint 全局忽略本地 `.worktrees` 里的嵌套 Next.js 构建产物，避免全仓库 lint 误扫 Turbopack 生成文件。
+- Onboard 新增默认的 Agent 接入方式：单行 Prompt 只携带私有 setup token，由公开 `/skill.md` 指导 Agent 检测系统、安装 collector、完成首次上传并配置自动同步。
+- Agent Prompt 改为与系统无关且保持单行横向滚动；Agent 区不再显示系统选择。命令行方式将 macOS 与 Linux 合并，只保留 `macOS / Linux` 和 `Windows PowerShell` 两个选项。
+- 首页 `WHAT IS TOKENRANK` / `TOKENRANK 是什么` 改为紧贴 Hero 的紧凑说明条，移除重复的 `QUICK ANSWER` 大卡片。
+- 榜单类型和时间范围筛选会保留 `#leaderboard` 并维持当前滚动位置，不再在每次筛选后跳回首页顶部。
 
 ## 2026-07-13
 

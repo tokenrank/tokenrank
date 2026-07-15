@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCollectorCommand, buildCollectorCommands } from "./collector-command";
+import { buildAgentPrompt, buildCollectorCommand, buildCollectorCommands } from "./collector-command";
 
 describe("buildCollectorCommand", () => {
   it("builds a copyable onboarding command from install to first upload", () => {
@@ -34,5 +34,16 @@ describe("buildCollectorCommand", () => {
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" upload',
       ].join("; "),
     );
+  });
+
+  it("builds one platform-neutral Agent prompt containing only the private token", () => {
+    const webhookUrl = "https://tokenrank.test/api/collector/upload/abc123";
+
+    expect(buildAgentPrompt(webhookUrl)).toBe(
+      "Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup token: abc123",
+    );
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("\n");
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("curl");
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("PowerShell");
   });
 });

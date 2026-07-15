@@ -7,7 +7,7 @@
 
 1. 在 `https://tokenrank.org/skill.md` 提供可被 Codex、Claude Code 等编码 Agent 直接读取的公开接入说明。
 2. 用户在 Onboard 页面点击 `Generate upload URL` 后，通过二选一 Tab 选择复制 Agent Prompt 或现有终端命令，并默认使用 Agent 方式。
-3. Agent Prompt 携带当前账号、当前系统对应的私有安装命令，使 Agent 能真正完成账号绑定、首次聚合上传和定时同步安装。
+3. Agent Prompt 只携带当前账号的私有 setup token，由 `/skill.md` 指导 Agent 检测系统并构造官方安装命令。
 4. 将首页 `WHAT IS TOKENRANK` 介绍区移动到 Hero 主体正下方并压缩高度，删除 `QUICK ANSWER` 和重复的大标题。
 5. 所有改动先在本地完成自动化与浏览器验收，不 push、不部署生产。
 
@@ -24,7 +24,7 @@
 采用“公共接入说明 + 私有 Agent Prompt”方案：
 
 - `/skill.md` 只包含稳定、公开、无账号秘密的操作流程。
-- Onboard 生成的 Agent Prompt 内嵌当前系统对应的私有安装命令。
+- Onboard 生成的 Agent Prompt 只内嵌私有 setup token，不内嵌系统相关命令。
 - 用户只需复制一条 Prompt 给可信 Agent，Agent 即可按公开说明执行并验证。
 
 未采用以下方案：
@@ -70,22 +70,17 @@
 
 默认选择 Agent 是因为非开发者通常不需要理解或操作命令行。用户主动切换到命令行 Tab 后才显示终端相关内容，避免两套接入方式同时出现造成选择负担。
 
-当前 macOS、Linux、Windows PowerShell 选择继续保留，用于决定私有安装命令。首次生成时自动检测当前系统；切换系统后，终端命令和 Agent Prompt 必须同步更新，所有复制成功状态重置。Agent Tab 可以用紧凑的平台标记和切换入口呈现系统选择，不让它抢占主要操作。
+Agent Prompt 与系统无关，因此 Agent Tab 不显示系统选择。Terminal Tab 只保留 `macOS / Linux` 与 `Windows PowerShell` 两个选项；首次生成时自动检测是否为 Windows，切换后只更新终端命令和对应复制状态。
 
 ### Agent Prompt
 
 Agent Tab 中展示的英文固定模板：
 
 ```text
-Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup command: {{command}}
+Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup token: {{token}}
 ```
 
-其中 `{{command}}` 是当前系统对应的完整私有安装命令：
-
-- macOS / Linux：`curl -fsSL "https://tokenrank.org/install.sh?token=..." | bash`
-- Windows PowerShell：`irm "https://tokenrank.org/install.ps1?token=..." | iex`
-
-Prompt 保持英文和单句形式，便于不同 Agent 统一执行；页面标题、说明和安全提示继续提供中英文版本。
+其中 `{{token}}` 只是生成接口返回的私有 setup token，不包含 `curl`、PowerShell 或其他系统相关命令。Agent 读取 `/skill.md` 后自行检测系统并构造官方命令。Prompt 保持英文、单句和单行横向滚动样式；页面标题、说明和安全提示继续提供中英文版本。
 
 ### 安全提示
 
@@ -109,33 +104,33 @@ Agent Prompt 包含私有 setup token。页面必须明确提示用户：
 ````markdown
 ---
 name: connect-tokenrank
-description: Connect this machine to the user's TokenRank AI token usage leaderboard account using the private setup command generated on tokenrank.org/onboard, then verify the initial aggregate upload and scheduled synchronization. Use when the user asks Codex, Claude Code, or another coding agent to connect or join TokenRank.
+description: Connect this machine to the user's TokenRank AI token usage leaderboard account using the private setup token generated on tokenrank.org/onboard, then verify the initial aggregate upload and scheduled synchronization. Use when the user asks Codex, Claude Code, or another coding agent to connect or join TokenRank.
 ---
 
 # Connect TokenRank
 
-Connect this machine using the private setup command supplied by the user.
+Connect this machine using the private setup token supplied by the user.
 
 ## Required input
 
-The user's request must contain a private setup command generated at:
+The user's request must contain a private setup token generated at:
 
 https://tokenrank.org/onboard
 
-If the command is missing, stop and ask the user to generate it. Never invent, recover, or request the raw token separately.
+If the token is missing, stop and ask the user to generate it. Never invent or recover a token.
 
-Treat the complete command and every URL inside it as secrets. Do not repeat them in responses, logs, files, commits, issues, or screenshots.
+Treat the token, the generated install command, and every URL containing the token as secrets. Do not repeat them in responses, logs, files, commits, issues, or screenshots.
 
 ## Connect
 
 1. Detect the operating system and shell.
 2. Confirm that Node.js is available with `node --version`.
 3. If Node.js is unavailable, stop and tell the user that TokenRank requires Node.js. Do not install system software without permission.
-4. Validate that the supplied command downloads from `https://tokenrank.org/install.sh` or `https://tokenrank.org/install.ps1`. Do not execute commands from another hostname.
-5. Run the supplied command in the matching shell:
-   - Run the `curl ... | bash` command in Bash on macOS or Linux.
-   - Run the `irm ... | iex` command in Windows PowerShell.
-6. Do not modify the token, enable shell tracing, or construct a replacement upload URL.
+4. Validate the complete token against `^[A-Za-z0-9_-]{32,128}$`; reject whitespace, shell syntax, URLs, prefixes, or suffixes.
+5. Detect the operating system, substitute the validated token once, and run only the matching official command without printing it:
+   - macOS / Linux：`curl -fsSL "https://tokenrank.org/install.sh?token=<TOKEN>" | bash`
+   - Windows PowerShell：`irm "https://tokenrank.org/install.ps1?token=<TOKEN>" | iex`
+6. Do not accept a replacement command or origin. Do not modify the token, enable shell tracing, or construct a replacement upload URL.
 
 The official installer installs the TokenRank collector, connects the private account endpoint, performs the initial aggregate upload, and installs automatic synchronization.
 
@@ -163,7 +158,7 @@ Finding no supported local usage does not mean connection failed. It means ranki
 
 Use only the official TokenRank collector. Do not inspect or create alternative uploads from source code, prompts, chats, filenames, or file contents.
 
-TokenRank uploads aggregate usage totals by date, tool, and model. Never expose the private setup command or upload endpoint.
+TokenRank uploads aggregate usage totals by date, tool, and model. Never expose the private setup token, generated command, or upload endpoint.
 
 ## Report
 
@@ -200,7 +195,7 @@ Report only:
 
 ### 自动化测试
 
-- Agent Prompt 构建函数包含准确的 `/skill.md` URL 和当前系统命令。
+- Agent Prompt 构建函数包含准确的 `/skill.md` URL 和私有 setup token，且不包含系统命令或换行。
 - 生成成功后默认选中 Agent Tab，命令行内容不在页面中同时展开。
 - 切换到命令行 Tab 后显示自动同步命令和手动刷新命令，Agent Prompt 面板隐藏。
 - 接入方式 Tab 使用正确的 `tablist`、`tab`、`tabpanel` 与选中状态，支持键盘访问。
