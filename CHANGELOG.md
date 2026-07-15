@@ -2,6 +2,7 @@
 
 ## 2026-07-15
 
+- 在全站 Footer 增加公开 GitHub 源码仓库链接，并把仓库地址写入首页 WebSite JSON-LD 的 `sameAs`。
 - 将 Web 项目公开迁移到 `tokenrank/tokenrank`，并采用 MIT License 开源。
 - 将 collector CLI 拆分为独立的 `tokenrank/tokenrank-cli` 项目，CLI 源码、安装器、测试、版本和 release 不再由 Web 仓库维护。
 - Web 保留 `/install.sh`、`/install.ps1`、`/tokenrank.mjs` 与 `/tokenrank-package.json` 兼容入口；安装脚本只注入用户私人 webhook，再转交给独立 CLI 最新 release。

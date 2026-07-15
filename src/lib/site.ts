@@ -1,4 +1,5 @@
 export const siteName = "TokenRank";
+export const githubRepositoryUrl = "https://github.com/tokenrank/tokenrank";
 export const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://tokenrank.org").replace(
   /\/$/,
   "",

@@ -12,7 +12,7 @@ import { getCopy, text } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
 import { formatTokens, formatUsdMicros } from "@/src/lib/format";
 import { parseLeaderboardSearchParams } from "@/src/lib/leaderboard/search-params";
-import { absoluteUrl, siteName, siteUrl } from "@/src/lib/site";
+import { absoluteUrl, githubRepositoryUrl, siteName, siteUrl } from "@/src/lib/site";
 import type { LeaderboardEntry } from "@/src/lib/types";
 import { getLeaderboard } from "@/src/lib/users";
 
@@ -78,6 +78,7 @@ export default async function Home({
     url: siteUrl,
     description: copy.home.metaDescription,
     inLanguage: htmlLang(locale),
+    sameAs: [githubRepositoryUrl],
   };
   const leaderboardJsonLd = {
     "@context": "https://schema.org",

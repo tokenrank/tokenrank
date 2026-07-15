@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TokenRankLogo } from "@/components/brand/tokenrank-logo";
 import type { Locale } from "@/src/i18n/config";
 import { getCopy } from "@/src/i18n/copy";
+import { githubRepositoryUrl } from "@/src/lib/site";
 
 export function Footer({ locale }: { locale: Locale }) {
   const copy = getCopy(locale);
@@ -30,6 +31,14 @@ export function Footer({ locale }: { locale: Locale }) {
           <Link href="/onboard" className="hover:text-[color:var(--tr-gold)]">
             {copy.common.nav.start}
           </Link>
+          <a
+            href={githubRepositoryUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-[color:var(--tr-gold)]"
+          >
+            {copy.common.nav.github}
+          </a>
           <span className="text-[color:var(--tr-muted)]">TR / 2026</span>
         </div>
       </div>

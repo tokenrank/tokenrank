@@ -12,6 +12,7 @@ const en = {
       rules: "Rules",
       dashboard: "Dashboard",
       start: "Join",
+      github: "GitHub",
       openDashboard: "Open {name}'s dashboard",
     },
     language: {
@@ -476,6 +477,7 @@ const zh = {
       rules: "规则",
       dashboard: "面板",
       start: "上榜",
+      github: "GitHub",
       openDashboard: "打开 {name} 的面板",
     },
     language: {
