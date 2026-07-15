@@ -1,5 +1,12 @@
 # 更新日志
 
+## 2026-07-15
+
+- 将 collector CLI 拆分为独立的 `solosaas/tokenrank-cli` 项目，CLI 源码、安装器、测试、版本和 release 不再由 Web 仓库维护。
+- Web 保留 `/install.sh`、`/install.ps1`、`/tokenrank.mjs` 与 `/tokenrank-package.json` 兼容入口；安装脚本只注入用户私人 webhook，再转交给独立 CLI 最新 release。
+- Web package 更名为 `tokenrank-web`，移除 CLI bin、CLI 回归测试和本地 `pnpm tokenrank` 脚本，明确两项目只通过上传 API 契约协作。
+- ESLint 全局忽略本地 `.worktrees` 里的嵌套 Next.js 构建产物，避免全仓库 lint 误扫 Turbopack 生成文件。
+
 ## 2026-07-13
 
 - 新增 Cloudflare Workers + OpenNext 生产部署配置，绑定 `tokenrank.org`，补齐可重复的 Workers Builds 命令、R2 增量缓存、Smart Placement 与生产域名默认值。

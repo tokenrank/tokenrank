@@ -1,15 +1,7 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { CLI_RELEASE_ASSETS } from "@/src/lib/connect/cli-release";
 
 export const dynamic = "force-static";
 
-export async function GET() {
-  const source = await readFile(path.join(process.cwd(), "bin", "tokenrank.mjs"), "utf8");
-
-  return new Response(source, {
-    headers: {
-      "cache-control": "public, max-age=300",
-      "content-type": "text/javascript; charset=utf-8",
-    },
-  });
+export function GET() {
+  return Response.redirect(CLI_RELEASE_ASSETS.cli, 307);
 }

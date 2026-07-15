@@ -1,11 +1,8 @@
 {
-  "name": "tokenrank",
+  "name": "tokenrank-web",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.7.0",
-  "bin": {
-    "tokenrank": "bin/tokenrank.mjs"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -21,8 +18,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
     "e2e": "playwright test",
-    "icons:generate": "tsx scripts/generate-brand-icons.tsx",
-    "tokenrank": "node bin/tokenrank.mjs"
+    "icons:generate": "tsx scripts/generate-brand-icons.tsx"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",

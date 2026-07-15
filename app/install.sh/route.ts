@@ -36,7 +36,7 @@ export function GET(request: Request) {
   const origin = requestOrigin(request);
   const webhookUrl = webhookUrlFromRequest(request, origin);
 
-  return new Response(buildInstallScript({ appOrigin: origin, webhookUrl }), {
+  return new Response(buildInstallScript({ webhookUrl }), {
     headers: {
       "cache-control": webhookUrl ? "private, no-store" : "public, max-age=300",
       "content-type": "text/x-shellscript; charset=utf-8",

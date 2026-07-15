@@ -54,6 +54,8 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 ## Collector CLI
 
+CLI 已拆分为独立项目维护：[solosaas/tokenrank-cli](https://github.com/solosaas/tokenrank-cli)。本仓库只负责用户身份、webhook、上传 API、服务端校验、排行榜，以及把带用户 token 的安装入口转交给 CLI 最新 release。
+
 本地 CLI 只采集聚合后的 Token 行。它不会上传 prompt、代码或对话内容。
 
 交互式终端采用与网站一致的骨黑、信号绿和警示橙 Scoreboard Panels，不再使用大型 Block Art。Windows、macOS 和 Linux 的彩色 TTY 共用同一套视觉；40–71 列窄终端会自动切换为紧凑布局，`NO_COLOR=1`、非 TTY、JSON 和后台模式保持纯文本或结构化输出。
@@ -91,21 +93,13 @@ tokenrank doctor
 tokenrank service uninstall
 ```
 
-本地开发命令：
+CLI 本地开发请在独立仓库执行：
 
 ```bash
+cd ../tokenrank-cli
+pnpm install
+pnpm test
 pnpm tokenrank tools
-pnpm tokenrank sources
-pnpm tokenrank status
-pnpm tokenrank doctor
-pnpm tokenrank preview --json
-pnpm tokenrank connect "https://your-site.example/api/collector/upload/secret"
-pnpm tokenrank upload
-pnpm tokenrank service install
-pnpm tokenrank service status
-pnpm tokenrank service uninstall
-pnpm tokenrank logout
-pnpm tokenrank upload --file usage.json
 ```
 
 CLI 默认跟随系统语言：中文系统显示中文，其他系统显示英文。可以在任意命令中用 `--lang zh` 或 `--lang en` 临时覆盖，也可以设置 `TOKENRANK_LANG=zh|en` 作为环境级默认值；使用 `--lang auto` 可恢复自动检测。

@@ -36,7 +36,7 @@ export function GET(request: Request) {
   const origin = requestOrigin(request);
   const webhookUrl = webhookUrlFromRequest(request, origin);
 
-  return new Response(buildWindowsInstallScript({ appOrigin: origin, webhookUrl }), {
+  return new Response(buildWindowsInstallScript({ webhookUrl }), {
     headers: {
       "cache-control": webhookUrl ? "private, no-store" : "public, max-age=300",
       "content-type": "text/x-powershell; charset=utf-8",
