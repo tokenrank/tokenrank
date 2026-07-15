@@ -6,12 +6,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCopy, text, type AppCopy } from "@/src/i18n/copy";
 import { buildAgentPrompt, buildCollectorCommands } from "@/src/lib/connect/collector-command";
 
-type CommandTarget = "macos" | "linux" | "windows";
+type CommandTarget = "unix" | "windows";
 type ConnectionMethod = "agent" | "terminal";
 
 function detectCommandTarget(): CommandTarget {
   if (typeof navigator === "undefined") {
-    return "linux";
+    return "unix";
   }
 
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
@@ -24,11 +24,7 @@ function detectCommandTarget(): CommandTarget {
     return "windows";
   }
 
-  if (platform.includes("mac")) {
-    return "macos";
-  }
-
-  return "linux";
+  return "unix";
 }
 
 function targetUsesWindowsCommand(target: CommandTarget) {
@@ -57,7 +53,7 @@ export function WebhookTokenPanel({
 
   const commands = useMemo(() => (webhookUrl ? buildCollectorCommands(webhookUrl) : null), [webhookUrl]);
   const command = targetUsesWindowsCommand(commandTarget) ? (commands?.windows ?? "") : (commands?.unix ?? "");
-  const agentPrompt = command ? buildAgentPrompt(command) : "";
+  const agentPrompt = webhookUrl ? buildAgentPrompt(webhookUrl) : "";
   const manualCommand = targetUsesWindowsCommand(commandTarget)
     ? (commands?.windowsManual ?? "")
     : (commands?.unixManual ?? "");
@@ -263,14 +259,9 @@ export function WebhookTokenPanel({
                   </div>
                   <p className="mt-1 text-xs font-semibold leading-5 text-[color:var(--tr-muted)]">{copy.agentBody}</p>
                 </div>
-                <CommandTargetSelector
-                  active={commandTarget}
-                  ariaLabel={copy.platformLabel}
-                  onSelect={selectCommandTarget}
-                />
-                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 border border-[color:var(--tr-line)] bg-black/45 p-2">
-                  <pre className="min-w-0 whitespace-pre-wrap break-words px-3 py-2 text-sm leading-6 text-[color:var(--tr-ivory)] [overflow-wrap:anywhere]">
-                    <code>{agentPrompt}</code>
+                <div className="grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_auto] items-stretch gap-2 overflow-hidden border border-[color:var(--tr-line)] bg-black/45 p-2 shadow-inner">
+                  <pre className="min-w-0 overflow-x-scroll px-3 py-2 text-sm leading-7 text-[color:var(--tr-ivory)] [scrollbar-gutter:stable] tr-scrollbar">
+                    <code className="block w-max min-w-full whitespace-pre">{agentPrompt}</code>
                   </pre>
                   <button type="button" onClick={copyAgentPrompt} aria-label={copy.agentCopyLabel} className="tr-button min-h-10 shrink-0 px-3 py-2 text-sm">
                     {copiedAgent ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
@@ -406,11 +397,8 @@ function CommandTargetSelector({
       aria-label={ariaLabel}
       className="inline-flex gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1"
     >
-      <TargetButton active={active === "macos"} onClick={() => onSelect("macos")}>
-        macOS
-      </TargetButton>
-      <TargetButton active={active === "linux"} onClick={() => onSelect("linux")}>
-        Linux
+      <TargetButton active={active === "unix"} onClick={() => onSelect("unix")}>
+        macOS / Linux
       </TargetButton>
       <TargetButton active={active === "windows"} onClick={() => onSelect("windows")}>
         Windows PowerShell

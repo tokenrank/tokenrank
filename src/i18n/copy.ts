@@ -293,8 +293,7 @@ const en = {
         unix: "Open Terminal, paste the command, and it will install the background service.",
       },
       targetLabels: {
-        macos: "macOS Terminal",
-        linux: "Linux shell",
+        unix: "macOS / Linux",
         windows: "Windows PowerShell",
       },
       oneLine: "1 line",
@@ -767,8 +766,7 @@ const zh = {
         unix: "打开 Terminal / 终端，粘贴命令；它会安装后台同步服务。",
       },
       targetLabels: {
-        macos: "macOS Terminal",
-        linux: "Linux shell",
+        unix: "macOS / Linux",
         windows: "Windows PowerShell",
       },
       oneLine: "1 行",

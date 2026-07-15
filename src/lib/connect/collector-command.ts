@@ -7,8 +7,9 @@ export type CollectorCommands = {
 
 const agentSkillUrl = "https://tokenrank.org/skill.md";
 
-export function buildAgentPrompt(command: string): string {
-  return `Follow the instructions at ${agentSkillUrl} to connect this machine to TokenRank using this private setup command: ${command}`;
+export function buildAgentPrompt(webhookUrl: string): string {
+  const collectorToken = getCollectorToken(webhookUrl);
+  return `Follow the instructions at ${agentSkillUrl} to connect this machine to TokenRank using this private setup token: ${collectorToken}`;
 }
 
 export function buildCollectorCommand(webhookUrl: string): string {

@@ -129,14 +129,19 @@ describe("collector sync interval copy", () => {
     const agentTab = await waitFor(() => getByRole("tab", { name: "Ask an agent" }));
     expect(agentTab.getAttribute("aria-selected")).toBe("true");
     expect(queryByRole("tabpanel", { name: "Run in terminal" })).toBeNull();
-    expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
+    const agentPanel = getByRole("tabpanel", { name: "Ask an agent" });
+    expect(agentPanel.textContent).toContain(
       "https://tokenrank.org/skill.md",
     );
+    expect(agentPanel.textContent).toContain("private setup token: agent-prompt-token");
+    expect(agentPanel.textContent).not.toContain("install.sh");
+    expect(queryByRole("group", { name: "Setup platform" })).toBeNull();
+    expect(agentPanel.querySelector("pre.overflow-x-scroll code.whitespace-pre")).not.toBeNull();
 
     fireEvent.click(getByRole("button", { name: "Copy Agent prompt" }));
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(
-        expect.stringContaining("install.sh?token=agent-prompt-token"),
+        "Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup token: agent-prompt-token",
       );
     });
   });
@@ -194,7 +199,7 @@ describe("collector sync interval copy", () => {
     const { getByRole } = render(<WebhookTokenPanel />);
     fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
     fireEvent.click(await waitFor(() => getByRole("tab", { name: "Run in terminal" })));
-    const copyButton = getByRole("button", { name: "Copy Linux shell" });
+    const copyButton = getByRole("button", { name: "Copy macOS / Linux" });
     fireEvent.click(copyButton);
 
     expect((await waitFor(() => getByRole("alert"))).textContent).toContain(
@@ -228,13 +233,16 @@ describe("collector sync interval copy", () => {
 
     expect(queryByText("Manual refresh")).toBeNull();
     fireEvent.click(getByRole("tab", { name: "Run in terminal" }));
+    expect(getByRole("button", { name: "macOS / Linux" })).not.toBeNull();
+    expect(queryByText("macOS")).toBeNull();
+    expect(queryByText("Linux")).toBeNull();
     expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain("Manual refresh");
     expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
       "install.sh?token=terminal-tab-token",
     );
   });
 
-  it("supports arrow-key method switching and keeps the platform-specific prompt in sync", async () => {
+  it("supports arrow-key method switching while keeping the Agent prompt platform-neutral", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -254,8 +262,9 @@ describe("collector sync interval copy", () => {
     fireEvent.click(getByRole("button", { name: "Windows PowerShell" }));
     fireEvent.keyDown(getByRole("tab", { name: "Run in terminal" }), { key: "ArrowLeft" });
     expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
-      "install.ps1?token=keyboard-tab-token",
+      "private setup token: keyboard-tab-token",
     );
+    expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).not.toContain("install.ps1");
   });
 
   it("keeps generated one-line commands inside a horizontally scrollable row", async () => {
@@ -368,8 +377,14 @@ describe("collector sync interval copy", () => {
     fireEvent.click(getByRole("button", { name: "Generate upload URL" }));
 
     await waitFor(() => {
-      expect(getByRole("button", { name: "Windows PowerShell" }).className).toContain("bg-[color:var(--tr-gold)]");
       expect(getByRole("tabpanel", { name: "Ask an agent" }).textContent).toContain(
+        "private setup token: windows-auto-select-token",
+      );
+    });
+    fireEvent.click(getByRole("tab", { name: "Run in terminal" }));
+    await waitFor(() => {
+      expect(getByRole("button", { name: "Windows PowerShell" }).className).toContain("bg-[color:var(--tr-gold)]");
+      expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
         "install.ps1?token=windows-auto-select-token",
       );
     });

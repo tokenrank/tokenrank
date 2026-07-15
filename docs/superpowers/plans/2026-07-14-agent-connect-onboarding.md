@@ -1,20 +1,22 @@
 # Agent Connect Onboarding Implementation Plan
 
+> **2026-07-15 用户变更：** 下文历史任务示例中凡是提到“Agent Prompt 携带完整系统命令”“Agent/Terminal 共用三个系统按钮”的内容，均由本文顶部的 Architecture 与 Global Constraints 覆盖；最终实现以 setup token 单行 Prompt、Agent 无系统选择、Terminal 两个平台选项为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 发布公开 `/skill.md`，并让 Onboard 用户在默认 Agent Tab 与命令行 Tab 之间二选一完成 TokenRank 接入。
 
-**Architecture:** 使用静态 Next.js Route Handler 返回无秘密的 Agent Skill 文档；在现有命令构建模块中新增纯 Agent Prompt 构建函数；在 `WebhookTokenPanel` 中增加可访问的二选一 Tab，并继续复用现有按平台生成的私有安装命令。
+**Architecture:** 使用静态 Next.js Route Handler 返回无秘密的 Agent Skill 文档；Agent Prompt 只携带私有 setup token，由 Skill 检测系统并构造官方命令；在 `WebhookTokenPanel` 中提供 Agent / Terminal 二选一，Terminal 只区分 macOS / Linux 与 Windows PowerShell。
 
 **Tech Stack:** Next.js 16 App Router Route Handlers、React 19、TypeScript、Tailwind CSS、Vitest、Testing Library
 
 ## Global Constraints
 
 - `/skill.md` 必须返回 `text/markdown; charset=utf-8`，且不包含任何动态 token。
-- Agent Prompt 必须保持单句英文，并包含 `https://tokenrank.org/skill.md` 与当前系统的完整私有安装命令。
+- Agent Prompt 必须保持单句英文和单行横向滚动样式，只包含 `https://tokenrank.org/skill.md` 与私有 setup token，不包含系统命令。
 - 默认选择 `ASK AN AGENT` / `交给 Agent`，同一时间只展示 Agent 或命令行一种接入方式。
 - 命令行 Tab 才显示自动同步命令和手动刷新命令。
-- macOS、Linux、Windows PowerShell 选择继续保留；切换后 Prompt 与命令同步更新。
+- Agent Tab 不显示系统选择；Terminal Tab 合并 macOS 与 Linux，只保留 `macOS / Linux` 和 `Windows PowerShell` 两个选项。
 - Prompt 必须提示用户它包含秘密，只能交给可信 Agent。
 - 不改变 webhook token 生成、归属和服务端验证逻辑。
 - 不自动安装 Node.js，不新增依赖。

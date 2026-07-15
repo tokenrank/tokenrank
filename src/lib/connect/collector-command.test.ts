@@ -36,12 +36,14 @@ describe("buildCollectorCommand", () => {
     );
   });
 
-  it("builds a one-sentence Agent prompt around the private platform command", () => {
-    const command = 'curl -fsSL "https://tokenrank.test/install.sh?token=abc123" | bash';
+  it("builds one platform-neutral Agent prompt containing only the private token", () => {
+    const webhookUrl = "https://tokenrank.test/api/collector/upload/abc123";
 
-    expect(buildAgentPrompt(command)).toBe(
-      `Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup command: ${command}`,
+    expect(buildAgentPrompt(webhookUrl)).toBe(
+      "Follow the instructions at https://tokenrank.org/skill.md to connect this machine to TokenRank using this private setup token: abc123",
     );
-    expect(buildAgentPrompt(command)).not.toContain("\n");
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("\n");
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("curl");
+    expect(buildAgentPrompt(webhookUrl)).not.toContain("PowerShell");
   });
 });

@@ -1,5 +1,11 @@
 # 更新日志
 
+## 2026-07-15
+
+- Onboard 新增默认的 Agent 接入方式：单行 Prompt 只携带私有 setup token，由公开 `/skill.md` 指导 Agent 检测系统、安装 collector、完成首次上传并配置自动同步。
+- Agent Prompt 改为与系统无关且保持单行横向滚动；Agent 区不再显示系统选择。命令行方式将 macOS 与 Linux 合并，只保留 `macOS / Linux` 和 `Windows PowerShell` 两个选项。
+- 首页 `WHAT IS TOKENRANK` / `TOKENRANK 是什么` 改为紧贴 Hero 的紧凑说明条，移除重复的 `QUICK ANSWER` 大卡片。
+
 ## 2026-07-13
 
 - 新增 Cloudflare Workers + OpenNext 生产部署配置，绑定 `tokenrank.org`，补齐可重复的 Workers Builds 命令、R2 增量缓存、Smart Placement 与生产域名默认值。
