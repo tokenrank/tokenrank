@@ -54,7 +54,7 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 ## Collector CLI
 
-CLI 已拆分为独立项目维护：[solosaas/tokenrank-cli](https://github.com/solosaas/tokenrank-cli)。本仓库只负责用户身份、webhook、上传 API、服务端校验、排行榜，以及把带用户 token 的安装入口转交给 CLI 最新 release。
+CLI 已拆分为独立项目维护：[tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli)。本仓库只负责用户身份、webhook、上传 API、服务端校验、排行榜，以及把带用户 token 的安装入口转交给 CLI 最新 release。
 
 本地 CLI 只采集聚合后的 Token 行。它不会上传 prompt、代码或对话内容。
 
@@ -159,3 +159,7 @@ pnpm test
 pnpm build
 pnpm e2e
 ```
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE) 开源。

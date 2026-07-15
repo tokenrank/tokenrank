@@ -1,4 +1,4 @@
-export const CLI_REPOSITORY_URL = "https://github.com/solosaas/tokenrank-cli";
+export const CLI_REPOSITORY_URL = "https://github.com/tokenrank/tokenrank-cli";
 
 export const CLI_RELEASE_BASE_URL = `${CLI_REPOSITORY_URL}/releases/latest/download`;
 
