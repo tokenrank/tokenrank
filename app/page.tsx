@@ -184,7 +184,7 @@ export default async function Home({
         </div>
       </section>
 
-      <section id="leaderboard" className="tr-container pb-5">
+      <section id="leaderboard" className="tr-container scroll-mt-20 pb-5">
         <div className="tr-shell tr-reveal overflow-visible">
           <div className="tr-panel grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div className="min-w-0">

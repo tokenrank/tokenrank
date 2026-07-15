@@ -24,7 +24,8 @@ export function RangeTabs({
       {RANGE_KEYS.map((range) => (
         <Link
           key={range}
-          href={`/?board=${board}&range=${range}`}
+          href={`/?board=${board}&range=${range}#leaderboard`}
+          scroll={false}
           aria-current={active === range ? "page" : undefined}
           className={
             active === range
