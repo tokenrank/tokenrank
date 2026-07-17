@@ -175,7 +175,7 @@ function Breakdown({
           <h2 className="font-display text-2xl font-bold uppercase tracking-[-0.025em] text-[color:var(--tr-ivory)]">{title}</h2>
           <span className="tr-chip">{text(copy.top, { count: Math.min(items.length, 10) })}</span>
         </div>
-        <div className="mt-4 h-[23.375rem] overflow-y-auto pr-2 tr-scrollbar">
+        <div className="mt-4 max-h-[23.375rem] overflow-y-auto pr-2 tr-scrollbar xl:h-[23.375rem]">
           {items.length ? (
             <div className="space-y-4">
               {items.map((item, index) => (

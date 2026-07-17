@@ -6,7 +6,7 @@ import { UsageDashboard } from "../../components/dashboard/usage-dashboard";
 afterEach(cleanup);
 
 describe("dashboard nested scrolling", () => {
-  it("lets page scrolling continue when the pointer is over a breakdown list", () => {
+  it("uses content height on mobile and caps scrollable breakdowns on desktop", () => {
     const { container } = render(
       <UsageDashboard
         daily={[
@@ -26,11 +26,13 @@ describe("dashboard nested scrolling", () => {
     );
 
     const breakdownLists = [...container.querySelectorAll(".tr-scrollbar")].filter((element) =>
-      element.classList.contains("h-[23.375rem]"),
+      element.classList.contains("max-h-[23.375rem]"),
     );
 
     expect(breakdownLists).toHaveLength(3);
     for (const list of breakdownLists) {
+      expect(list.classList.contains("h-[23.375rem]")).toBe(false);
+      expect(list.classList.contains("xl:h-[23.375rem]")).toBe(true);
       expect(list.classList.contains("overflow-y-auto")).toBe(true);
       expect(list.classList.contains("overscroll-contain")).toBe(false);
     }
