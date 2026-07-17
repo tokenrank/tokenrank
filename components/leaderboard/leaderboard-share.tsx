@@ -4,6 +4,7 @@ import { Check, Copy, Share2 } from "lucide-react";
 import { useState } from "react";
 
 import type { AppCopy } from "@/src/i18n/copy";
+import { createXShareUrl } from "@/src/lib/social-share";
 
 export function LeaderboardShare({
   copy,
@@ -16,7 +17,7 @@ export function LeaderboardShare({
 }) {
   const [copied, setCopied] = useState(false);
   const fullText = `${shareText}\n${shareUrl}`;
-  const xShareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(fullText)}`;
+  const xShareUrl = createXShareUrl(shareText, shareUrl);
 
   async function copyShareText() {
     if (navigator.clipboard?.writeText) {

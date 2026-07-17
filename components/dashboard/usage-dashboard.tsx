@@ -6,6 +6,7 @@ import { defaultLocale, type Locale } from "@/src/i18n/config";
 import { defaultCopy, text, type AppCopy } from "@/src/i18n/copy";
 import { formatTokens, formatUsdMicros } from "@/src/lib/format";
 import { siteUrl } from "@/src/lib/site";
+import { createXShareUrl } from "@/src/lib/social-share";
 import {
   summarizeUsage,
   type DashboardUsageRow,
@@ -50,7 +51,7 @@ export function UsageDashboard({
       ? `我在 TokenRank 已经使用 ${formatTokens(summary.totalTokens, locale)} AI Token。`
       : `I have logged ${formatTokens(summary.totalTokens, locale)} AI tokens on TokenRank.`;
   const profileUrl = `${siteUrl}/u/${encodeURIComponent(handle)}`;
-  const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n${profileUrl}`)}`;
+  const shareUrl = createXShareUrl(shareText, profileUrl);
   const summaryParts = [
     topClient ? text(copy.mainClient, { value: topClient.label }) : copy.noClient,
     topTool ? text(copy.mainTool, { value: toolName(topTool.key, locale) }) : "",
