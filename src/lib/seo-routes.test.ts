@@ -6,6 +6,11 @@ import * as openGraphImage from "../../app/opengraph-image";
 import robots from "../../app/robots";
 import sitemap from "../../app/sitemap";
 import * as twitterImage from "../../app/twitter-image";
+import {
+  createSocialMetadata,
+  openGraphImageDescriptor,
+  twitterImageDescriptor,
+} from "./social-metadata";
 
 describe("SEO and AI crawler routes", () => {
   it("publishes a complete installable icon manifest", () => {
@@ -31,6 +36,36 @@ describe("SEO and AI crawler routes", () => {
     expect(twitterImage.alt).toBe(openGraphImage.alt);
     expect(twitterImage.size).toEqual(openGraphImage.size);
     expect(twitterImage.contentType).toBe(openGraphImage.contentType);
+  });
+
+  it("explicitly attaches share images to route-level social metadata", () => {
+    const metadata = createSocialMetadata({
+      title: "Alice's AI Token Usage",
+      description: "Alice has logged aggregate AI tokens on TokenRank.",
+      url: "https://tokenrank.org/u/alice",
+      type: "profile",
+    });
+
+    expect(metadata.openGraph).toMatchObject({
+      type: "profile",
+      images: [openGraphImageDescriptor],
+    });
+    expect(metadata.twitter).toMatchObject({
+      card: "summary_large_image",
+      images: [twitterImageDescriptor],
+    });
+    expect(openGraphImageDescriptor).toMatchObject({
+      url: "https://tokenrank.org/opengraph-image",
+      width: 1200,
+      height: 630,
+      type: "image/png",
+    });
+    expect(twitterImageDescriptor).toMatchObject({
+      url: "https://tokenrank.org/twitter-image",
+      width: 1200,
+      height: 630,
+      type: "image/png",
+    });
   });
 
   it("publishes robots rules with sitemap discovery", () => {

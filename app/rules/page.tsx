@@ -6,7 +6,8 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { defaultLocale } from "@/src/i18n/config";
 import { getCopy } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
-import { absoluteUrl, siteName } from "@/src/lib/site";
+import { absoluteUrl } from "@/src/lib/site";
+import { createSocialMetadata } from "@/src/lib/social-metadata";
 
 const metadataCopy = getCopy(defaultLocale).rules;
 const rulesUrl = absoluteUrl("/rules");
@@ -16,18 +17,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: rulesUrl,
   },
-  openGraph: {
+  ...createSocialMetadata({
     title: metadataCopy.metaTitle,
     description: metadataCopy.metaDescription,
     url: rulesUrl,
-    siteName,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: metadataCopy.metaTitle,
-    description: metadataCopy.metaDescription,
-  },
+  }),
 };
 
 export default async function RulesPage() {

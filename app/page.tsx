@@ -14,6 +14,7 @@ import { getRequestLocale } from "@/src/i18n/server";
 import { formatTokens, formatUsdMicros } from "@/src/lib/format";
 import { parseLeaderboardSearchParams } from "@/src/lib/leaderboard/search-params";
 import { absoluteUrl, githubRepositoryUrl, siteName, siteUrl } from "@/src/lib/site";
+import { createSocialMetadata } from "@/src/lib/social-metadata";
 import type { LeaderboardEntry } from "@/src/lib/types";
 import { getLeaderboard } from "@/src/lib/users";
 
@@ -27,18 +28,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: absoluteUrl("/"),
   },
-  openGraph: {
+  ...createSocialMetadata({
     title: metadataCopy.metaTitle,
     description: metadataCopy.metaDescription,
     url: absoluteUrl("/"),
-    siteName,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: metadataCopy.metaTitle,
-    description: metadataCopy.metaDescription,
-  },
+  }),
 };
 
 export default async function Home({

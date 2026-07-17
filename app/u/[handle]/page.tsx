@@ -10,6 +10,7 @@ import { getRequestLocale } from "@/src/i18n/server";
 import { summarizeUsage } from "@/src/lib/dashboard/summary";
 import { formatTokens } from "@/src/lib/format";
 import { absoluteUrl } from "@/src/lib/site";
+import { createSocialMetadata } from "@/src/lib/social-metadata";
 import { getProfile } from "@/src/lib/users";
 
 const getCachedProfile = cache(getProfile);
@@ -40,17 +41,12 @@ export async function generateMetadata({ params }: PublicProfileProps): Promise<
     alternates: {
       canonical,
     },
-    openGraph: {
+    ...createSocialMetadata({
       title,
       description,
       url: canonical,
       type: "profile",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
+    }),
     robots: {
       index: true,
       follow: true,

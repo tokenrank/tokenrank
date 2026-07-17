@@ -9,6 +9,7 @@ import { defaultLocale, htmlLang } from "@/src/i18n/config";
 import { getCopy } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
 import { absoluteUrl, siteDescription, siteName, siteUrl } from "@/src/lib/site";
+import { createSocialMetadata } from "@/src/lib/social-metadata";
 
 import "./globals.css";
 
@@ -47,19 +48,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: absoluteUrl("/"),
   },
-  openGraph: {
+  ...createSocialMetadata({
     title: defaultCopy.home.metaTitle,
     description: siteDescription,
     url: absoluteUrl("/"),
-    siteName,
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: defaultCopy.home.metaTitle,
-    description: siteDescription,
-  },
+  }),
   other: {
     "msapplication-TileColor": "#070907",
   },

@@ -11,7 +11,8 @@ import { getXSignInGuard } from "@/src/auth/sign-in-guard";
 import { defaultLocale } from "@/src/i18n/config";
 import { getCopy, text } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
-import { absoluteUrl, siteName } from "@/src/lib/site";
+import { absoluteUrl } from "@/src/lib/site";
+import { createSocialMetadata } from "@/src/lib/social-metadata";
 import { getUserUploadStatus } from "@/src/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -27,18 +28,11 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
-  openGraph: {
+  ...createSocialMetadata({
     title: metadataCopy.metaTitle,
     description: metadataCopy.metaDescription,
     url: onboardUrl,
-    siteName,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: metadataCopy.metaTitle,
-    description: metadataCopy.metaDescription,
-  },
+  }),
 };
 
 export default async function OnboardPage() {
