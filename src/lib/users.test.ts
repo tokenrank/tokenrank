@@ -637,6 +637,50 @@ describe("upsertUploadedUsage", () => {
     expect(mockDb.batch).not.toHaveBeenCalled();
   });
 
+  it("qualifies the receiving snapshot correlation against the outer device row", async () => {
+    const realDb = drizzle.mock({ schema: dbSchema });
+    let selectCall = 0;
+    let existingDeviceFields: Parameters<typeof realDb.select>[0] | undefined;
+
+    mockDb.select.mockImplementation((fields: Parameters<typeof realDb.select>[0]) => {
+      selectCall += 1;
+      const rows =
+        selectCall === 1
+          ? [{ id: "webhook-row-id", userId: "user-1" }]
+          : [
+              {
+                accountingVersion: 1,
+                cutoverDate: null,
+                snapshotRevision: 0,
+                receivingCutoverDate: "2026-06-23",
+                hasReceivingSnapshot: true,
+              },
+            ];
+
+      if (selectCall === 2) {
+        existingDeviceFields = fields;
+      }
+
+      const query = {
+        from: vi.fn(),
+        where: vi.fn(),
+        limit: vi.fn().mockResolvedValue(rows),
+      };
+      query.from.mockReturnValue(query);
+      query.where.mockReturnValue(query);
+      return query;
+    });
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]),
+    ).resolves.toEqual({ ok: false, status: 409, error: "upgrade_required" });
+
+    expect(existingDeviceFields).toBeDefined();
+    const query = realDb.select(existingDeviceFields!).from(devices).toSQL();
+    expect(query.sql).toContain('"device_id" = "devices"."id"');
+    expect(query.sql).not.toContain('"device_id" = "id"');
+  });
+
   it("fails closed when a cutover starts while a legacy upload waits for the device lock", async () => {
     mockSelectSequence(
       [{ id: "webhook-row-id", userId: "user-1" }],
@@ -1190,6 +1234,121 @@ describe("upsertUploadedUsage", () => {
     expect(builtQueries[3].sql).toContain('insert into "usage_snapshots"');
     expect(builtQueries[4].sql).toContain('insert into "usage_snapshot_batches"');
     expect(builtQueries[5].sql).toContain('insert into "usage_snapshot_rows"');
+  });
+
+  it("builds full snapshot commit with complete real Drizzle insert-select queries", async () => {
+    type RunnableSql = {
+      _prepare: () => unknown;
+      toSQL: () => { sql: string; params: unknown[] };
+    };
+
+    const realDb = drizzle.mock({ schema: dbSchema });
+    const realSelect = Symbol("real-select");
+    const selectResults: Array<unknown[] | typeof realSelect> = [
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [
+        {
+          accountingVersion: 1,
+          cutoverDate: null,
+          snapshotRevision: 0,
+          receivingCutoverDate: null,
+          hasReceivingSnapshot: false,
+        },
+      ],
+      [],
+      [],
+      [],
+      realSelect,
+      realSelect,
+      realSelect,
+      realSelect,
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 1,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+      [{ stagedRowCount: 1, declaredRowCount: 1 }],
+      realSelect,
+      realSelect,
+      realSelect,
+      [{ revision: 1, status: "committed" }],
+    ];
+
+    mockDb.select.mockImplementation((fields: Parameters<typeof realDb.select>[0]) => {
+      const result = selectResults.shift();
+
+      if (result === realSelect) {
+        return realDb.select(fields);
+      }
+
+      const rows = result ?? [];
+      const query = {
+        from: vi.fn(),
+        innerJoin: vi.fn(),
+        where: vi.fn(),
+        orderBy: vi.fn(),
+        limit: vi.fn().mockResolvedValue(rows),
+        then: (resolve: (value: unknown[]) => unknown, reject: (error: unknown) => unknown) =>
+          Promise.resolve(rows).then(resolve, reject),
+      };
+      query.from.mockReturnValue(query);
+      query.innerJoin.mockReturnValue(query);
+      query.where.mockReturnValue(query);
+      query.orderBy.mockReturnValue(query);
+      return query;
+    });
+    mockDb.insert.mockImplementation((table: Parameters<typeof realDb.insert>[0]) =>
+      realDb.insert(table),
+    );
+    mockDb.delete.mockImplementation((table: Parameters<typeof realDb.delete>[0]) =>
+      realDb.delete(table),
+    );
+    mockDb.update.mockImplementation((table: Parameters<typeof realDb.update>[0]) =>
+      realDb.update(table),
+    );
+    mockDb.batch.mockResolvedValue([]);
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_real_commit",
+      cutoverDate: "2026-06-23",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 1,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: true,
+      revision: 1,
+    });
+    expect(selectResults).toHaveLength(0);
+    expect(mockDb.batch).toHaveBeenCalledTimes(2);
+
+    const stageQueries = mockDb.batch.mock.calls[0]?.[0] as RunnableSql[];
+    const commitQueries = mockDb.batch.mock.calls[1]?.[0] as RunnableSql[];
+    const builtStageQueries = stageQueries.map((query) => query.toSQL());
+    const builtCommitQueries = commitQueries.map((query) => query.toSQL());
+
+    expect(stageQueries).toHaveLength(7);
+    expect(commitQueries).toHaveLength(10);
+    expect(builtStageQueries[3].sql).toContain('insert into "usage_snapshots"');
+    expect(builtCommitQueries[1].sql).toContain('insert into "usage_snapshot_rows"');
+    expect(builtCommitQueries[4].sql).toContain('insert into "daily_usage"');
+    expect(builtCommitQueries[1].sql).toContain(
+      '"anomaly_flags"."daily_usage_id" = "daily_usage"."id"',
+    );
+    expect(builtCommitQueries[2].sql).toContain(
+      '"anomaly_flags"."daily_usage_id" = "daily_usage"."id"',
+    );
   });
 
   it("passes real Drizzle runnable query builders to upload batch", async () => {

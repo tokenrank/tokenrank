@@ -25,6 +25,8 @@ const LEADERBOARD_LIMIT = 100;
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_DEVICES_PER_USER = 16;
 const MAX_ACTIVE_SNAPSHOTS_PER_USER = 4;
+const QUALIFIED_DEVICES_ID = sql.raw('"devices"."id"');
+const QUALIFIED_DAILY_USAGE_ID = sql.raw('"daily_usage"."id"');
 
 export type PublicProfileUser = {
   id: string;
@@ -389,7 +391,7 @@ export async function upsertUploadedUsage(
         select ${usageSnapshots.cutoverDate}
         from ${usageSnapshots}
         where ${usageSnapshots.userId} = ${webhook.userId}
-          and ${usageSnapshots.deviceId} = ${devices.id}
+          and ${usageSnapshots.deviceId} = ${QUALIFIED_DEVICES_ID}
           and ${usageSnapshots.status} = 'receiving'
         order by ${usageSnapshots.createdAt} desc
         limit 1
@@ -398,7 +400,7 @@ export async function upsertUploadedUsage(
         select 1
         from ${usageSnapshots}
         where ${usageSnapshots.userId} = ${webhook.userId}
-          and ${usageSnapshots.deviceId} = ${devices.id}
+          and ${usageSnapshots.deviceId} = ${QUALIFIED_DEVICES_ID}
           and ${usageSnapshots.status} = 'receiving'
       )`,
     })
@@ -485,7 +487,7 @@ export async function upsertUploadedUsage(
         select 1
         from ${usageSnapshots}
         where ${usageSnapshots.userId} = ${webhook.userId}
-          and ${usageSnapshots.deviceId} = ${devices.id}
+          and ${usageSnapshots.deviceId} = ${QUALIFIED_DEVICES_ID}
           and ${usageSnapshots.status} = 'receiving'
       )
     limit 1
@@ -850,6 +852,7 @@ export async function upsertUploadedUsage(
 
     const stagedRowsSelect = db
       .select({
+        id: sql<string>`gen_random_uuid()`.as("id"),
         userId: sql<string>`${webhook.userId}`.as("user_id"),
         deviceId: sql<string>`${deviceIdSubquery}`.as("device_id"),
         usageDate: usageSnapshotRows.usageDate,
@@ -863,6 +866,8 @@ export async function upsertUploadedUsage(
         estimatedCostMicros: usageSnapshotRows.estimatedCostMicros,
         accountingVersion: sql<number>`2`.as("accounting_version"),
         snapshotId: sql<string>`${sync.snapshotId}`.as("snapshot_id"),
+        blocked: sql<boolean>`false`.as("blocked"),
+        updatedAt: sql<Date>`now()`.as("updated_at"),
       })
       .from(usageSnapshotRows)
       .where(
@@ -881,6 +886,7 @@ export async function upsertUploadedUsage(
       .select(
         db
           .select({
+            id: sql<string>`gen_random_uuid()`.as("id"),
             snapshotRowId: sql<string>`${snapshotRowIdSubquery}`.as("snapshot_row_id"),
             batchIndex: sql<number>`0`.as("batch_index"),
             usageDate: dailyUsage.usageDate,
@@ -903,7 +909,7 @@ export async function upsertUploadedUsage(
               sql`not exists (
                 select 1
                 from ${anomalyFlags}
-                where ${anomalyFlags.dailyUsageId} = ${dailyUsage.id}
+                where ${anomalyFlags.dailyUsageId} = ${QUALIFIED_DAILY_USAGE_ID}
               )`,
               gte(dailyUsage.usageDate, sync.cutoverDate),
               sql`exists (
@@ -954,7 +960,7 @@ export async function upsertUploadedUsage(
             sql`exists (
               select 1
               from ${anomalyFlags}
-              where ${anomalyFlags.dailyUsageId} = ${dailyUsage.id}
+              where ${anomalyFlags.dailyUsageId} = ${QUALIFIED_DAILY_USAGE_ID}
             )`,
           ),
           gte(dailyUsage.usageDate, sync.cutoverDate),
@@ -980,7 +986,7 @@ export async function upsertUploadedUsage(
         sql`not exists (
           select 1
           from ${anomalyFlags}
-          where ${anomalyFlags.dailyUsageId} = ${dailyUsage.id}
+          where ${anomalyFlags.dailyUsageId} = ${QUALIFIED_DAILY_USAGE_ID}
         )`,
         gte(dailyUsage.usageDate, sync.cutoverDate),
         sql`exists (
@@ -1214,7 +1220,7 @@ export async function upsertUploadedUsage(
             select 1
             from ${usageSnapshots}
             where ${usageSnapshots.userId} = ${webhook.userId}
-              and ${usageSnapshots.deviceId} = ${devices.id}
+              and ${usageSnapshots.deviceId} = ${QUALIFIED_DEVICES_ID}
               and ${usageSnapshots.status} = 'receiving'
           )`,
         })
