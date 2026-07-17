@@ -598,12 +598,16 @@ export async function upsertUploadedUsage(
         .select(
           db
             .select({
+              id: sql<string>`gen_random_uuid()`.as("id"),
               userId: sql<string>`${webhook.userId}`.as("user_id"),
               deviceId: devices.id,
               snapshotId: sql<string>`${sync.snapshotId}`.as("snapshot_id"),
               revision: sql<number>`${devices.snapshotRevision} + 1`.as("revision"),
               batchCount: sql<number>`${sync.batchCount}`.as("batch_count"),
               cutoverDate: sql<string>`${sync.cutoverDate}`.as("cutover_date"),
+              status: sql<"receiving">`'receiving'::text`.as("status"),
+              createdAt: sql<Date>`now()`.as("created_at"),
+              committedAt: sql<Date | null>`null::timestamp`.as("committed_at"),
             })
             .from(devices)
             .where(
@@ -630,6 +634,7 @@ export async function upsertUploadedUsage(
               batchIndex: sql<number>`${sync.batchIndex}`.as("batch_index"),
               batchHash: sql<string>`${sync.batchHash}`.as("batch_hash"),
               rowCount: sql<number>`${entries.length}`.as("row_count"),
+              createdAt: sql<Date>`now()`.as("created_at"),
             })
             .from(usageSnapshots)
             .where(
@@ -682,6 +687,7 @@ export async function upsertUploadedUsage(
       `;
       const stageRowsSelect = db
         .select({
+          id: sql<string>`gen_random_uuid()`.as("id"),
           snapshotRowId: usageSnapshotBatches.snapshotRowId,
           batchIndex: sql<number>`${sync.batchIndex}`.as("batch_index"),
           usageDate: sql<string>`staged_input.usage_date`.as("usage_date"),

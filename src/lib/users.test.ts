@@ -1091,6 +1091,107 @@ describe("upsertUploadedUsage", () => {
     );
   });
 
+  it("builds full snapshot staging with real Drizzle insert-select queries", async () => {
+    type RunnableSql = {
+      _prepare: () => unknown;
+      toSQL: () => { sql: string; params: unknown[] };
+    };
+
+    const realDb = drizzle.mock({ schema: dbSchema });
+    const realSelect = Symbol("real-select");
+    const selectResults: Array<unknown[] | typeof realSelect> = [
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [
+        {
+          accountingVersion: 1,
+          cutoverDate: null,
+          snapshotRevision: 0,
+          receivingCutoverDate: null,
+          hasReceivingSnapshot: false,
+        },
+      ],
+      [],
+      [],
+      [],
+      realSelect,
+      realSelect,
+      realSelect,
+      realSelect,
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 1,
+          batchCount: 2,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+    ];
+
+    mockDb.select.mockImplementation((fields: Parameters<typeof realDb.select>[0]) => {
+      const result = selectResults.shift();
+
+      if (result === realSelect) {
+        return realDb.select(fields);
+      }
+
+      const rows = result ?? [];
+      const query = {
+        from: vi.fn(),
+        innerJoin: vi.fn(),
+        where: vi.fn(),
+        orderBy: vi.fn(),
+        limit: vi.fn().mockResolvedValue(rows),
+        then: (resolve: (value: unknown[]) => unknown, reject: (error: unknown) => unknown) =>
+          Promise.resolve(rows).then(resolve, reject),
+      };
+      query.from.mockReturnValue(query);
+      query.innerJoin.mockReturnValue(query);
+      query.where.mockReturnValue(query);
+      query.orderBy.mockReturnValue(query);
+      return query;
+    });
+    mockDb.insert.mockImplementation((table: Parameters<typeof realDb.insert>[0]) =>
+      realDb.insert(table),
+    );
+    mockDb.delete.mockImplementation((table: Parameters<typeof realDb.delete>[0]) =>
+      realDb.delete(table),
+    );
+    mockDb.update.mockImplementation((table: Parameters<typeof realDb.update>[0]) =>
+      realDb.update(table),
+    );
+    mockDb.batch.mockResolvedValue([]);
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_real_builder",
+      cutoverDate: "2026-06-23",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 2,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: false,
+      revision: 1,
+    });
+    expect(selectResults).toHaveLength(0);
+
+    const queries = mockDb.batch.mock.calls[0]?.[0] as RunnableSql[];
+    const builtQueries = queries.map((query) => query.toSQL());
+
+    expect(queries).toHaveLength(7);
+    expect(queries.every((query) => typeof query._prepare === "function")).toBe(true);
+    expect(builtQueries[3].sql).toContain('insert into "usage_snapshots"');
+    expect(builtQueries[4].sql).toContain('insert into "usage_snapshot_batches"');
+    expect(builtQueries[5].sql).toContain('insert into "usage_snapshot_rows"');
+  });
+
   it("passes real Drizzle runnable query builders to upload batch", async () => {
     type RunnableSql = {
       _prepare: () => unknown;
