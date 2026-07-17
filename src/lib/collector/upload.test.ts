@@ -1,10 +1,147 @@
 import { describe, expect, it } from "vitest";
-import { parseUploadPayload } from "./upload";
+import { hashUploadEntries, parseUploadPayload } from "./upload";
 import { TOOL_KEYS } from "../types";
 
 const CONTENT_FIELD_KEYS = ["prompt", "content", "code"] as const;
 
 describe("parseUploadPayload", () => {
+  it("accepts a v2 full snapshot batch", () => {
+    const parsed = parseUploadPayload({
+      deviceId: "device-12345678",
+      clientVersion: "0.2.0",
+      timezone: "UTC",
+      generatedAt: "2026-07-16T02:00:00.000Z",
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_020000",
+      cutoverDate: "2026-07-15",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 1,
+      entries: [],
+    });
+
+    expect(parsed).toMatchObject({ accountingVersion: 2, syncMode: "full", batchIndex: 0 });
+  });
+
+  it("rejects out-of-range full snapshot batch indexes", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T02:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_020000",
+        cutoverDate: "2026-07-15",
+        batchHash: "a".repeat(64),
+        batchIndex: 1,
+        batchCount: 1,
+        entries: [],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects full snapshot rows before the UTC cutover date", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T02:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_020000",
+        cutoverDate: "2026-07-15",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+        entries: [
+          {
+            date: "2026-07-14",
+            tool: "codex",
+            model: "gpt-5.5",
+            input: 1,
+            output: 2,
+            cacheRead: 0,
+            cacheWrite: 0,
+            total: 3,
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("caps full snapshots at 100 batches", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T02:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_020000",
+        cutoverDate: "2026-07-15",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 101,
+        entries: [],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts high-water incremental rows without deletion metadata", () => {
+    const parsed = parseUploadPayload({
+      deviceId: "device-12345678",
+      clientVersion: "0.2.0",
+      timezone: "UTC",
+      generatedAt: "2026-07-16T02:00:00.000Z",
+      accountingVersion: 2,
+      syncMode: "incremental",
+      entries: [
+        {
+          date: "2026-07-16",
+          tool: "codex",
+          model: "gpt-5.5",
+          input: 1,
+          output: 2,
+          cacheRead: 0,
+          cacheWrite: 0,
+          total: 3,
+        },
+      ],
+    });
+
+    expect(parsed).toMatchObject({
+      accountingVersion: 2,
+      syncMode: "incremental",
+      entries: [{ date: "2026-07-16", tool: "codex", model: "gpt-5.5", total: 3 }],
+    });
+  });
+
+  it("rejects incremental deletion metadata", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T02:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "incremental",
+        deleteKeys: [{ date: "2026-07-16", tool: "codex", model: "gpt-5.5" }],
+        entries: [],
+      }),
+    ).toThrow();
+  });
+
+  it("hashes full snapshot entries deterministically", async () => {
+    await expect(hashUploadEntries([])).resolves.toBe(
+      "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    );
+  });
+
   it("accepts valid aggregate rows", () => {
     const parsed = parseUploadPayload({
       deviceId: "device-1",
@@ -130,6 +267,81 @@ describe("parseUploadPayload", () => {
     });
 
     expect(parsed.entries).toHaveLength(TOOL_KEYS.length);
+  });
+
+  it("rejects incremental batches over 500 entries", () => {
+    const entries = Array.from({ length: 501 }, (_, index) => ({
+      date: "2026-07-16",
+      tool: "codex" as const,
+      model: `entry-${index}`,
+      input: 1,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      total: 1,
+    }));
+
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "incremental",
+        entries,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate aggregate keys before they reach a bulk upsert", () => {
+    const entry = {
+      date: "2026-07-16",
+      tool: "codex" as const,
+      model: "gpt-5.5",
+      input: 1,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      total: 1,
+    };
+
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "incremental",
+        entries: [entry, entry],
+      }),
+    ).toThrow(/duplicate date, tool, and model keys/);
+  });
+
+  it("rejects token counters that cannot be represented safely end to end", () => {
+    expect(() =>
+      parseUploadPayload({
+        deviceId: "device-12345678",
+        clientVersion: "0.2.0",
+        timezone: "UTC",
+        generatedAt: "2026-07-16T00:00:00.000Z",
+        accountingVersion: 2,
+        syncMode: "incremental",
+        entries: [
+          {
+            date: "2026-07-16",
+            tool: "codex",
+            model: "gpt-5.5",
+            input: Number.MAX_SAFE_INTEGER,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            total: Number.MAX_SAFE_INTEGER,
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it.each(["cursor", "github-copilot", "continue"] as const)(

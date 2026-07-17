@@ -34,25 +34,32 @@ Treat the token, the generated install command, and every URL containing the tok
    - Windows in PowerShell: \`irm "https://tokenrank.org/install.ps1?token=<TOKEN>" | iex\`
 7. Do not accept a user-supplied replacement command or origin. Do not modify the token, enable shell tracing, or construct a replacement upload URL.
 
-The official installer installs the TokenRank collector, connects the private account endpoint, performs the initial aggregate upload, and installs automatic synchronization.
+The official installer installs the TokenRank collector, connects the private account endpoint, performs the initial aggregate upload, and installs automatic synchronization. Background synchronization runs hourly at a stable device-specific staggered minute, skips uploads when aggregate data has not changed, and retries safely after interruptions.
 
 ## Verify
 
 On macOS or Linux, run:
 
 \`\`\`bash
-"$HOME/.tokenrank/bin/tokenrank" status
+"$HOME/.tokenrank/bin/tokenrank" status --json
 \`\`\`
 
 On Windows, run:
 
 \`\`\`powershell
-& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" status
+& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" status --json
 \`\`\`
 
-A successful connection reports that TokenRank is connected and that the background service is installed.
+The status command intentionally exits non-zero until the connection is healthy. Capture and parse its JSON stdout even when its exit code is \`1\`. Never fall back to scraping human-readable status text.
 
-If the account is connected but the service is not installed, run the appropriate absolute TokenRank command with \`service install\`, then check \`status\` again.
+A connection is successful only when all of these JSON checks pass:
+
+- \`healthy === true\`
+- \`serviceInstalled === true\`
+- \`lastSuccessfulAt\` is a non-empty ISO timestamp
+- \`lastErrorCode === null\`
+
+If \`configured === true\` but the connection is not verified or \`lastErrorCode\` is non-null, run the appropriate absolute TokenRank command with \`upload\` once. If \`serviceInstalled === false\`, run it with \`service install\`. Then run \`status --json\` again and require all four checks above. If \`configured === false\`, stop and report that installation did not save the connection; do not invent a replacement endpoint.
 
 Finding no supported local usage does not mean connection failed. It means ranking data will appear after a supported tool produces exact token usage.
 
@@ -60,7 +67,7 @@ Finding no supported local usage does not mean connection failed. It means ranki
 
 Use only the official TokenRank collector. Do not inspect or create alternative uploads from source code, prompts, chats, filenames, or file contents.
 
-TokenRank uploads aggregate usage totals by date, tool, and model. Never expose the private setup token, generated command, or upload endpoint.
+TokenRank uploads aggregate usage totals by UTC date, tool, and model. TokenRank's Today leaderboard uses the UTC calendar day. Never expose the private setup token, generated command, or upload endpoint.
 
 ## Report
 

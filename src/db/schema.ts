@@ -144,6 +144,9 @@ export const devices = pgTable(
     label: text("label").notNull().default("Local device"),
     firstSeenAt: timestamp("first_seen_at", { mode: "date" }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { mode: "date" }).notNull().defaultNow(),
+    accountingVersion: integer("accounting_version").notNull().default(1),
+    cutoverDate: date("cutover_date", { mode: "string" }),
+    snapshotRevision: integer("snapshot_revision").notNull().default(0),
     blocked: boolean("blocked").notNull().default(false),
   },
   (table) => [
@@ -171,6 +174,8 @@ export const dailyUsage = pgTable(
     cacheWriteTokens: bigint("cache_write_tokens", { mode: "number" }).notNull().default(0),
     totalTokens: bigint("total_tokens", { mode: "number" }).notNull().default(0),
     estimatedCostMicros: bigint("estimated_cost_micros", { mode: "number" }).notNull().default(0),
+    accountingVersion: integer("accounting_version").notNull().default(1),
+    snapshotId: text("snapshot_id"),
     blocked: boolean("blocked").notNull().default(false),
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   },
@@ -181,6 +186,14 @@ export const dailyUsage = pgTable(
       table.usageDate,
       table.tool,
       table.model,
+    ),
+    uniqueIndex("daily_usage_accounting_unique_idx").on(
+      table.userId,
+      table.deviceId,
+      table.usageDate,
+      table.tool,
+      table.model,
+      table.accountingVersion,
     ),
     index("daily_usage_user_date_idx").on(table.userId, table.usageDate),
     index("daily_usage_date_idx").on(table.usageDate),
@@ -193,6 +206,92 @@ export const dailyUsage = pgTable(
       "daily_usage_estimated_cost_micros_nonnegative",
       sql`${table.estimatedCostMicros} >= 0`,
     ),
+  ],
+);
+
+export const usageSnapshots = pgTable(
+  "usage_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    snapshotId: text("snapshot_id").notNull(),
+    revision: integer("revision").notNull(),
+    batchCount: integer("batch_count").notNull(),
+    cutoverDate: date("cutover_date", { mode: "string" }).notNull(),
+    status: text("status", { enum: ["receiving", "committed"] })
+      .notNull()
+      .default("receiving"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    committedAt: timestamp("committed_at", { mode: "date" }),
+  },
+  (table) => [
+    uniqueIndex("usage_snapshots_device_snapshot_idx").on(
+      table.userId,
+      table.deviceId,
+      table.snapshotId,
+    ),
+    uniqueIndex("usage_snapshots_one_receiving_idx")
+      .on(table.userId, table.deviceId)
+      .where(sql`${table.status} = 'receiving'`),
+    index("usage_snapshots_status_idx").on(table.status),
+    check("usage_snapshots_batch_count_positive", sql`${table.batchCount} > 0`),
+    check("usage_snapshots_revision_positive", sql`${table.revision} > 0`),
+    check(
+      "usage_snapshots_status_valid",
+      sql`${table.status} in ('receiving', 'committed')`,
+    ),
+  ],
+);
+
+export const usageSnapshotBatches = pgTable(
+  "usage_snapshot_batches",
+  {
+    snapshotRowId: uuid("snapshot_row_id")
+      .notNull()
+      .references(() => usageSnapshots.id, { onDelete: "cascade" }),
+    batchIndex: integer("batch_index").notNull(),
+    batchHash: text("batch_hash").notNull(),
+    rowCount: integer("row_count").notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.snapshotRowId, table.batchIndex] }),
+    check("usage_snapshot_batches_index_nonnegative", sql`${table.batchIndex} >= 0`),
+    check("usage_snapshot_batches_row_count_nonnegative", sql`${table.rowCount} >= 0`),
+  ],
+);
+
+export const usageSnapshotRows = pgTable(
+  "usage_snapshot_rows",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    snapshotRowId: uuid("snapshot_row_id")
+      .notNull()
+      .references(() => usageSnapshots.id, { onDelete: "cascade" }),
+    batchIndex: integer("batch_index").notNull(),
+    usageDate: date("usage_date", { mode: "string" }).notNull(),
+    tool: toolEnum("tool").notNull(),
+    model: text("model").notNull(),
+    inputTokens: bigint("input_tokens", { mode: "number" }).notNull().default(0),
+    outputTokens: bigint("output_tokens", { mode: "number" }).notNull().default(0),
+    cacheReadTokens: bigint("cache_read_tokens", { mode: "number" }).notNull().default(0),
+    cacheWriteTokens: bigint("cache_write_tokens", { mode: "number" }).notNull().default(0),
+    totalTokens: bigint("total_tokens", { mode: "number" }).notNull().default(0),
+    estimatedCostMicros: bigint("estimated_cost_micros", { mode: "number" }).notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("usage_snapshot_rows_unique_idx").on(
+      table.snapshotRowId,
+      table.usageDate,
+      table.tool,
+      table.model,
+    ),
+    check("usage_snapshot_rows_batch_index_nonnegative", sql`${table.batchIndex} >= 0`),
   ],
 );
 

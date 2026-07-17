@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { drizzle } from "drizzle-orm/neon-http";
 
 import * as dbSchema from "../db/schema";
-import { dailyUsage, devices } from "../db/schema";
+import { dailyUsage, devices, usageSnapshotRows, webhookTokens } from "../db/schema";
 import { hashSecret } from "./security/tokens";
 import {
   getLeaderboard,
@@ -18,6 +18,7 @@ const mockDb = vi.hoisted(() => ({
   insert: vi.fn(),
   delete: vi.fn(),
   update: vi.fn(),
+  execute: vi.fn(),
   transaction: vi.fn(),
   batch: vi.fn(),
 }));
@@ -85,7 +86,7 @@ function mockWebhookSelect(rows: unknown[]) {
   const query = {
     from: vi.fn(),
     where: vi.fn((condition: unknown) => {
-      captured.where = condition;
+      captured.where ??= condition;
       return query;
     }),
     limit: vi.fn().mockResolvedValue(rows),
@@ -95,6 +96,70 @@ function mockWebhookSelect(rows: unknown[]) {
   mockDb.select.mockReturnValue(query);
 
   return captured;
+}
+
+function mockSelectSequence(...results: unknown[][]) {
+  mockDb.select.mockImplementation(() => {
+    const result = results.shift() ?? [];
+    const query = {
+      from: vi.fn(),
+      innerJoin: vi.fn(),
+      where: vi.fn(),
+      orderBy: vi.fn(),
+      limit: vi.fn().mockResolvedValue(result),
+      then: (resolve: (value: unknown[]) => unknown, reject: (error: unknown) => unknown) =>
+        Promise.resolve(result).then(resolve, reject),
+    };
+
+    query.from.mockReturnValue(query);
+    query.innerJoin.mockReturnValue(query);
+    query.where.mockReturnValue(query);
+    query.orderBy.mockReturnValue(query);
+    return query;
+  });
+}
+
+function mockUniversalWriteBuilders() {
+  const writes: Array<{
+    kind: "insert" | "delete" | "update";
+    table: unknown;
+    where?: unknown;
+  }> = [];
+  const makeChain = (write: (typeof writes)[number]) => {
+    const chain = {
+      values: vi.fn(),
+      select: vi.fn(),
+      onConflictDoUpdate: vi.fn(),
+      onConflictDoNothing: vi.fn(),
+      set: vi.fn(),
+      where: vi.fn(),
+    };
+    Object.values(chain).forEach((method) => method.mockReturnValue(chain));
+    chain.where.mockImplementation((where: unknown) => {
+      write.where = where;
+      return chain;
+    });
+    return chain;
+  };
+
+  mockDb.insert.mockImplementation((table: unknown) => {
+    const write = { kind: "insert" as const, table };
+    writes.push(write);
+    return makeChain(write);
+  });
+  mockDb.delete.mockImplementation((table: unknown) => {
+    const write = { kind: "delete" as const, table };
+    writes.push(write);
+    return makeChain(write);
+  });
+  mockDb.update.mockImplementation((table: unknown) => {
+    const write = { kind: "update" as const, table };
+    writes.push(write);
+    return makeChain(write);
+  });
+  mockDb.batch.mockResolvedValue([]);
+
+  return writes;
 }
 
 function mockProfileQueries(userRows: unknown[], usageRows: unknown[]) {
@@ -256,6 +321,7 @@ beforeEach(() => {
   mockDb.insert.mockReset();
   mockDb.delete.mockReset();
   mockDb.update.mockReset();
+  mockDb.execute.mockReset();
   mockDb.transaction.mockReset();
   mockDb.batch.mockReset();
 });
@@ -328,7 +394,7 @@ describe("getUsageRows", () => {
     expect(sql.columns).toEqual(
       expect.arrayContaining(["ranking_enabled", "blocked", "usage_date"]),
     );
-    expect(sql.columns.filter((column) => column === "usage_date")).toHaveLength(2);
+    expect(sql.columns.filter((column) => column === "usage_date")).toHaveLength(4);
     expect(sql.columns.filter((column) => column === "blocked")).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       handle: "unknown",
@@ -429,6 +495,516 @@ describe("getProfile", () => {
 });
 
 describe("upsertUploadedUsage", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T12:00:00.000Z"));
+  });
+
+  it("rejects incremental v2 uploads until the cutover snapshot commits", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+    );
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [], {
+        accountingVersion: 2,
+        syncMode: "incremental",
+      }),
+    ).resolves.toEqual({ ok: false, status: 409, error: "cutover_required" });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("returns the committed cutover so a device can recover lost local state", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-06-23", snapshotRevision: 4 }],
+    );
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_recovery",
+        cutoverDate: "2026-07-16",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      status: 409,
+      error: "cutover_date_conflict",
+      expectedCutoverDate: "2026-06-23",
+      revision: 4,
+    });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("uses the server UTC day for a device's first cutover", async () => {
+    mockSelectSequence([{ id: "webhook-row-id", userId: "user-1" }], []);
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "550e8400-e29b-41d4-a716-446655440000",
+        cutoverDate: "2026-07-16",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      status: 409,
+      error: "cutover_date_conflict",
+      expectedCutoverDate: "2026-06-23",
+      revision: 0,
+    });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("upserts incremental v2 high-water rows without destructive cleanup", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-06-23", snapshotRevision: 4 }],
+    );
+    const writes = mockUniversalWriteBuilders();
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+      accountingVersion: 2,
+      syncMode: "incremental",
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: true,
+      revision: 4,
+    });
+    expect(writes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "insert", table: dailyUsage })]),
+    );
+    expect(writes.some((write) => write.kind === "delete" && write.table === dailyUsage)).toBe(
+      false,
+    );
+    expect(mockDb.batch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects legacy uploads after a device has committed v2 cutover", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-07-15", snapshotRevision: 1 }],
+    );
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", []),
+    ).resolves.toEqual({ ok: false, status: 409, error: "upgrade_required" });
+  });
+
+  it("bounds persistent device state per account", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [],
+      [{ count: 16 }],
+    );
+
+    await expect(
+      upsertUploadedUsage("raw-token", "new-device-id", [uploadEntry]),
+    ).resolves.toEqual({ ok: false, status: 409, error: "device_limit" });
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("rejects legacy uploads as soon as a v2 cutover snapshot starts receiving", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [
+        {
+          accountingVersion: 1,
+          cutoverDate: null,
+          snapshotRevision: 0,
+          hasReceivingSnapshot: true,
+        },
+      ],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]),
+    ).resolves.toEqual({ ok: false, status: 409, error: "upgrade_required" });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a cutover starts while a legacy upload waits for the device lock", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [
+        {
+          accountingVersion: 1,
+          cutoverDate: null,
+          snapshotRevision: 0,
+          hasReceivingSnapshot: false,
+        },
+      ],
+      [],
+      [{ accountingVersion: 1, hasReceivingSnapshot: true }],
+    );
+    mockUniversalWriteBuilders();
+    mockDb.batch.mockRejectedValue(Object.assign(new Error("null guarded device"), { code: "23502" }));
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry]),
+    ).resolves.toEqual({ ok: false, status: 409, error: "upgrade_required" });
+  });
+
+  it("keeps an incomplete multi-batch cutover entirely in staging", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 1,
+          batchCount: 2,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+    );
+    const writes = mockUniversalWriteBuilders();
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_020000",
+      cutoverDate: "2026-06-23",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 2,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: false,
+      revision: 1,
+    });
+    expect(writes.some((write) => write.table === dailyUsage)).toBe(false);
+    expect(mockDb.batch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the active snapshot identity so token rotation can resume it", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+      [],
+      [
+        {
+          snapshotId: "550e8400-e29b-41d4-a716-446655440000",
+          revision: 1,
+          cutoverDate: "2026-06-23",
+          createdAt: new Date(),
+        },
+      ],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("rotated-token", "raw-device-id", [uploadEntry], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "9f1c4a42-1d54-4698-8f91-82f75ad379fb",
+        cutoverDate: "2026-06-23",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      status: 409,
+      error: "active_snapshot_conflict",
+      activeSnapshotId: "550e8400-e29b-41d4-a716-446655440000",
+      expectedCutoverDate: "2026-06-23",
+      revision: 1,
+    });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
+  it("atomically commits an empty initial cutover snapshot", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 1,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+      [{ stagedRowCount: 0, declaredRowCount: 0 }],
+      [],
+      [],
+      [],
+      [{ revision: 1, status: "committed" }],
+    );
+    const writes = mockUniversalWriteBuilders();
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [], {
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_020000",
+      cutoverDate: "2026-06-23",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 1,
+    });
+
+    expect(result).toMatchObject({ committed: true, revision: 1 });
+    expect(writes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "delete", table: dailyUsage }),
+        expect.objectContaining({ kind: "insert", table: dailyUsage }),
+      ]),
+    );
+    expect(
+      writes.filter((write) => write.kind === "insert" && write.table === usageSnapshotRows),
+    ).toHaveLength(2);
+    const preservedBlockedRows = writes.find(
+      (write) => write.kind === "update" && write.table === dailyUsage,
+    );
+    const clearedUnblockedRows = writes.find(
+      (write) => write.kind === "delete" && write.table === dailyUsage,
+    );
+    expect(inspectSql(preservedBlockedRows?.where).columns).toContain("blocked");
+    expect(inspectSql(preservedBlockedRows?.where).columns).toContain("daily_usage_id");
+    expect(inspectSql(preservedBlockedRows?.where).params).toContain(true);
+    expect(inspectSql(clearedUnblockedRows?.where).columns).toContain("blocked");
+    expect(inspectSql(clearedUnblockedRows?.where).columns).toContain("daily_usage_id");
+    expect(inspectSql(clearedUnblockedRows?.where).params).toContain(false);
+    expect(mockDb.batch).toHaveBeenCalledTimes(2);
+  });
+
+  it("guards cutover cleanup so later reconciliation never infers deletion", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-06-23", snapshotRevision: 1 }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 2,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+      [{ stagedRowCount: 0, declaredRowCount: 0 }],
+      [],
+      [],
+      [],
+      [{ revision: 2, status: "committed" }],
+    );
+    const writes = mockUniversalWriteBuilders();
+
+    const result = await upsertUploadedUsage("raw-token", "raw-device-id", [], {
+      accountingVersion: 2,
+      syncMode: "full",
+      snapshotId: "snapshot_20260716_030000",
+      cutoverDate: "2026-06-23",
+      batchHash: "a".repeat(64),
+      batchIndex: 0,
+      batchCount: 1,
+    });
+
+    expect(result).toMatchObject({ committed: true, revision: 2 });
+    const guardedCutoverCleanup = writes.find(
+      (write) => write.kind === "delete" && write.table === dailyUsage,
+    );
+    expect(guardedCutoverCleanup).toBeDefined();
+    expect(inspectSql(guardedCutoverCleanup?.where).columns).toEqual(
+      expect.arrayContaining(["usage_date", "cutover_date"]),
+    );
+  });
+
+  it("rejects a complete snapshot whose staged row count is incomplete", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 1,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ batchIndex: 0 }],
+      [{ stagedRowCount: 0, declaredRowCount: 1 }],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_040000",
+        cutoverDate: "2026-06-23",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({ ok: false, status: 409, error: "snapshot_conflict" });
+    expect(mockDb.batch).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts a snapshot committed concurrently after its batch was staged", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-06-23", snapshotRevision: 1 }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [
+        {
+          batchHash: "a".repeat(64),
+          revision: 2,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "committed",
+        },
+      ],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_050000",
+        cutoverDate: "2026-06-23",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: true,
+      revision: 2,
+    });
+    expect(mockDb.batch).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a repeated snapshot batch whose hash changed", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 1, cutoverDate: null, snapshotRevision: 0 }],
+      [
+        {
+          id: "snapshot-row-id",
+          revision: 1,
+          batchCount: 2,
+          cutoverDate: "2026-06-23",
+          status: "receiving",
+        },
+      ],
+      [{ id: "snapshot-row-id", snapshotId: "snapshot_20260716_020000", createdAt: new Date() }],
+      [{ batchHash: "b".repeat(64) }],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_020000",
+        cutoverDate: "2026-06-23",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 2,
+      }),
+    ).resolves.toEqual({ ok: false, status: 409, error: "snapshot_conflict" });
+  });
+
+  it("treats a repeated batch for a committed snapshot as idempotent", async () => {
+    mockSelectSequence(
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [{ accountingVersion: 2, cutoverDate: "2026-06-23", snapshotRevision: 1 }],
+      [
+        {
+          id: "snapshot-row-id",
+          revision: 1,
+          batchCount: 1,
+          cutoverDate: "2026-06-23",
+          status: "committed",
+        },
+      ],
+      [],
+      [{ batchHash: "a".repeat(64) }],
+    );
+    mockUniversalWriteBuilders();
+
+    await expect(
+      upsertUploadedUsage("raw-token", "raw-device-id", [uploadEntry], {
+        accountingVersion: 2,
+        syncMode: "full",
+        snapshotId: "snapshot_20260716_020000",
+        cutoverDate: "2026-06-23",
+        batchHash: "a".repeat(64),
+        batchIndex: 0,
+        batchCount: 1,
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: true,
+      revision: 1,
+    });
+    expect(mockDb.batch).not.toHaveBeenCalled();
+  });
+
   it("returns 401 for invalid webhook tokens without inserting usage", async () => {
     const captured = mockWebhookSelect([]);
 
@@ -456,14 +1032,31 @@ describe("upsertUploadedUsage", () => {
     const usageInsert = persistence.queries.find(
       (query) => query.kind === "insert" && query.table === dailyUsage,
     );
+    const unattributedCleanup = persistence.queries.find(
+      (query) => query.kind === "delete" && query.table === dailyUsage,
+    );
+    const webhookUpdate = persistence.queries.find(
+      (query) => query.kind === "update" && query.table === webhookTokens,
+    );
     const batchValues = collectQueryValues(batchedQueries);
-    const usageDeviceIdSqlValues = collectQueryValues(usageInsert?.values?.deviceId);
+    const usageInsertValues = collectQueryValues(usageInsert?.values);
 
-    expect(result).toEqual({ ok: true, status: 200, uploaded: 1 });
+    expect(result).toEqual({
+      ok: true,
+      status: 200,
+      uploaded: 1,
+      committed: true,
+      revision: 0,
+    });
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockDb.batch).toHaveBeenCalledTimes(1);
-    expect(batchedQueries).toEqual(persistence.queries);
-    expect(batchedQueries).toHaveLength(4);
+    expect(batchedQueries?.slice(1)).toEqual([
+      deviceInsert,
+      unattributedCleanup,
+      usageInsert,
+      webhookUpdate,
+    ]);
+    expect(batchedQueries).toHaveLength(5);
     expect(sql.params).toContain(hashSecret("raw-token"));
     expect(sql.params).not.toContain("raw-token");
     expect(deviceInsert?.values).toMatchObject({
@@ -472,14 +1065,16 @@ describe("upsertUploadedUsage", () => {
       label: "Local device",
     });
     expect(deviceInsert?.values).not.toMatchObject({ deviceHash: "raw-device-id" });
-    expect(usageDeviceIdSqlValues).toEqual(
+    expect(usageInsertValues).toEqual(
       expect.arrayContaining(["user-1", hashSecret("raw-device-id")]),
     );
-    expect(usageInsert?.values).toMatchObject({
-      userId: "user-1",
-      usageDate: "2026-06-23",
-      totalTokens: 150,
-    });
+    expect(usageInsert?.values).toEqual([
+      expect.objectContaining({
+        userId: "user-1",
+        usageDate: "2026-06-23",
+        totalTokens: 150,
+      }),
+    ]);
     expect(batchValues).toContain(hashSecret("raw-device-id"));
     expect(batchValues).toContain("codex-unattributed");
     expect(batchValues).not.toContain("raw-device-id");
@@ -502,9 +1097,34 @@ describe("upsertUploadedUsage", () => {
       toSQL: () => { sql: string; params: unknown[] };
     };
 
-    mockWebhookSelect([{ id: "webhook-row-id", userId: "user-1" }]);
-
     const realDb = drizzle.mock({ schema: dbSchema });
+
+    const selectResults: unknown[][] = [
+      [{ id: "webhook-row-id", userId: "user-1" }],
+      [
+        {
+          accountingVersion: 1,
+          cutoverDate: null,
+          snapshotRevision: 0,
+          hasReceivingSnapshot: false,
+        },
+      ],
+    ];
+    mockDb.select.mockImplementation((fields: Parameters<typeof realDb.select>[0]) => {
+      if (selectResults.length === 0) {
+        return realDb.select(fields);
+      }
+
+      const result = selectResults.shift() ?? [];
+      const query = {
+        from: vi.fn(),
+        where: vi.fn(),
+        limit: vi.fn().mockResolvedValue(result),
+      };
+      query.from.mockReturnValue(query);
+      query.where.mockReturnValue(query);
+      return query;
+    });
 
     mockDb.insert.mockImplementation((table: Parameters<typeof realDb.insert>[0]) =>
       realDb.insert(table),
@@ -523,12 +1143,14 @@ describe("upsertUploadedUsage", () => {
     const builtQueries = queries.map((query) => query.toSQL());
     const allParams = builtQueries.flatMap((query) => query.params);
 
-    expect(queries).toHaveLength(4);
+    expect(queries).toHaveLength(5);
     expect(queries.every((query) => typeof query._prepare === "function")).toBe(true);
-    expect(builtQueries[0].sql).toContain('insert into "devices"');
-    expect(builtQueries[1].sql).toContain('delete from "daily_usage"');
-    expect(builtQueries[2].sql).toContain('select "devices"."id"');
-    expect(builtQueries[3].sql).toContain('update "webhook_tokens"');
+    expect(builtQueries[0].sql).toContain("pg_advisory_xact_lock");
+    expect(builtQueries[1].sql).toContain('insert into "devices"');
+    expect(builtQueries[2].sql).toContain('delete from "daily_usage"');
+    expect(builtQueries[3].sql).toContain('select "devices"."id"');
+    expect(builtQueries[3].sql).toContain('"accounting_version"');
+    expect(builtQueries[4].sql).toContain('update "webhook_tokens"');
     expect(allParams).toContain(hashSecret("raw-device-id"));
     expect(allParams).not.toContain("raw-device-id");
     expect(allParams).not.toContain("raw-token");

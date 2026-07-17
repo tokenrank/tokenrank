@@ -72,7 +72,7 @@ curl -fsSL "https://tokenrank.org/install.sh" | bash
 irm "https://tokenrank.org/install.ps1" | iex
 ```
 
-连接私人 webhook URL 后，可以启用本地 12:00 和 24:00（00:00）自动同步：
+连接私人 webhook URL 后，可以启用每小时自动同步：
 
 ```bash
 tokenrank service install
@@ -82,7 +82,11 @@ macOS 会创建 LaunchAgent，Linux 会创建 systemd user service，Windows 会
 
 Windows 安装器会把 `%USERPROFILE%\.tokenrank` 幂等加入用户 PATH，并同步更新当前 PowerShell 会话；安装完成后可直接运行 `tokenrank status`、`tokenrank tools` 等命令。
 
-三端都按本地时间 00:00 和 12:00 同步。电脑在计划时间关机或用户未登录时，macOS 会在 LaunchAgent 加载后、Linux 会通过 persistent timer、Windows 会在下次登录后自动补传一次。本机 `service-state.json` 会记录已完成的计划边界，因此日历触发和登录补跑同时发生也不会重复上传。
+三端都会按设备 ID 选择一个固定分钟，每小时错峰同步。电脑在计划时间关机或用户未登录时，macOS 会在 LaunchAgent 加载后、Linux 会通过 persistent timer、Windows 会在下次登录后自动补传一次。本机 `service-state.json` 会记录已完成的计划边界，因此日历触发和登录补跑同时发生也不会重复上传。
+
+CLI v2 统一按 UTC 日历日聚合，首次 cutover 日期由服务端 UTC 日界线确认。首次升级使用原子 cutover snapshot；之后每小时只上传变化且不低于已提交 high-water 的聚合行，没有变化就不请求服务器。每天会重发一次 cutover 后的 high-water 快照用于校准，但不会根据本次扫描缺少文件而删除历史。协议不提供 `deleteKeys` 或任何聚合行删除通道；服务端只接受不减的 high-water upsert。CLI 在上传前会校验稳定的匿名 account identity，避免更换到其他账号的 webhook 时复用旧账号 high-water；未确认的 full 或 incremental payload 会保留并原样重放到服务端确认。
+
+部署约束：生产库出现首条 v2 行后，本次包含 migration `0006` 的 Web 版本就是最早 rollback baseline；不得回滚到 pre-v2 Worker，应从该版本向前修复。回滚或紧急变更前必须先保留数据库快照。
 
 查看状态、诊断数据源或移除任务：
 

@@ -39,12 +39,12 @@ beforeEach(() => {
   db.insert.mockClear();
   insertValues.mockReset();
   process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3010";
-  process.env.NODE_ENV = "test";
+  (process.env as Record<string, string | undefined>).NODE_ENV = "test";
 });
 
 afterEach(() => {
   process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
-  process.env.NODE_ENV = originalNodeEnv;
+  (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
 });
 
 describe("webhook token route", () => {
@@ -82,7 +82,7 @@ describe("webhook token route", () => {
   });
 
   it("uses the configured canonical URL in production", async () => {
-    process.env.NODE_ENV = "production";
+    (process.env as Record<string, string | undefined>).NODE_ENV = "production";
     process.env.NEXT_PUBLIC_APP_URL = "https://tokenrank.example/";
     auth.mockResolvedValue({ user: { id: "user-1" } });
     createWebhookSecret.mockReturnValue("plain-webhook-secret");

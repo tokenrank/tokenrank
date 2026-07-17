@@ -57,7 +57,7 @@ const en = {
     continue: "Continue",
   },
   ranges: {
-    today: "Today",
+    today: "Today · UTC",
     "3d": "3D",
     "7d": "7D",
     "30d": "30D",
@@ -152,7 +152,7 @@ const en = {
         },
         {
           question: "How does TokenRank avoid duplicate usage?",
-          answer: "A repeated upload for the same device, date, tool, and model replaces the earlier row instead of adding a duplicate.",
+          answer: "A repeated upload for the same device, UTC date, tool, and model replaces the earlier row instead of adding a duplicate.",
         },
         {
           question: "How do I join the AI token leaderboard?",
@@ -187,7 +187,7 @@ const en = {
     cards: [
       {
         title: "Only aggregate token rows",
-        body: "The collector sends date, tool, model, token counts, and estimated cost. It never uploads code, prompts, chats, filenames, or file contents.",
+        body: "The collector sends UTC date, tool, model, token counts, and estimated cost. It never uploads code, prompts, chats, filenames, or file contents.",
       },
       {
         title: "Main board uses raw tokens",
@@ -199,7 +199,7 @@ const en = {
       },
       {
         title: "Same device, same day overwrites",
-        body: "Repeated uploads from one device for the same date, tool, and model replace the old row instead of stacking duplicate points.",
+        body: "Repeated uploads from one device for the same UTC date, tool, and model replace the old row instead of stacking duplicate points.",
       },
       {
         title: "Top three devices count",
@@ -282,7 +282,7 @@ const en = {
         },
         {
           title: "3. Keep sync scheduled",
-          body: "The command uploads once now. Automatic sync runs at 12:00 and 24:00 by default; a missed run recovers once after your next login through LaunchAgent, systemd, or the hidden Windows task.",
+          body: "The command uploads once now. Automatic sync then runs hourly at a device-specific staggered minute, skips unchanged data, and retries safely after interruptions.",
         },
       ],
       autoTitle: {
@@ -300,7 +300,7 @@ const en = {
       oneLine: "1 line",
       manualTitle: "Manual refresh",
       manualBody:
-        "Background sync handles daily updates. Use this command only when you want an immediate refresh.",
+        "Background sync handles hourly updates. Use this command only when you want an immediate refresh.",
       empty: "Click \"Generate upload URL\" first. Then choose an Agent prompt or a terminal command.",
       privacy:
         "Only aggregate token counts and estimated cost by date, tool, and model are uploaded. Code, prompts, chats, and file contents are excluded.",
@@ -345,7 +345,7 @@ const en = {
       mainModel: "Main model: {value}",
       stats: {
         total: "Total tokens",
-        today: "Today",
+        today: "Today · UTC",
         spend: "Estimated spend",
         activeDays: "Active days",
         clients: "Upload clients",
@@ -531,7 +531,7 @@ const zh = {
     continue: "Continue",
   },
   ranges: {
-    today: "今日",
+    today: "今日 · UTC",
     "3d": "3 天",
     "7d": "7 天",
     "30d": "30 天",
@@ -626,7 +626,7 @@ const zh = {
         },
         {
           question: "TokenRank 如何避免重复计算？",
-          answer: "同一设备、日期、工具和模型的重复上传会覆盖旧行，不会叠加成重复用量。",
+          answer: "同一设备、UTC 日期、工具和模型的重复上传会覆盖旧行，不会叠加成重复用量。",
         },
         {
           question: "如何加入 AI Token 排行榜？",
@@ -661,7 +661,7 @@ const zh = {
     cards: [
       {
         title: "只上传聚合 Token 行",
-        body: "采集器只发送日期、工具、模型、Token 数和预估金额；不上传代码、prompt、对话、文件名或文件内容。",
+        body: "采集器只发送 UTC 日期、工具、模型、Token 数和预估金额；不上传代码、prompt、对话、文件名或文件内容。",
       },
       {
         title: "主榜使用 raw token",
@@ -673,7 +673,7 @@ const zh = {
       },
       {
         title: "同设备同日覆盖",
-        body: "同一设备、同一日期、同一工具和模型的重复上传会覆盖旧行，不会重复累加。",
+        body: "同一设备、同一 UTC 日期、同一工具和模型的重复上传会覆盖旧行，不会重复累加。",
       },
       {
         title: "最多计入三台设备",
@@ -756,7 +756,7 @@ const zh = {
         },
         {
           title: "3. 保持定时同步",
-          body: "命令会先上传一次；自动同步每天 12:00 和 24:00 运行。错过时间后会在下次登录时补传一次，Windows 任务全程隐藏运行。",
+          body: "命令会先上传一次；之后每小时自动同步，并按设备分散到不同分钟。数据无变化时跳过上传，中断后会安全重试。",
         },
       ],
       autoTitle: {
@@ -773,7 +773,7 @@ const zh = {
       },
       oneLine: "1 行",
       manualTitle: "手动刷新",
-      manualBody: "后台同步会处理日常更新；只有想立刻刷新时才需要这条命令。",
+      manualBody: "后台每小时同步会处理日常更新；只有想立刻刷新时才需要这条命令。",
       empty: "先点「生成上传地址」，然后选择复制 Agent Prompt 或终端命令。",
       privacy:
         "只上传按日期、工具、模型聚合后的 Token 数和预估金额；不上传代码、prompt、对话或文件内容。",
@@ -817,7 +817,7 @@ const zh = {
       mainModel: "主要模型：{value}",
       stats: {
         total: "累计 Token",
-        today: "今日 Token",
+        today: "今日 Token · UTC",
         spend: "预估金额",
         activeDays: "活跃天数",
         clients: "上传客户端",

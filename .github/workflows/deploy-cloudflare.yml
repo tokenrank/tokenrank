@@ -45,8 +45,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
       - name: Build OpenNext worker
         run: pnpm run cf:build
+
+      - name: Apply backward-compatible database migrations
+        run: pnpm run db:migrate
 
       - name: Sync production runtime secrets
         env:

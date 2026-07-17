@@ -43,6 +43,13 @@
       "when": 1783818000000,
       "tag": "0005_expand_cli_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784198669994,
+      "tag": "0006_wide_tana_nile",
+      "breakpoints": true
     }
   ]
 }

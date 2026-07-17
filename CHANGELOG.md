@@ -1,5 +1,16 @@
 # 更新日志
 
+## 2026-07-16
+
+- Collector 上传协议升级到 v2：首次 UTC cutover 使用多批次暂存、批次 SHA-256 校验和原子提交；中途失败不会改变正式榜单数据，重复批次保持幂等。
+- 全局榜单的日历口径统一为 UTC。设备首次升级只替换 cutover 当日及之后的数据，历史 legacy 行继续保留，避免本地日志轮转或扫描上限误删历史。
+- 小时增量上传使用只增不降的 high-water 行；协议移除 `deleteKeys` 与任何聚合行删除通道，无变化时不请求服务器。旧 collector 在设备完成 v2 cutover 后会被拒绝，避免重新写回本地日期行。
+- 自动同步改为每小时一次，并按设备固定分钟错峰；Cloudflare 生产部署会先完成测试与构建，再执行向后兼容迁移，任一环节失败都不会发布新 Worker。
+- Cutover 日期改由服务端 UTC 日界线确认，并返回可机器恢复的日期与 active snapshot 冲突信息；Token 轮换可继续精确重放未完成批次，本机状态丢失也不会永久卡在错误日期。
+- 上传前增加匿名 account identity 握手，跨账号 webhook 不再复用旧 high-water；无效 Token 会在读取 body 前被拒绝，device 与 receiving snapshot 状态按用户限额，过期 staging 会自动清理。
+- 首次 v2 提交在设备锁内合并并发 legacy high-water，同时原位保留人工 blocked 行及 anomaly 关联，避免切换期间减数、解除屏蔽或丢失审计记录。
+- 一旦生产库写入 v2 行，本次 Web 版本成为最早 rollback baseline；旧 Worker 只能在迁移窗口内兼容，不得在 CLI v0.2.0 上线后回滚使用，故障应使用 forward-fix 并先保留数据库快照。
+
 ## 2026-07-15
 
 - 在全站 Footer 增加公开 GitHub 源码仓库链接，并把仓库地址写入首页 WebSite JSON-LD 的 `sameAs`。

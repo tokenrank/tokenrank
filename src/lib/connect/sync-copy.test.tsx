@@ -13,10 +13,15 @@ const originalNavigatorClipboard = window.navigator.clipboard;
 const originalScrollIntoView = Element.prototype.scrollIntoView;
 const getXSignInGuard = vi.hoisted(() => vi.fn(async () => ({})));
 const getUserUploadStatus = vi.hoisted(() =>
-  vi.fn(async () => ({
-    hasUsage: false,
-    latestUploadedAt: null,
-  })),
+  vi.fn<
+    () => Promise<{
+      hasUsage: boolean;
+      latestUploadedAt: string | null;
+    }>
+  >(async () => ({
+      hasUsage: false,
+      latestUploadedAt: null,
+    })),
 );
 const routerReplace = vi.hoisted(() => vi.fn());
 
@@ -82,15 +87,17 @@ afterEach(() => {
 });
 
 describe("collector sync interval copy", () => {
-  it("describes the onboarding panel automatic sync schedule as 12:00 and 24:00", () => {
+  it("describes hourly staggered automatic synchronization", () => {
     render(<WebhookTokenPanel />);
 
     expect(document.body.textContent).toContain("give the secure prompt to a trusted coding agent");
     expect(document.body.textContent).toContain("run the platform command yourself");
-    expect(document.body.textContent).toContain("Automatic sync runs at 12:00 and 24:00 by default");
-    expect(document.body.textContent).toContain("recovers once after your next login");
+    expect(document.body.textContent).toContain("runs hourly at a device-specific staggered minute");
+    expect(document.body.textContent).toContain("skips unchanged data");
     expect(document.body.textContent).not.toContain("每 5 分钟");
     expect(document.body.textContent).not.toContain("每 12 小时");
+    expect(defaultCopy.ranges.today).toBe("Today · UTC");
+    expect(getCopy("zh").ranges.today).toBe("今日 · UTC");
   });
 
   it("warns users not to expose the private setup token in screenshots or final responses", () => {

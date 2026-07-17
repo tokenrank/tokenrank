@@ -13,8 +13,8 @@ describe("TokenRank Agent Skill route", () => {
     expect(body).toContain("name: connect-tokenrank");
     expect(body).toContain("description: Connect this machine");
     expect(body).toContain("https://tokenrank.org/onboard");
-    expect(body).toContain('"$HOME/.tokenrank/bin/tokenrank" status');
-    expect(body).toContain('& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" status');
+    expect(body).toContain('"$HOME/.tokenrank/bin/tokenrank" status --json');
+    expect(body).toContain('& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" status --json');
     expect(body).not.toMatch(/token=[A-Za-z0-9_-]+/);
   });
 
@@ -37,6 +37,13 @@ describe("TokenRank Agent Skill route", () => {
     expect(body).toContain("Treat the token, the generated install command");
     expect(body).toContain("logs, files, commits, issues, or screenshots");
     expect(body).toContain("Do not inspect or create alternative uploads from source code, prompts, chats, filenames, or file contents");
+    expect(body).toContain("runs hourly at a stable device-specific staggered minute");
+    expect(body).toContain("Today leaderboard uses the UTC calendar day");
+    expect(body).toContain("Capture and parse its JSON stdout even when its exit code is `1`");
+    expect(body).toContain("`healthy === true`");
+    expect(body).toContain("`serviceInstalled === true`");
+    expect(body).toContain("`lastSuccessfulAt` is a non-empty ISO timestamp");
+    expect(body).toContain("`lastErrorCode === null`");
     expect(body).toContain("Any actionable error with private tokens and URLs redacted");
   });
 });
