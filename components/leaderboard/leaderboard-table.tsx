@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { ProfileAvatar } from "@/components/brand/profile-avatar";
 import { boardLabel } from "@/components/leaderboard/board-tabs";
@@ -10,34 +11,50 @@ import { TOOL_KEYS, type BoardKey, type LeaderboardEntry, type ToolKey } from "@
 
 export function LeaderboardTable({
   board,
+  controls,
   copy,
   entries,
   locale = defaultLocale,
 }: {
   board: BoardKey;
+  controls?: ReactNode;
   copy: AppCopy["home"]["table"];
   entries: LeaderboardEntry[];
   locale?: Locale;
 }) {
   if (!entries.length) {
     return (
-      <div className="tr-shell tr-reveal overflow-hidden">
+      <section className="tr-shell tr-reveal flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="tr-live-tape">
           <span>Position available</span>
           <span>Rank / 001</span>
         </div>
-        <div className="tr-panel grid min-h-[24rem] place-items-center p-8 text-center">
-          <div>
-            <div className="font-display text-[7rem] font-bold leading-none text-[color:var(--tr-line)] sm:text-[10rem]">
-              001
+        <div className="tr-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+          <header className="border-b border-[color:var(--tr-line)] px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]">
+                  {copy.title}
+                </h2>
+                <p className="mt-1 font-mono text-xs text-[color:var(--tr-muted)]">{copy.subtitle}</p>
+              </div>
+              <p className="tr-data-label">{copy.dataFeed}</p>
             </div>
-            <h2 className="tr-title -mt-4 text-4xl sm:text-5xl">{copy.emptyTitle}</h2>
-            <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[color:var(--tr-muted)]">
-              {copy.emptyBody}
-            </p>
+            {controls ? <div className="mt-4 border-t border-[color:var(--tr-line)] pt-4">{controls}</div> : null}
+          </header>
+          <div className="grid min-h-[20rem] flex-1 place-items-center p-8 text-center">
+            <div>
+              <div className="font-display text-[7rem] font-bold leading-none text-[color:var(--tr-line)] sm:text-[10rem]">
+                001
+              </div>
+              <h3 className="tr-title -mt-4 text-4xl sm:text-5xl">{copy.emptyTitle}</h3>
+              <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[color:var(--tr-muted)]">
+                {copy.emptyBody}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -45,23 +62,26 @@ export function LeaderboardTable({
     board === "cost" ? copy.spendScore : text(copy.tokenScore, { board: boardLabel(board, locale) });
 
   return (
-    <section className="tr-shell tr-reveal overflow-hidden">
+    <section className="tr-shell tr-reveal flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="tr-live-tape">
         <span>{copy.title}</span>
         <span>{text(copy.count, { count: entries.length })}</span>
       </div>
-      <div className="tr-panel overflow-hidden">
-        <header className="flex flex-col gap-2 border-b border-[color:var(--tr-line)] px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]">
-              {copy.title}
-            </h2>
-            <p className="mt-1 font-mono text-xs text-[color:var(--tr-muted)]">{copy.subtitle}</p>
+      <div className="tr-panel flex min-h-0 flex-1 flex-col overflow-hidden">
+        <header className="border-b border-[color:var(--tr-line)] px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]">
+                {copy.title}
+              </h2>
+              <p className="mt-1 font-mono text-xs text-[color:var(--tr-muted)]">{copy.subtitle}</p>
+            </div>
+            <p className="tr-data-label">{copy.dataFeed}</p>
           </div>
-          <p className="tr-data-label">{copy.dataFeed}</p>
+          {controls ? <div className="mt-4 border-t border-[color:var(--tr-line)] pt-4">{controls}</div> : null}
         </header>
 
-        <div className="grid gap-3 p-3 md:hidden">
+        <div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto p-3 tr-scrollbar md:hidden">
           {entries.map((entry) => (
             <article
               key={entry.userId}
@@ -100,8 +120,8 @@ export function LeaderboardTable({
           ))}
         </div>
 
-        <div className="hidden overflow-x-auto tr-scrollbar md:block">
-          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+        <div className="hidden min-h-0 flex-1 overflow-auto tr-scrollbar md:block">
+          <table className="h-full w-full min-w-[860px] border-collapse text-left text-sm">
             <thead className="bg-[#090b09] font-mono text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[color:var(--tr-muted)]">
               <tr className="border-b border-[color:var(--tr-line)]">
                 <th className="w-24 px-5 py-3">{copy.rank}</th>

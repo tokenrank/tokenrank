@@ -26,6 +26,7 @@ const LEADERBOARD_LIMIT = 100;
 const SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_DEVICES_PER_USER = 16;
 const MAX_ACTIVE_SNAPSHOTS_PER_USER = 4;
+const TRANSIENT_DATABASE_RETRY_DELAYS_MS = [300, 900] as const;
 const QUALIFIED_DEVICES_ID = sql.raw('"devices"."id"');
 const QUALIFIED_DAILY_USAGE_ID = sql.raw('"daily_usage"."id"');
 
@@ -120,6 +121,37 @@ function postgresErrorCode(error: unknown): string | null {
   }
 
   return candidate.cause === error ? null : postgresErrorCode(candidate.cause);
+}
+
+function isTransientDatabaseConnectionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as { message?: unknown; cause?: unknown };
+  const message = typeof candidate.message === "string" ? candidate.message.toLowerCase() : "";
+
+  return (
+    message.includes("error connecting to database") ||
+    message.includes("fetch failed") ||
+    (candidate.cause !== error && isTransientDatabaseConnectionError(candidate.cause))
+  );
+}
+
+async function withTransientDatabaseRetry<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const delay = TRANSIENT_DATABASE_RETRY_DELAYS_MS[attempt];
+
+      if (delay === undefined || !isTransientDatabaseConnectionError(error)) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
 }
 
 function visibleAccountingRows() {
@@ -249,37 +281,39 @@ export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
   const now = new Date();
   const start = getRangeStart(range, now);
   const end = toUtcDateKey(now);
-  const rows = await db
-    .select({
-      userId: users.id,
-      handle: users.xHandle,
-      name: users.displayName,
-      avatarUrl: users.avatarUrl,
-      deviceId: devices.id,
-      date: dailyUsage.usageDate,
-      tool: dailyUsage.tool,
-      model: dailyUsage.model,
-      inputTokens: dailyUsage.inputTokens,
-      outputTokens: dailyUsage.outputTokens,
-      cacheReadTokens: dailyUsage.cacheReadTokens,
-      cacheWriteTokens: dailyUsage.cacheWriteTokens,
-      totalTokens: dailyUsage.totalTokens,
-      estimatedCostMicros: dailyUsage.estimatedCostMicros,
-      blocked: dailyUsage.blocked,
-    })
-    .from(dailyUsage)
-    .innerJoin(users, eq(users.id, dailyUsage.userId))
-    .innerJoin(devices, eq(devices.id, dailyUsage.deviceId))
-    .where(
-      and(
-        eq(users.rankingEnabled, true),
-        eq(devices.blocked, false),
-        eq(dailyUsage.blocked, false),
-        visibleAccountingRows(),
-        gte(dailyUsage.usageDate, start),
-        lte(dailyUsage.usageDate, end),
+  const rows = await withTransientDatabaseRetry(() =>
+    db
+      .select({
+        userId: users.id,
+        handle: users.xHandle,
+        name: users.displayName,
+        avatarUrl: users.avatarUrl,
+        deviceId: devices.id,
+        date: dailyUsage.usageDate,
+        tool: dailyUsage.tool,
+        model: dailyUsage.model,
+        inputTokens: dailyUsage.inputTokens,
+        outputTokens: dailyUsage.outputTokens,
+        cacheReadTokens: dailyUsage.cacheReadTokens,
+        cacheWriteTokens: dailyUsage.cacheWriteTokens,
+        totalTokens: dailyUsage.totalTokens,
+        estimatedCostMicros: dailyUsage.estimatedCostMicros,
+        blocked: dailyUsage.blocked,
+      })
+      .from(dailyUsage)
+      .innerJoin(users, eq(users.id, dailyUsage.userId))
+      .innerJoin(devices, eq(devices.id, dailyUsage.deviceId))
+      .where(
+        and(
+          eq(users.rankingEnabled, true),
+          eq(devices.blocked, false),
+          eq(dailyUsage.blocked, false),
+          visibleAccountingRows(),
+          gte(dailyUsage.usageDate, start),
+          lte(dailyUsage.usageDate, end),
+        ),
       ),
-    );
+  );
 
   const publicRows = shouldExposeDemoData()
     ? rows

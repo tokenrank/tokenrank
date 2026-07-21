@@ -363,6 +363,29 @@ describe("sanitizePublicUser", () => {
 });
 
 describe("getUsageRows", () => {
+  it("retries transient database fetch failures without hiding query errors", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T19:15:00.000Z"));
+
+    const transientError = Object.assign(new Error("Failed query"), {
+      cause: new Error("Error connecting to database: fetch failed"),
+    });
+    const query = {
+      from: vi.fn(),
+      innerJoin: vi.fn(),
+      where: vi.fn().mockRejectedValueOnce(transientError).mockResolvedValueOnce([]),
+    };
+    query.from.mockReturnValue(query);
+    query.innerJoin.mockReturnValue(query);
+    mockDb.select.mockReturnValue(query);
+
+    const rowsPromise = getUsageRows("today");
+    await vi.advanceTimersByTimeAsync(300);
+
+    await expect(rowsPromise).resolves.toEqual([]);
+    expect(query.where).toHaveBeenCalledTimes(2);
+  });
+
   it("filters rankings by enabled users, unblocked devices, unblocked rows, and date bounds", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-23T19:15:00.000Z"));

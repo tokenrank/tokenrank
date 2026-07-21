@@ -7,10 +7,12 @@ import type { AppCopy } from "@/src/i18n/copy";
 import { createXShareUrl } from "@/src/lib/social-share";
 
 export function LeaderboardShare({
+  compact = false,
   copy,
   shareText,
   shareUrl,
 }: {
+  compact?: boolean;
   copy: AppCopy["home"]["share"];
   shareText: string;
   shareUrl: string;
@@ -18,6 +20,21 @@ export function LeaderboardShare({
   const [copied, setCopied] = useState(false);
   const fullText = `${shareText}\n${shareUrl}`;
   const xShareUrl = createXShareUrl(shareText, shareUrl);
+
+  if (compact) {
+    return (
+      <a
+        href={xShareUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={copy.post}
+        className="tr-button min-h-10 shrink-0 px-3 py-2 text-xs shadow-[3px_3px_0_var(--tr-orange)]"
+      >
+        <Share2 className="size-4" aria-hidden="true" />
+        <span className="hidden sm:inline">{copy.post}</span>
+      </a>
+    );
+  }
 
   async function copyShareText() {
     if (navigator.clipboard?.writeText) {

@@ -14,14 +14,15 @@ test("leaderboard renders the public board controls", async ({ page }) => {
     ),
   ).toBeVisible();
   await expect(page.getByText("An activity signal, not a productivity score.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Know what each number proves" })).toBeVisible();
-  await expect(page.getByText("Not Provider Verified", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Today’s top 3" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Know what each number proves" })).toHaveCount(0);
+  await expect(page.getByText("Not Provider Verified", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Overall" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Spend" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Qwen" })).toBeVisible();
   await expect(page.getByRole("link", { name: "codex-cache" })).toBeVisible();
-  await expect(page.getByText("Share the board")).toBeVisible();
-  await expect(page.getByText(/Watching TokenRank Today Overall/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Post to X" })).toBeVisible();
+  await expect(page.locator("#leaderboard").getByText("Board")).toBeVisible();
   await expect(
     page.getByRole("banner").getByRole("link", { name: "Join", exact: true }),
   ).toHaveCount(1);
@@ -42,8 +43,9 @@ test("language switch renders the Chinese brand copy", async ({ page }) => {
     ),
   ).toBeVisible();
   await expect(page.getByText("这是 AI 活动信号，不是生产力评分。")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "今日前三" })).toBeVisible();
   await expect(page.getByRole("link", { name: "总榜" })).toBeVisible();
-  await expect(page.getByText("分享榜单")).toBeVisible();
+  await expect(page.getByRole("link", { name: "发到 X" })).toBeVisible();
 });
 
 test("rules page renders privacy and fair-play copy", async ({ page }) => {

@@ -87,6 +87,14 @@ const en = {
       board: "Board",
       range: "Window",
     },
+    podium: {
+      eyebrow: "Today · Overall",
+      title: "Today’s top 3",
+      first: "Champion",
+      second: "Runner-up",
+      third: "Third place",
+      open: "Open rank",
+    },
     share: {
       title: "Share the board",
       subtitle: "Ready for X.",
@@ -640,6 +648,14 @@ const zh = {
     controls: {
       board: "榜单",
       range: "周期",
+    },
+    podium: {
+      eyebrow: "今日 · 总榜",
+      title: "今日前三",
+      first: "冠军",
+      second: "亚军",
+      third: "季军",
+      open: "虚位以待",
     },
     share: {
       title: "分享榜单",

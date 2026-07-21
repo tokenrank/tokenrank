@@ -132,7 +132,7 @@ pnpm e2e
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Public leaderboard, filters, current leader, and sharing |
+| `/` | Full-screen public leaderboard, integrated filters, today’s top three, and sharing |
 | `/rules` | Scoring, trust, privacy, and anomaly rules |
 | `/onboard` | Local preview, identity connection, installation, and first upload |
 | `/dashboard` | Private activity, upload status, and public settings |

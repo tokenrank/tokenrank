@@ -1,17 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, BadgeCheck, HardDrive, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 
 import { HomeAnswerStrip } from "@/components/home/home-answer-strip";
+import { TodayPodium } from "@/components/home/today-podium";
 import { boardLabel, BoardTabs } from "@/components/leaderboard/board-tabs";
-import { LeaderboardShare } from "@/components/leaderboard/leaderboard-share";
 import { LeaderboardTable } from "@/components/leaderboard/leaderboard-table";
 import { rangeLabel, RangeTabs } from "@/components/leaderboard/range-tabs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { defaultLocale, htmlLang } from "@/src/i18n/config";
 import { getCopy, text } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
-import { formatTokens, formatUsdMicros } from "@/src/lib/format";
+import { formatTokens } from "@/src/lib/format";
 import { parseLeaderboardSearchParams } from "@/src/lib/leaderboard/search-params";
 import { absoluteUrl, githubRepositoryUrl, siteName, siteUrl } from "@/src/lib/site";
 import { createSocialMetadata } from "@/src/lib/social-metadata";
@@ -44,27 +44,33 @@ export default async function Home({
   const copy = getCopy(locale);
   const params = await searchParams;
   const { board, range } = parseLeaderboardSearchParams(params);
-  const entries: LeaderboardEntry[] = process.env.DATABASE_URL
-    ? await getLeaderboard(board, range)
-    : [];
-  const leader = entries[0];
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const entries: LeaderboardEntry[] = hasDatabase ? await getLeaderboard(board, range) : [];
+  const todayEntries =
+    board === "total" && range === "today"
+      ? entries
+      : hasDatabase
+        ? await getLeaderboard("total", "today")
+        : [];
+  const todayLeader = todayEntries[0];
   const activeBoard = boardLabel(board, locale);
   const activeRange = rangeLabel(range, locale);
-  const leaderScore = leader
-    ? board === "cost"
-      ? formatUsdMicros(leader.score)
-      : formatTokens(leader.score, locale)
+  const todayScore = todayLeader
+    ? formatTokens(todayLeader.score, locale)
     : copy.home.stats.waitingScore;
-  const shareText = leader
+  const shareText = todayLeader
     ? text(copy.home.share.leader, {
-        board: activeBoard,
-        handle: leader.handle,
-        name: leader.name,
-        range: activeRange,
-        score: leaderScore,
+        board: boardLabel("total", locale),
+        handle: todayLeader.handle,
+        name: todayLeader.name,
+        range: rangeLabel("today", locale),
+        score: todayScore,
       })
-    : text(copy.home.share.empty, { board: activeBoard, range: activeRange });
-  const shareUrl = `${siteUrl}/?board=${board}&range=${range}`;
+    : text(copy.home.share.empty, {
+        board: boardLabel("total", locale),
+        range: rangeLabel("today", locale),
+      });
+  const shareUrl = `${siteUrl}/?board=total&range=today#leaderboard`;
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -98,7 +104,8 @@ export default async function Home({
     <main className="tr-page w-full flex-1">
       <JsonLd data={websiteJsonLd} />
       <JsonLd data={leaderboardJsonLd} />
-      <section className="tr-container pb-8 pt-5 sm:pb-10 sm:pt-8 lg:pt-10">
+      <div className="tr-home-intro-snap">
+      <section className="tr-home-intro-panel tr-container pb-8 pt-5 sm:pb-10 sm:pt-8 lg:pt-10">
         <div className="tr-live-tape tr-reveal">
           <span>Live board // {activeBoard}</span>
           <span>
@@ -144,107 +151,50 @@ export default async function Home({
             </div>
           </div>
 
-          <div className="grid content-between gap-5 p-5 sm:p-7">
-            <div>
-              <div className="flex items-center justify-between border-b border-[color:var(--tr-line)] pb-3">
-                <p className="tr-data-label">Signal / 001</p>
-                <Trophy className="size-5 text-[color:var(--tr-orange)]" aria-hidden="true" />
-              </div>
-              <div className="mt-5">
-                <p className="tr-data-label">{copy.home.stats.leader}</p>
-                <p className="tr-data-value mt-2 text-4xl text-[color:var(--tr-gold)] sm:text-5xl">
-                  {leaderScore}
-                </p>
-                <p className="mt-3 text-sm font-bold text-[color:var(--tr-ivory-soft)]">
-                  {leader
-                    ? `${leader.name} @${leader.handle}`
-                    : copy.home.stats.waitingIdentity}
-                </p>
-              </div>
-            </div>
-
-            <LeaderboardShare copy={copy.home.share} shareText={shareText} shareUrl={shareUrl} />
+          <div className="min-w-0">
+            <TodayPodium
+              copy={copy.home.podium}
+              entries={todayEntries}
+              locale={locale}
+              shareCopy={copy.home.share}
+              shareText={shareText}
+              shareUrl={shareUrl}
+            />
           </div>
         </div>
+      </section>
 
+      <section
+        id="leaderboard"
+        className="tr-home-intro-panel tr-container flex min-h-[calc(100svh-4rem)] py-4 sm:min-h-[calc(100svh-5rem)] sm:py-5"
+      >
+        <LeaderboardTable
+          board={board}
+          controls={
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="min-w-0">
+                <div className="mb-3 flex items-center gap-2">
+                  <Trophy className="size-4 text-[color:var(--tr-gold)]" aria-hidden="true" />
+                  <span className="tr-data-label">{copy.home.controls.board}</span>
+                </div>
+                <BoardTabs active={board} locale={locale} range={range} />
+              </div>
+              <div>
+                <div className="mb-3 tr-data-label">{copy.home.controls.range}</div>
+                <RangeTabs active={range} board={board} locale={locale} />
+              </div>
+            </div>
+          }
+          copy={copy.home.table}
+          entries={entries}
+          locale={locale}
+        />
+      </section>
+      </div>
+
+      <div className="tr-container pb-12 pt-4 sm:pb-16 sm:pt-6">
         <HomeAnswerStrip copy={copy.home.answer} />
-
-        <section
-          aria-labelledby="trust-boundary-title"
-          className="border-x border-b border-[color:var(--tr-line)] bg-[color:var(--tr-surface)]"
-        >
-          <div className="grid gap-4 border-b border-[color:var(--tr-line)] p-5 sm:p-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:items-end">
-            <div>
-              <p className="tr-data-label">{copy.home.trust.eyebrow}</p>
-              <h2
-                id="trust-boundary-title"
-                className="mt-2 font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)] sm:text-4xl"
-              >
-                {copy.home.trust.title}
-              </h2>
-            </div>
-            <p className="text-sm leading-7 text-[color:var(--tr-muted)]">
-              {copy.home.trust.intro}
-            </p>
-          </div>
-          <div className="grid gap-px bg-[color:var(--tr-line)] lg:grid-cols-3">
-            {copy.home.trust.items.map((item, index) => {
-              const Icon = [BadgeCheck, HardDrive, ShieldCheck][index] ?? ShieldCheck;
-
-              return (
-                <article key={item.title} className="bg-[#0a0d0a] p-5 sm:p-6">
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center bg-[color:var(--tr-gold)] text-[#080b07]">
-                      <Icon className="size-4" aria-hidden="true" />
-                    </span>
-                    <h3 className="font-display text-xl font-bold uppercase tracking-[-0.02em] text-[color:var(--tr-ivory)]">
-                      {item.title}
-                    </h3>
-                  </div>
-                  <p className="mt-4 text-sm leading-6 text-[color:var(--tr-muted)]">{item.body}</p>
-                </article>
-              );
-            })}
-          </div>
-          <p className="border-t border-[color:var(--tr-line)] bg-[color:var(--tr-orange-soft)]/20 px-5 py-3 font-mono text-[0.65rem] font-black uppercase tracking-[0.08em] text-[color:var(--tr-orange)] sm:px-6">
-            {copy.home.trust.note}
-          </p>
-        </section>
-
-        <div className="grid border-x border-b border-[color:var(--tr-line)] bg-[#0a0d0a] sm:grid-cols-3">
-          <ScoreDatum label={copy.home.stats.leader} value={leaderScore} />
-          <ScoreDatum
-            label={copy.home.stats.identity}
-            value={leader ? `@${leader.handle}` : copy.home.stats.waitingIdentity}
-          />
-          <ScoreDatum
-            label={copy.home.stats.scope}
-            value={`${activeRange} / ${activeBoard} / ${text(copy.home.stats.users, { count: entries.length })}`}
-          />
-        </div>
-      </section>
-
-      <section id="leaderboard" className="tr-container scroll-mt-20 pb-5">
-        <div className="tr-shell tr-reveal overflow-visible">
-          <div className="tr-panel grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <div className="min-w-0">
-              <div className="mb-3 flex items-center gap-2">
-                <Trophy className="size-4 text-[color:var(--tr-gold)]" aria-hidden="true" />
-                <span className="tr-data-label">{copy.home.controls.board}</span>
-              </div>
-              <BoardTabs active={board} locale={locale} range={range} />
-            </div>
-            <div>
-              <div className="mb-3 tr-data-label">{copy.home.controls.range}</div>
-              <RangeTabs active={range} board={board} locale={locale} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="tr-container pb-12 sm:pb-16">
-        <LeaderboardTable board={board} copy={copy.home.table} entries={entries} locale={locale} />
-      </section>
+      </div>
 
       <section id="how-it-works" className="tr-container pb-12 sm:pb-16" aria-labelledby="how-title">
         <SectionHeading eyebrow={copy.home.how.eyebrow} id="how-title" title={copy.home.how.title} />
@@ -316,15 +266,6 @@ function SectionHeading({ eyebrow, id, title }: { eyebrow: string; id: string; t
       >
         {title}
       </h2>
-    </div>
-  );
-}
-
-function ScoreDatum({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 border-b border-[color:var(--tr-line)] p-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 sm:p-5">
-      <p className="tr-data-label">{label}</p>
-      <p className="tr-data-value mt-2 truncate text-base text-[color:var(--tr-ivory)]">{value}</p>
     </div>
   );
 }
