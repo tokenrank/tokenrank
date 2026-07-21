@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAgentPrompt, buildCollectorCommand, buildCollectorCommands } from "./collector-command";
+import {
+  buildAgentPrompt,
+  buildCollectorCommand,
+  buildCollectorCommands,
+  buildPreviewAgentPrompt,
+} from "./collector-command";
 
 describe("buildCollectorCommand", () => {
   it("builds a copyable onboarding command from install to first upload", () => {
@@ -34,6 +39,22 @@ describe("buildCollectorCommand", () => {
         '& "$env:USERPROFILE\\.tokenrank\\tokenrank.cmd" upload',
       ].join("; "),
     );
+    expect(commands.npmManual).toBe("tokenrank preview && tokenrank upload");
+  });
+
+  it("builds a complete npm global install and connection command", () => {
+    const commands = buildCollectorCommands(
+      "https://tokenrank.test/api/collector/upload/abc123",
+    );
+
+    expect(commands.npm).toBe(
+      [
+        "npm install --global tokenrank",
+        'tokenrank connect "https://tokenrank.test/api/collector/upload/abc123"',
+        "tokenrank upload",
+        "tokenrank service install",
+      ].join(" && "),
+    );
   });
 
   it("builds one platform-neutral Agent prompt containing only the private token", () => {
@@ -45,5 +66,11 @@ describe("buildCollectorCommand", () => {
     expect(buildAgentPrompt(webhookUrl)).not.toContain("\n");
     expect(buildAgentPrompt(webhookUrl)).not.toContain("curl");
     expect(buildAgentPrompt(webhookUrl)).not.toContain("PowerShell");
+  });
+
+  it("builds an account-free Agent prompt for local preview", () => {
+    expect(buildPreviewAgentPrompt()).toBe(
+      "Follow the instructions at https://tokenrank.org/skill.md to preview this machine's aggregate AI usage locally without connecting an account or uploading data.",
+    );
   });
 });

@@ -1,5 +1,12 @@
 # 更新日志
 
+## 2026-07-21
+
+- 登录前的本地预览新增默认 Agent 方式，可把公开 `/skill.md` Prompt 交给 Codex、Claude Code 等可信编码 Agent；原有 `npx --yes tokenrank preview` 保留为同级命令行方式。
+- 预览区明确提示 `npx` 依赖预先安装的 Node.js 20+ 与 npm/npx，避免在未安装 Node.js 的设备上直接运行失败。
+- 登录后的命令行平台新增 `npm / Node.js`，提供全局安装、连接私有地址、首次上传与安装后台同步的完整一行命令。
+- 公开 `/skill.md` 现在分别定义无账号、无上传的预览流程和带私有 setup token 的连接流程，并补充 npm 全局安装与验证说明。
+
 ## 2026-07-19
 
 - 保留品牌主口号 `BURN TOKENS. ASCEND RANKS.` / `TOKEN 燃烧。RANKING 狂飙。`，并补充说明 Token 用量是活动信号，不是生产力、能力或工作质量评分。

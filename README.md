@@ -36,7 +36,7 @@ The public product includes:
 
 ### 1. Preview locally
 
-No account is required and nothing is uploaded:
+No account is required and nothing is uploaded. This command requires Node.js 20+ with npm/npx already installed:
 
 ```bash
 npx --yes tokenrank preview
@@ -48,7 +48,16 @@ Open [tokenrank.org/onboard](https://tokenrank.org/onboard), sign in with X, and
 
 ### 3. Complete the first sync
 
-Onboarding provides a one-line installer for your platform. After the first successful upload, the collector can register an hourly background sync:
+Onboarding provides a one-line installer for macOS/Linux, Windows PowerShell, or a global npm installation. The npm path requires Node.js 20+ and runs the full setup sequence:
+
+```bash
+npm install --global tokenrank
+tokenrank connect "<PRIVATE_UPLOAD_URL>"
+tokenrank upload
+tokenrank service install
+```
+
+After the first successful upload, the collector can register an hourly background sync:
 
 ```bash
 tokenrank service install

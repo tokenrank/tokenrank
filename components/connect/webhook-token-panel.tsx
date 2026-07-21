@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCopy, text, type AppCopy } from "@/src/i18n/copy";
 import { buildAgentPrompt, buildCollectorCommands } from "@/src/lib/connect/collector-command";
 
-type CommandTarget = "unix" | "windows";
+type CommandTarget = "unix" | "windows" | "npm";
 type ConnectionMethod = "agent" | "terminal";
 
 function detectCommandTarget(): CommandTarget {
@@ -25,10 +25,6 @@ function detectCommandTarget(): CommandTarget {
   }
 
   return "unix";
-}
-
-function targetUsesWindowsCommand(target: CommandTarget) {
-  return target === "windows";
 }
 
 export function WebhookTokenPanel({
@@ -52,11 +48,13 @@ export function WebhookTokenPanel({
   const terminalTabRef = useRef<HTMLButtonElement>(null);
 
   const commands = useMemo(() => (webhookUrl ? buildCollectorCommands(webhookUrl) : null), [webhookUrl]);
-  const command = targetUsesWindowsCommand(commandTarget) ? (commands?.windows ?? "") : (commands?.unix ?? "");
+  const command = commands?.[commandTarget] ?? "";
   const agentPrompt = webhookUrl ? buildAgentPrompt(webhookUrl) : "";
-  const manualCommand = targetUsesWindowsCommand(commandTarget)
+  const manualCommand = commandTarget === "windows"
     ? (commands?.windowsManual ?? "")
-    : (commands?.unixManual ?? "");
+    : commandTarget === "npm"
+      ? (commands?.npmManual ?? "")
+      : (commands?.unixManual ?? "");
 
   useEffect(() => {
     if (!webhookUrl) return;
@@ -283,18 +281,25 @@ export function WebhookTokenPanel({
                 <CommandTargetSelector
                   active={commandTarget}
                   ariaLabel={copy.platformLabel}
+                  labels={copy.targetLabels}
                   onSelect={selectCommandTarget}
                 />
                 <div>
                   <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-sm font-black text-[color:var(--tr-ivory)]">
-                        {targetUsesWindowsCommand(commandTarget)
+                        {commandTarget === "windows"
                           ? copy.autoTitle.windows
-                          : text(copy.autoTitle.unix, { target: targetLabel })}
+                          : commandTarget === "npm"
+                            ? copy.autoTitle.npm
+                            : text(copy.autoTitle.unix, { target: targetLabel })}
                       </h3>
                       <p className="mt-1 text-xs font-semibold text-[color:var(--tr-muted)]">
-                        {targetUsesWindowsCommand(commandTarget) ? copy.autoBody.windows : copy.autoBody.unix}
+                        {commandTarget === "windows"
+                          ? copy.autoBody.windows
+                          : commandTarget === "npm"
+                            ? copy.autoBody.npm
+                            : copy.autoBody.unix}
                       </p>
                     </div>
                     <span className="text-xs font-bold text-[color:var(--tr-muted)]">{copy.oneLine}</span>
@@ -385,23 +390,28 @@ function StepCard({ icon, title, children }: { icon: React.ReactNode; title: str
 function CommandTargetSelector({
   active,
   ariaLabel,
+  labels,
   onSelect,
 }: {
   active: CommandTarget;
   ariaLabel: string;
+  labels: Record<CommandTarget, string>;
   onSelect: (target: CommandTarget) => void;
 }) {
   return (
     <div
       role="group"
       aria-label={ariaLabel}
-      className="inline-flex gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1"
+      className="grid w-full grid-cols-1 gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] p-1 sm:inline-grid sm:w-auto sm:grid-cols-3"
     >
       <TargetButton active={active === "unix"} onClick={() => onSelect("unix")}>
-        macOS / Linux
+        {labels.unix}
       </TargetButton>
       <TargetButton active={active === "windows"} onClick={() => onSelect("windows")}>
-        Windows PowerShell
+        {labels.windows}
+      </TargetButton>
+      <TargetButton active={active === "npm"} onClick={() => onSelect("npm")}>
+        {labels.npm}
       </TargetButton>
     </div>
   );
@@ -423,8 +433,8 @@ function TargetButton({
       aria-pressed={active}
       className={
         active
-          ? "bg-[color:var(--tr-gold)] px-3 py-1.5 font-mono text-xs font-black uppercase text-[#080705]"
-          : "bg-[color:var(--tr-surface-2)] px-3 py-1.5 font-mono text-xs font-bold uppercase text-[color:var(--tr-muted)] hover:text-[color:var(--tr-ivory)]"
+          ? "min-h-9 bg-[color:var(--tr-gold)] px-3 py-1.5 text-center font-mono text-xs font-black uppercase text-[#080705]"
+          : "min-h-9 bg-[color:var(--tr-surface-2)] px-3 py-1.5 text-center font-mono text-xs font-bold uppercase text-[color:var(--tr-muted)] hover:text-[color:var(--tr-ivory)]"
       }
     >
       {children}

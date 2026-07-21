@@ -61,6 +61,12 @@ test("canonical onboarding and dashboard routes replace the old journey names", 
 
   await expect(page).toHaveURL(/\/onboard$/);
   await expect(page.getByRole("heading", { name: "Preview first. Claim your rank." })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Ask an agent" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel", { name: "Ask an agent" })).toContainText(
+    "https://tokenrank.org/skill.md",
+  );
+  await expect(page.getByText(/Requires Node\.js 20\+ with npm\/npx/)).toBeVisible();
+  await page.getByRole("tab", { name: "Run in terminal" }).click();
   await expect(page.getByRole("textbox", { name: "Copy preview command" })).toHaveValue(
     "npx --yes tokenrank preview",
   );

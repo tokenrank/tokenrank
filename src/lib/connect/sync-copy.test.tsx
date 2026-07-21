@@ -252,11 +252,26 @@ describe("collector sync interval copy", () => {
     expect(queryByText("Manual refresh")).toBeNull();
     fireEvent.click(getByRole("tab", { name: "Run in terminal" }));
     expect(getByRole("button", { name: "macOS / Linux" })).not.toBeNull();
+    expect(getByRole("button", { name: "npm / Node.js" })).not.toBeNull();
     expect(queryByText("macOS")).toBeNull();
     expect(queryByText("Linux")).toBeNull();
     expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain("Manual refresh");
     expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
       "install.sh?token=terminal-tab-token",
+    );
+
+    fireEvent.click(getByRole("button", { name: "npm / Node.js" }));
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      "Requires Node.js 20+ with npm",
+    );
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      "npm install --global tokenrank",
+    );
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      'tokenrank connect "https://tokenrank.test/api/collector/upload/terminal-tab-token"',
+    );
+    expect(getByRole("tabpanel", { name: "Run in terminal" }).textContent).toContain(
+      "tokenrank service install",
     );
   });
 

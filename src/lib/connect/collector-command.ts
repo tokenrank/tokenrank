@@ -1,8 +1,10 @@
 export type CollectorCommands = {
   unix: string;
   windows: string;
+  npm: string;
   unixManual: string;
   windowsManual: string;
+  npmManual: string;
 };
 
 const agentSkillUrl = "https://tokenrank.org/skill.md";
@@ -10,6 +12,10 @@ const agentSkillUrl = "https://tokenrank.org/skill.md";
 export function buildAgentPrompt(webhookUrl: string): string {
   const collectorToken = getCollectorToken(webhookUrl);
   return `Follow the instructions at ${agentSkillUrl} to connect this machine to TokenRank using this private setup token: ${collectorToken}`;
+}
+
+export function buildPreviewAgentPrompt(): string {
+  return `Follow the instructions at ${agentSkillUrl} to preview this machine's aggregate AI usage locally without connecting an account or uploading data.`;
 }
 
 export function buildCollectorCommand(webhookUrl: string): string {
@@ -27,6 +33,12 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
   return {
     unix: `curl -fsSL "${appOrigin}/install.sh?${tokenQuery}" | bash`,
     windows: `irm "${appOrigin}/install.ps1?${tokenQuery}" | iex`,
+    npm: [
+      "npm install --global tokenrank",
+      `tokenrank connect ${JSON.stringify(webhookUrl)}`,
+      "tokenrank upload",
+      "tokenrank service install",
+    ].join(" && "),
     unixManual: [
       `${unixTokenrankBin} preview`,
       `${unixTokenrankBin} upload`,
@@ -36,6 +48,7 @@ export function buildCollectorCommands(webhookUrl: string): CollectorCommands {
       windowsGuard,
       `${windowsTokenrankBin} upload`,
     ].join("; "),
+    npmManual: "tokenrank preview && tokenrank upload",
   };
 }
 

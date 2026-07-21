@@ -256,8 +256,20 @@ const en = {
       title: "See your numbers before signing in",
       body: "Run the official CLI preview locally. It scans supported aggregate usage and prints the payload shape without connecting an account or uploading anything.",
       command: "npx --yes tokenrank preview",
+      methodLabel: "Preview method",
+      methods: {
+        agent: "Ask an agent",
+        terminal: "Run in terminal",
+      },
+      agentTitle: "Preview with an agent",
+      agentBody: "Copy this prompt to Codex, Claude Code, or another trusted coding agent.",
+      agentCopy: "Copy Agent prompt",
+      agentCopied: "Agent prompt copied",
       copy: "Copy preview command",
       copied: "Command copied",
+      copyError: "Copy failed. Select the text and copy it manually.",
+      nodeRequirement:
+        "Requires Node.js 20+ with npm/npx. If node --version is unavailable, install Node.js before running this preview.",
       privacy: "No account · No upload · Prompts and code stay local",
       source: "View CLI source",
     },
@@ -322,7 +334,7 @@ const en = {
         },
         {
           title: "2. Install and bind",
-          body: "Use Terminal on macOS/Linux or PowerShell on Windows. The command installs tokenrank and stores the private URL locally.",
+          body: "Use Terminal on macOS/Linux, PowerShell on Windows, or npm with Node.js 20+. The command installs tokenrank and stores the private URL locally.",
         },
         {
           title: "3. Keep sync scheduled",
@@ -332,14 +344,17 @@ const en = {
       autoTitle: {
         windows: "Auto sync: run in Windows PowerShell",
         unix: "Auto sync: run in {target}",
+        npm: "Auto sync: install globally with npm",
       },
       autoBody: {
         windows: "Open PowerShell, paste the command, and it will install the scheduled task.",
         unix: "Open Terminal, paste the command, and it will install the background service.",
+        npm: "Requires Node.js 20+ with npm. Paste the command in your shell to install, connect, upload, and schedule sync.",
       },
       targetLabels: {
         unix: "macOS / Linux",
         windows: "Windows PowerShell",
+        npm: "npm / Node.js",
       },
       oneLine: "1 line",
       manualTitle: "Manual refresh",
@@ -351,7 +366,7 @@ const en = {
     },
     redirect: {
       ready: "Fresh upload detected. Opening dashboard.",
-      waiting: "Keep this page open. After the terminal command uploads successfully, TokenRank opens your dashboard automatically.",
+      waiting: "Keep this page open. After the selected setup flow uploads successfully, TokenRank opens your dashboard automatically.",
     },
   },
   dashboard: {
@@ -794,8 +809,20 @@ const zh = {
       title: "登录前先查看本机数据",
       body: "运行官方 CLI 的本地预览。它只扫描支持的聚合用量并打印待上传结构，不连接账号，也不会上传。",
       command: "npx --yes tokenrank preview",
+      methodLabel: "预览方式",
+      methods: {
+        agent: "交给 Agent",
+        terminal: "使用命令行",
+      },
+      agentTitle: "让 Agent 帮你预览",
+      agentBody: "把这段 Prompt 复制给 Codex、Claude Code 或其他你信任的编码 Agent。",
+      agentCopy: "复制 Agent Prompt",
+      agentCopied: "Agent Prompt 已复制",
       copy: "复制预览命令",
       copied: "命令已复制",
+      copyError: "复制失败，请选中文本后手动复制。",
+      nodeRequirement:
+        "需要预先安装带 npm / npx 的 Node.js 20+。如果 node --version 无法运行，请先安装 Node.js。",
       privacy: "无需账号 · 不会上传 · prompt 与代码留在本机",
       source: "查看 CLI 源码",
     },
@@ -860,7 +887,7 @@ const zh = {
         },
         {
           title: "2. 安装并绑定",
-          body: "macOS / Linux 用终端，Windows 用 PowerShell。命令会安装 tokenrank，并把私有地址保存在本机。",
+          body: "macOS / Linux 可用终端，Windows 可用 PowerShell，也可在 Node.js 20+ 环境通过 npm 安装。命令会安装 tokenrank，并把私有地址保存在本机。",
         },
         {
           title: "3. 保持定时同步",
@@ -870,14 +897,17 @@ const zh = {
       autoTitle: {
         windows: "自动同步：在 Windows PowerShell 运行",
         unix: "自动同步：在 {target} 运行",
+        npm: "自动同步：通过 npm 全局安装",
       },
       autoBody: {
         windows: "打开 PowerShell，粘贴命令；它会安装任务计划程序。",
         unix: "打开 Terminal / 终端，粘贴命令；它会安装后台同步服务。",
+        npm: "需要预先安装带 npm 的 Node.js 20+。在命令行粘贴后会依次安装、连接、上传并设置自动同步。",
       },
       targetLabels: {
         unix: "macOS / Linux",
         windows: "Windows PowerShell",
+        npm: "npm / Node.js",
       },
       oneLine: "1 行",
       manualTitle: "手动刷新",
@@ -888,7 +918,7 @@ const zh = {
     },
     redirect: {
       ready: "检测到新上传，正在打开面板。",
-      waiting: "保持这个页面打开。终端命令上传成功后，TokenRank 会自动打开你的面板。",
+      waiting: "保持这个页面打开。所选接入方式上传成功后，TokenRank 会自动打开你的面板。",
     },
   },
   dashboard: {
