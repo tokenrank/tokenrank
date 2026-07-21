@@ -1,94 +1,98 @@
-<p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="TokenRank 把本机 AI 聚合用量转化为经过服务端校验的公开排名，同时让 prompt、代码与对话留在本机">
+<p align="right">
+  <strong>English</strong> · <a href="./README.zh-CN.md">Chinese</a>
 </p>
 
 <p align="center">
-  <a href="https://tokenrank.org"><strong>实时榜单</strong></a> ·
-  <a href="https://tokenrank.org/onboard">加入榜单</a> ·
-  <a href="https://tokenrank.org/rules">计分与隐私规则</a> ·
+  <img src="./assets/readme/hero.svg" width="100%" alt="TokenRank turns local aggregate AI usage into server-checked public rankings while prompts, code, and chats stay on the device">
+</p>
+
+<p align="center">
+  <a href="https://tokenrank.org"><strong>Live leaderboard</strong></a> ·
+  <a href="https://tokenrank.org/onboard">Join the board</a> ·
+  <a href="https://tokenrank.org/rules">Scoring and privacy</a> ·
   <a href="https://github.com/tokenrank/tokenrank-cli">Collector CLI</a>
 </p>
 
-TokenRank 是公开的 AI Token 使用排行榜。它用公开 X 身份展示 Coding Agent 与 AI 工具的聚合 Token 活动，让用户按时间窗口和工具比较排名。
+TokenRank is a public AI token usage leaderboard. It connects aggregate activity from coding agents and AI tools to a public X identity, then lets people compare ranks across time windows and tools.
 
-> **数据可信度：Local aggregate / server checked。** TokenRank 会校验上传结构、账号归属、Token 总量和重复键，但不会与 Provider 账单核对。榜单是活动信号，不是能力、生产力或工作质量评分；金额是估算值，不是账单。
+> **Trust level: Local aggregate / server checked.** TokenRank validates upload structure, account ownership, token totals, and duplicate keys, but does not reconcile data with provider bills. The leaderboard is an activity signal—not a measure of ability, productivity, or work quality. Cost figures are estimates, not invoices.
 
-## 先看真实产品
+## See the product
 
 <p align="center">
-  <a href="https://tokenrank.org">
-    <img src="./assets/readme/leaderboard.png" width="100%" alt="TokenRank 线上公开 AI Token 排行榜界面">
+  <a href="https://tokenrank.org/onboard">
+    <img src="./assets/readme/product-preview.png" width="100%" alt="TokenRank English onboarding experience with a local preview command and four-stage ranking flow">
   </a>
 </p>
 
-线上榜单提供：
+The public product includes:
 
-- Overall、Spend 与各 AI 工具分榜；
-- Today UTC、3D、7D、30D、Month 时间窗口；
-- 公开个人战绩、趋势、热力图、工具与模型分布；
-- 可公开审阅的计分、隐私和异常数据处理规则。
+- Overall, Spend, and per-tool leaderboards;
+- Today UTC, 3D, 7D, 30D, and Month windows;
+- public profiles with rank context, trends, heatmaps, tool mix, and model mix;
+- published scoring, privacy, trust, and anomaly-handling rules.
 
-## 三步加入榜单
+## Join in three steps
 
-### 1. 在本机预览
+### 1. Preview locally
 
-无需登录，也不会上传数据：
+No account is required and nothing is uploaded:
 
 ```bash
 npx --yes tokenrank preview
 ```
 
-### 2. 连接公开身份
+### 2. Connect a public identity
 
-打开 [tokenrank.org/onboard](https://tokenrank.org/onboard)，使用 X 登录并生成只属于当前账号的私人上传地址。
+Open [tokenrank.org/onboard](https://tokenrank.org/onboard), sign in with X, and generate a private upload URL for your account.
 
-### 3. 完成首次同步
+### 3. Complete the first sync
 
-Onboarding 会给出对应平台的一行安装命令。首次上传成功后，Collector 可以注册每小时自动同步：
+Onboarding provides a one-line installer for your platform. After the first successful upload, the collector can register an hourly background sync:
 
 ```bash
 tokenrank service install
 tokenrank status
 ```
 
-Collector 源码、安装器与 release 位于独立仓库 [tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli)。
+Collector source code, installers, and releases live in the separate [tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli) repository.
 
-## 数据如何流动
+## How data moves
 
-1. **本地采集**：CLI 读取受支持 AI 工具的精确 Token 记录，在设备上按 UTC 日期、工具与模型聚合。
-2. **私人上传**：只把聚合行发送到当前账号的私人 webhook。
-3. **服务端校验**：Web 服务检查字段、账号归属、总量、批次和重复键，并按公开规则计算排名。
-4. **公开展示**：只展示允许公开且选择参与榜单的个人资料与聚合统计。
+1. **Collect locally** — the CLI reads exact token records from supported AI tools and aggregates them by UTC date, tool, and model on the device.
+2. **Upload privately** — only aggregate rows are sent to the account's private webhook.
+3. **Check on the server** — the Web service validates fields, account ownership, totals, batches, and duplicate keys, then applies the published ranking rules.
+4. **Publish selectively** — only profiles that are public and opted into the leaderboard appear in public results.
 
-| 会上传 | 不会上传 |
+| Uploaded | Never uploaded |
 | --- | --- |
-| UTC 日期、工具、模型 | Prompt、聊天正文 |
-| input、output、cache 与 total Token | 源码、文件名、文件内容 |
-| 匿名设备标识、CLI 版本、时区、生成时间 | Provider 凭据、原始本地日志 |
+| UTC date, tool, and model | Prompts and chat content |
+| Input, output, cache, and total tokens | Source code, filenames, and file contents |
+| Anonymous device ID, CLI version, timezone, and generation time | Provider credentials and raw local logs |
 
-完整口径见 [计分与隐私规则](https://tokenrank.org/rules)。
+See [Scoring and privacy rules](https://tokenrank.org/rules) for the complete policy.
 
-## Web 与 CLI 的边界
+## Web and CLI boundaries
 
-| 仓库 | 负责 | 不负责 |
+| Repository | Owns | Does not own |
 | --- | --- | --- |
-| **tokenrank/tokenrank** | X 身份、webhook、上传 API、服务端校验、排行榜、Dashboard | 扫描本机 AI 工具日志、安装后台任务 |
-| **tokenrank/tokenrank-cli** | 本地采集、聚合、预览、上传、跨平台后台同步、CLI release | 用户认证、数据库、排行榜页面 |
+| **tokenrank/tokenrank** | X identity, webhooks, upload API, server validation, leaderboards, dashboard | Scanning local AI tool logs or installing background jobs |
+| **tokenrank/tokenrank-cli** | Local collection, aggregation, preview, upload, cross-platform scheduling, CLI releases | User authentication, database storage, or leaderboard pages |
 
-两者只通过 `GET/POST /api/collector/upload/:token` 的 identity 与 payload 契约协作。CLI 可以独立发布来源适配器；新增工具 key 或 payload 字段前，Web 必须先兼容。
+The repositories communicate only through the `GET/POST /api/collector/upload/:token` identity and payload contract. The CLI may release source adapters independently; the Web service must accept new tool keys or payload fields before the CLI sends them.
 
-## 本地开发
+## Local development
 
-项目使用 Next.js、React、Drizzle、Neon Postgres 与 Cloudflare Workers。需要 Node.js 与 pnpm。
+The app uses Next.js, React, Drizzle, Neon Postgres, and Cloudflare Workers. Node.js and pnpm are required.
 
 ```bash
 pnpm install
 pnpm dev --hostname 127.0.0.1
 ```
 
-打开 `http://127.0.0.1:3000`。没有 `DATABASE_URL` 时，首页会降级为空榜单，方便本地渲染与 e2e；登录、上传、Dashboard 和真实榜单仍需要数据库。
+Open `http://127.0.0.1:3000`. Without `DATABASE_URL`, the homepage falls back to an empty leaderboard for local rendering and e2e work. Authentication, uploads, the dashboard, and real leaderboard data still require a database.
 
-### 环境变量
+### Environment variables
 
 ```bash
 DATABASE_URL=
@@ -98,15 +102,15 @@ AUTH_SECRET=
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-X Developer callback URL 必须与本地地址匹配：
+The X Developer callback URL must match the local origin:
 
 ```text
 http://127.0.0.1:3000/api/auth/callback/twitter
 ```
 
-`NEXT_PUBLIC_APP_URL` 同时用于 canonical URL、`robots.txt`、`sitemap.xml`、`llms.txt` 和安装脚本的默认服务地址。
+`NEXT_PUBLIC_APP_URL` also drives the canonical URL, `robots.txt`, `sitemap.xml`, `llms.txt`, and the install scripts' default service URL.
 
-### 验证
+### Verification
 
 ```bash
 pnpm lint
@@ -115,41 +119,41 @@ pnpm build
 pnpm e2e
 ```
 
-## 公开入口
+## Public routes
 
-| 路径 | 用途 |
+| Route | Purpose |
 | --- | --- |
-| `/` | 公开榜单、筛选、榜首与分享入口 |
-| `/rules` | 计分、可信度、隐私与异常数据规则 |
-| `/onboard` | 本地预览、身份连接、安装和首次上传 |
-| `/dashboard` | 私有战绩、上传状态和公开设置 |
-| `/u/[handle]` | 公开个人战绩与挑战链接 |
-| `/api/boards` | 可用榜单与工具 key |
-| `/api/leaderboard` | 公开榜单数据 |
-| `/llms.txt` | 面向 AI crawler 的产品与接口摘要 |
+| `/` | Public leaderboard, filters, current leader, and sharing |
+| `/rules` | Scoring, trust, privacy, and anomaly rules |
+| `/onboard` | Local preview, identity connection, installation, and first upload |
+| `/dashboard` | Private activity, upload status, and public settings |
+| `/u/[handle]` | Public profile and rank challenge link |
+| `/api/boards` | Available leaderboards and tool keys |
+| `/api/leaderboard` | Public leaderboard data |
+| `/llms.txt` | Product and endpoint summary for AI crawlers |
 
 <details>
-<summary><strong>品牌与国际化</strong></summary>
+<summary><strong>Brand and internationalization</strong></summary>
 
-- 默认界面为英文，支持中文切换，语言偏好写入 `tokenrank_locale` cookie。
-- 中英文产品文案集中维护在 `src/i18n/copy.ts`。
-- Antonio Variable 与 IBM Plex Sans Variable 在仓库内自托管。
-- 品牌系统使用骨黑 `#070907`、信号绿 `#D6FF3F`、警示橙 `#FF5B35` 与青色 `#67E8E2`。
-- 图标生成器修改后运行 `pnpm icons:generate` 重建 favicon、PWA 与 pinned-tab 资源。
+- English is the default interface; visitors can switch to Chinese. The preference is stored in the `tokenrank_locale` cookie.
+- English and Chinese product copy is maintained in `src/i18n/copy.ts`.
+- Antonio Variable and IBM Plex Sans Variable are self-hosted in the repository.
+- The visual system uses bone black `#070907`, signal lime `#D6FF3F`, warning orange `#FF5B35`, and cyan `#67E8E2`.
+- After changing the icon generator, run `pnpm icons:generate` to rebuild favicon, PWA, and pinned-tab assets.
 
 </details>
 
 <details>
-<summary><strong>Demo 数据安全边界</strong></summary>
+<summary><strong>Demo data safety boundary</strong></summary>
 
-内置 `demo_` 用户只用于显式的本地视觉开发，公共榜单、公开个人页和 sitemap 默认排除。写入本地测试库前必须在当前非生产 shell 设置 `TOKENRANK_ALLOW_DEMO_SEED=1`；需要在本地页面显示时再设置 `TOKENRANK_SHOW_DEMO_DATA=1`。生产环境和指向 `tokenrank.org` 的配置会拒绝 demo seed。
+Built-in `demo_` users exist only for explicit local visual development and are excluded from public leaderboards, public profiles, and the sitemap by default. Set `TOKENRANK_ALLOW_DEMO_SEED=1` in the current non-production shell before writing demo data, and set `TOKENRANK_SHOW_DEMO_DATA=1` only when the local UI needs to display it. Production environments and configurations pointing to `tokenrank.org` reject demo seeding.
 
 </details>
 
 <details>
-<summary><strong>Cloudflare Workers 部署</strong></summary>
+<summary><strong>Cloudflare Workers deployment</strong></summary>
 
-生产站通过 `@opennextjs/cloudflare` 部署到名为 `tokenrank` 的 Worker，`wrangler.jsonc` 绑定 `tokenrank.org`。
+Production runs on a Cloudflare Worker named `tokenrank` through `@opennextjs/cloudflare`; `wrangler.jsonc` binds `tokenrank.org`.
 
 ```bash
 pnpm run cf:build
@@ -157,10 +161,10 @@ pnpm run cf:preview
 pnpm run cf:deploy
 ```
 
-生产运行需要 `DATABASE_URL`、`AUTH_SECRET`、`AUTH_X_ID`、`AUTH_X_SECRET`。生产库出现首条 v2 行后，包含 migration `0006` 的 Web 版本是最早 rollback baseline；不得回滚到 pre-v2 Worker，紧急变更前应先保留数据库快照并 forward-fix。
+Production requires `DATABASE_URL`, `AUTH_SECRET`, `AUTH_X_ID`, and `AUTH_X_SECRET`. After the production database contains its first v2 row, the Web release containing migration `0006` is the earliest rollback baseline. Do not roll back to a pre-v2 Worker; preserve a database snapshot and forward-fix instead.
 
 </details>
 
-## 参与与许可
+## Contributing and license
 
-问题与建议请提交到 [GitHub Issues](https://github.com/tokenrank/tokenrank/issues)。项目采用 [MIT License](LICENSE) 开源。
+Please use [GitHub Issues](https://github.com/tokenrank/tokenrank/issues) for bugs and proposals. TokenRank is released under the [MIT License](LICENSE).
