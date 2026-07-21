@@ -61,7 +61,9 @@ test("canonical onboarding and dashboard routes replace the old journey names", 
 
   await expect(page).toHaveURL(/\/onboard$/);
   await expect(page.getByRole("heading", { name: "Preview first. Claim your rank." })).toBeVisible();
-  await expect(page.getByDisplayValue("npx --yes tokenrank preview")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Copy preview command" })).toHaveValue(
+    "npx --yes tokenrank preview",
+  );
   await expect(page.getByRole("button", { name: "Copy preview command" })).toBeVisible();
 
   const connectResponse = await page.goto("/connect");

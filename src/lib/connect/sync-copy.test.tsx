@@ -12,12 +12,20 @@ const originalNavigatorUserAgent = window.navigator.userAgent;
 const originalNavigatorClipboard = window.navigator.clipboard;
 const originalScrollIntoView = Element.prototype.scrollIntoView;
 const auth = vi.hoisted(() =>
-  vi.fn(async () => ({
-    user: {
-      id: "user-1",
-      name: "TokenRank User",
-    },
-  })),
+  vi.fn<
+    () =>
+      Promise<{
+        user: {
+          id: string;
+          name: string;
+        };
+      } | null>
+  >(async () => ({
+      user: {
+        id: "user-1",
+        name: "TokenRank User",
+      },
+    })),
 );
 const getXSignInGuard = vi.hoisted(() => vi.fn(async () => ({})));
 const getUserUploadStatus = vi.hoisted(() =>
