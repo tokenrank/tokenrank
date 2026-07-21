@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">TokenRank public AI token usage leaderboard</title>
+  <desc id="desc">TokenRank turns local aggregate AI usage into server-checked public rankings while prompts, code, and chats stay on the device.</desc>
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#F2F1E8" stroke-opacity="0.045"/>
+    </pattern>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D6FF3F"/>
+      <stop offset="1" stop-color="#67E8E2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" rx="24" fill="#070907"/>
+  <rect width="1200" height="420" rx="24" fill="url(#grid)"/>
+  <path d="M0 0H1200V8H0Z" fill="url(#signal)"/>
+
+  <g transform="translate(58 50)">
+    <g aria-label="TokenRank logo mark">
+      <path d="M0 0h49v13H0zM14 18h49v13H14zM28 36h35v13H28z" fill="#D6FF3F"/>
+      <path d="M0 35 20 15v40H0Z" fill="#FF5B35"/>
+    </g>
+    <text x="84" y="16" fill="#858B80" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="700" letter-spacing="3">PUBLIC AI TOKEN LEAGUE</text>
+
+    <text x="0" y="124" fill="#F2F1E8" font-family="Arial Narrow, Segoe UI, sans-serif" font-size="72" font-weight="800" letter-spacing="-3">TOKEN<tspan fill="#D6FF3F">/</tspan>RANK</text>
+    <text x="0" y="176" fill="#F2F1E8" font-family="Arial Narrow, Segoe UI, sans-serif" font-size="40" font-weight="800" letter-spacing="-1.5">BURN TOKENS. ASCEND RANKS.</text>
+
+    <text x="0" y="224" fill="#C9CBBF" font-family="Segoe UI, PingFang SC, sans-serif" font-size="22">把本机 AI 聚合用量变成公开、可比较的活动排名。</text>
+    <text x="0" y="260" fill="#858B80" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">PROMPTS / CODE / CHATS</text>
+    <rect x="256" y="239" width="150" height="30" rx="4" fill="#D6FF3F"/>
+    <text x="276" y="260" fill="#070907" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" font-weight="800">STAY LOCAL</text>
+  </g>
+
+  <g transform="translate(716 50)">
+    <rect width="426" height="292" rx="12" fill="#0D100E" stroke="#343A33" stroke-width="2"/>
+    <rect width="426" height="44" rx="12" fill="#141814"/>
+    <path d="M0 44H426" stroke="#343A33"/>
+    <circle cx="24" cy="22" r="5" fill="#FF5B35"/>
+    <text x="42" y="28" fill="#858B80" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" font-weight="700" letter-spacing="2">DATA PATH // 001</text>
+
+    <g transform="translate(24 72)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+      <text x="0" y="0" fill="#D6FF3F" font-size="18" font-weight="800">01  LOCAL</text>
+      <text x="0" y="28" fill="#F2F1E8" font-size="22" font-weight="700">AI tool usage</text>
+      <text x="0" y="53" fill="#858B80" font-size="17">prompt / code stays here</text>
+
+      <path d="M164 34h42" stroke="#596156" stroke-width="2"/>
+      <path d="m200 28 8 6-8 6" fill="none" stroke="#D6FF3F" stroke-width="2"/>
+
+      <text x="222" y="0" fill="#D6FF3F" font-size="18" font-weight="800">02  AGGREGATE</text>
+      <text x="222" y="28" fill="#F2F1E8" font-size="20" font-weight="700">date · tool · model</text>
+      <text x="222" y="53" fill="#858B80" font-size="17">input / output / cache</text>
+
+      <path d="M0 88H378" stroke="#343A33"/>
+
+      <text x="0" y="122" fill="#67E8E2" font-size="18" font-weight="800">03  SERVER CHECKED</text>
+      <text x="0" y="151" fill="#F2F1E8" font-size="20" font-weight="700">schema · owner · totals · duplicate keys</text>
+
+      <rect x="0" y="178" width="378" height="54" rx="6" fill="#D6FF3F"/>
+      <text x="18" y="212" fill="#070907" font-size="22" font-weight="900">04  PUBLIC RANK  →  tokenrank.org</text>
+    </g>
+  </g>
+
+  <g transform="translate(58 378)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="700" letter-spacing="1.5">
+    <text fill="#858B80">LOCAL AGGREGATE</text>
+    <text x="198" fill="#596156">//</text>
+    <text x="236" fill="#67E8E2">SERVER CHECKED</text>
+    <text x="447" fill="#596156">//</text>
+    <text x="485" fill="#FF5B35">NOT PROVIDER VERIFIED</text>
+  </g>
+</svg>

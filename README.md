@@ -1,19 +1,94 @@
-# TokenRank
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="TokenRank 把本机 AI 聚合用量转化为经过服务端校验的公开排名，同时让 prompt、代码与对话留在本机">
+</p>
 
-TokenRank 是公开的 AI Token 使用排行榜，以公开 X 身份展示 Agent 与 AI 工具在本机采集的聚合 Token 用量。品牌主口号保持 `BURN TOKENS. ASCEND RANKS.` / `TOKEN 燃烧。RANKING 狂飙。`；榜单提供可比较的活动信号，不把 Token 用量解释为能力、生产力或工作质量。默认英文界面，支持中文切换；品牌视觉采用“AI Token 竞技场 × 工业数据终端”系统，以骨黑、信号绿和警示橙建立强排名感。它只展示按日期、工具和模型聚合后的统计，不上传 prompt、源码、聊天内容、文件名或文件内容。
+<p align="center">
+  <a href="https://tokenrank.org"><strong>实时榜单</strong></a> ·
+  <a href="https://tokenrank.org/onboard">加入榜单</a> ·
+  <a href="https://tokenrank.org/rules">计分与隐私规则</a> ·
+  <a href="https://github.com/tokenrank/tokenrank-cli">Collector CLI</a>
+</p>
 
-当前公开数据属于 `Local aggregate / server checked`：采集器从用户设备上报聚合行，服务端校验字段、账号归属、重算总量并避免重复键，但不会与 Provider 账单核对，因此不应标记为 `Provider Verified`；页面中的金额也是估算值，不是账单。
+TokenRank 是公开的 AI Token 使用排行榜。它用公开 X 身份展示 Coding Agent 与 AI 工具的聚合 Token 活动，让用户按时间窗口和工具比较排名。
+
+> **数据可信度：Local aggregate / server checked。** TokenRank 会校验上传结构、账号归属、Token 总量和重复键，但不会与 Provider 账单核对。榜单是活动信号，不是能力、生产力或工作质量评分；金额是估算值，不是账单。
+
+## 先看真实产品
+
+<p align="center">
+  <a href="https://tokenrank.org">
+    <img src="./assets/readme/leaderboard.png" width="100%" alt="TokenRank 线上公开 AI Token 排行榜界面">
+  </a>
+</p>
+
+线上榜单提供：
+
+- Overall、Spend 与各 AI 工具分榜；
+- Today UTC、3D、7D、30D、Month 时间窗口；
+- 公开个人战绩、趋势、热力图、工具与模型分布；
+- 可公开审阅的计分、隐私和异常数据处理规则。
+
+## 三步加入榜单
+
+### 1. 在本机预览
+
+无需登录，也不会上传数据：
+
+```bash
+npx --yes tokenrank preview
+```
+
+### 2. 连接公开身份
+
+打开 [tokenrank.org/onboard](https://tokenrank.org/onboard)，使用 X 登录并生成只属于当前账号的私人上传地址。
+
+### 3. 完成首次同步
+
+Onboarding 会给出对应平台的一行安装命令。首次上传成功后，Collector 可以注册每小时自动同步：
+
+```bash
+tokenrank service install
+tokenrank status
+```
+
+Collector 源码、安装器与 release 位于独立仓库 [tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli)。
+
+## 数据如何流动
+
+1. **本地采集**：CLI 读取受支持 AI 工具的精确 Token 记录，在设备上按 UTC 日期、工具与模型聚合。
+2. **私人上传**：只把聚合行发送到当前账号的私人 webhook。
+3. **服务端校验**：Web 服务检查字段、账号归属、总量、批次和重复键，并按公开规则计算排名。
+4. **公开展示**：只展示允许公开且选择参与榜单的个人资料与聚合统计。
+
+| 会上传 | 不会上传 |
+| --- | --- |
+| UTC 日期、工具、模型 | Prompt、聊天正文 |
+| input、output、cache 与 total Token | 源码、文件名、文件内容 |
+| 匿名设备标识、CLI 版本、时区、生成时间 | Provider 凭据、原始本地日志 |
+
+完整口径见 [计分与隐私规则](https://tokenrank.org/rules)。
+
+## Web 与 CLI 的边界
+
+| 仓库 | 负责 | 不负责 |
+| --- | --- | --- |
+| **tokenrank/tokenrank** | X 身份、webhook、上传 API、服务端校验、排行榜、Dashboard | 扫描本机 AI 工具日志、安装后台任务 |
+| **tokenrank/tokenrank-cli** | 本地采集、聚合、预览、上传、跨平台后台同步、CLI release | 用户认证、数据库、排行榜页面 |
+
+两者只通过 `GET/POST /api/collector/upload/:token` 的 identity 与 payload 契约协作。CLI 可以独立发布来源适配器；新增工具 key 或 payload 字段前，Web 必须先兼容。
 
 ## 本地开发
+
+项目使用 Next.js、React、Drizzle、Neon Postgres 与 Cloudflare Workers。需要 Node.js 与 pnpm。
 
 ```bash
 pnpm install
 pnpm dev --hostname 127.0.0.1
 ```
 
-打开 `http://127.0.0.1:3000`。
+打开 `http://127.0.0.1:3000`。没有 `DATABASE_URL` 时，首页会降级为空榜单，方便本地渲染与 e2e；登录、上传、Dashboard 和真实榜单仍需要数据库。
 
-本地环境变量：
+### 环境变量
 
 ```bash
 DATABASE_URL=
@@ -23,149 +98,15 @@ AUTH_SECRET=
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 ```
 
-`NEXT_PUBLIC_APP_URL` 会用于 canonical URL、`robots.txt`、`sitemap.xml`、`llms.txt` 和安装脚本里的默认服务地址。X developer callback URL 必须匹配：
+X Developer callback URL 必须与本地地址匹配：
 
 ```text
 http://127.0.0.1:3000/api/auth/callback/twitter
 ```
 
-没有 `DATABASE_URL` 时，首页会降级为空榜单，方便本地和 e2e 渲染；登录、上传、dashboard 和真实榜单数据仍然需要数据库。
+`NEXT_PUBLIC_APP_URL` 同时用于 canonical URL、`robots.txt`、`sitemap.xml`、`llms.txt` 和安装脚本的默认服务地址。
 
-内置 `demo_` 用户只用于显式的本地视觉开发，公共榜单、公开个人页和 sitemap 默认都会排除。需要写入本地测试库时必须在当前非生产 shell 显式设置 `TOKENRANK_ALLOW_DEMO_SEED=1`；需要让这些账号出现在本地页面时再设置 `TOKENRANK_SHOW_DEMO_DATA=1`。生产环境和指向 `tokenrank.org` 的配置都会拒绝 demo seed。
-
-## 品牌与国际化
-
-- 默认语言为英文，导航里的语言切换会写入 `tokenrank_locale` cookie。
-- 中文文案是英文源文案的地道翻译，集中维护在 `src/i18n/copy.ts`。
-- Antonio Variable 与 IBM Plex Sans Variable 通过 `@fontsource-variable` 在仓库内自托管，生产构建不依赖 Google Fonts。
-- 新品牌组件由 `app/globals.css`、`components/brand/*`、全站 shell 与各页面共同组成：直角数据面板、实时信号带、超窄赛事标题、等宽数字、信号绿主操作和警示橙状态反馈。
-- favicon、Apple Touch Icon、PWA 192/512、maskable 与 Safari pinned tab 共用 TokenRank 品牌标记；修改图标生成器后运行 `pnpm icons:generate` 重建二进制资源。
-- 英文 Token 紧凑单位使用 `K/M/B`，中文使用 `万/亿`；远程头像加载失败时自动回退到用户首字母。
-
-## 公开页面与接口
-
-- `/`：公开竞技榜单，包含实时榜首、分享区、总榜、金额榜、全工具榜和时间窗口。
-- `/rules`：隐私边界、公平规则和计分说明，以公开协议形式呈现。
-- `/onboard`：登录前先用 `npx --yes tokenrank preview` 查看本机聚合数据，再登录 X、生成上传地址、安装本地 collector 并检测首次上传。
-- `/dashboard`：登录用户的私有战绩面板，展示热力图、趋势、客户端/工具/模型分布和隐私设置。
-- `/u/[handle]`：公开个人战绩，包括 7 天排名、Top 百分比、连续活跃、周环比、挑战链接、统计、热力图、趋势、分布和明细数据窗。
-- `/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/manifest.webmanifest`：搜索引擎、AI crawler 与可安装 Web App 的机器可读入口。
-- `/api/boards`：可用榜单和工具 key。
-- `/api/leaderboard`：公开榜单数据。
-- `/api/dashboard`：当前登录用户的设置和上传状态。
-
-登录用户可以在 `/dashboard` 切换个人资料公开状态和是否参与排行榜。
-
-## Collector CLI
-
-CLI 已拆分为独立项目维护：[tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli)。本仓库只负责用户身份、webhook、上传 API、服务端校验、排行榜，以及把带用户 token 的安装入口转交给 CLI 最新 release。
-
-本地 CLI 只采集聚合后的 Token 行。它不会上传 prompt、代码或对话内容。
-
-无需登录或连接账号即可先预览本机数据；该命令不会上传：
-
-```bash
-npx --yes tokenrank preview
-```
-
-交互式终端采用与网站一致的骨黑、信号绿和警示橙 Scoreboard Panels，不再使用大型 Block Art。Windows、macOS 和 Linux 的彩色 TTY 共用同一套视觉；40–71 列窄终端会自动切换为紧凑布局，`NO_COLOR=1`、非 TTY、JSON 和后台模式保持纯文本或结构化输出。
-
-生产环境 macOS / Linux 安装：
-
-```bash
-curl -fsSL "https://tokenrank.org/install.sh" | bash
-```
-
-生产环境 Windows PowerShell 安装：
-
-```powershell
-irm "https://tokenrank.org/install.ps1" | iex
-```
-
-连接私人 webhook URL 后，可以启用每小时自动同步：
-
-```bash
-tokenrank service install
-```
-
-macOS 会创建 LaunchAgent，Linux 会创建 systemd user service，Windows 会创建单个隐藏 Task Scheduler 任务。Windows 任务使用隐藏、非交互 PowerShell，不会在定时同步时弹出控制台窗口。
-
-Windows 安装器会把 `%USERPROFILE%\.tokenrank` 幂等加入用户 PATH，并同步更新当前 PowerShell 会话；安装完成后可直接运行 `tokenrank status`、`tokenrank tools` 等命令。
-
-三端都会按设备 ID 选择一个固定分钟，每小时错峰同步。电脑在计划时间关机或用户未登录时，macOS 会在 LaunchAgent 加载后、Linux 会通过 persistent timer、Windows 会在下次登录后自动补传一次。本机 `service-state.json` 会记录已完成的计划边界，因此日历触发和登录补跑同时发生也不会重复上传。
-
-CLI v2 统一按 UTC 日历日聚合，首次 cutover 日期由服务端 UTC 日界线确认。首次升级使用原子 cutover snapshot；之后每小时只上传变化且不低于已提交 high-water 的聚合行，没有变化就不请求服务器。每天会重发一次 cutover 后的 high-water 快照用于校准，但不会根据本次扫描缺少文件而删除历史。协议不提供 `deleteKeys` 或任何聚合行删除通道；服务端只接受不减的 high-water upsert。CLI 在上传前会校验稳定的匿名 account identity，避免更换到其他账号的 webhook 时复用旧账号 high-water；未确认的 full 或 incremental payload 会保留并原样重放到服务端确认。
-
-部署约束：生产库出现首条 v2 行后，本次包含 migration `0006` 的 Web 版本就是最早 rollback baseline；不得回滚到 pre-v2 Worker，应从该版本向前修复。回滚或紧急变更前必须先保留数据库快照。
-
-查看状态、诊断数据源或移除任务：
-
-```bash
-tokenrank service status
-tokenrank status
-tokenrank doctor
-tokenrank service uninstall
-```
-
-CLI 本地开发请在独立仓库执行：
-
-```bash
-cd ../tokenrank-cli
-pnpm install
-pnpm test
-pnpm tokenrank tools
-```
-
-CLI 默认跟随系统语言：中文系统显示中文，其他系统显示英文。可以在任意命令中用 `--lang zh` 或 `--lang en` 临时覆盖，也可以设置 `TOKENRANK_LANG=zh|en` 作为环境级默认值；使用 `--lang auto` 可恢复自动检测。
-
-不传 `--file` 时，`upload` 会扫描已知本地工具日志位置并上传聚合行。先运行 `preview --json` 可以检查将要上传的聚合 payload。CLI 会把大上传切成 500 行批次；服务端也会拒绝超出大小限制的异常 payload。
-
-`usage.json` 可以是 entry 数组，也可以是包含 `entries` 的对象：
-
-```json
-{
-  "entries": [
-    {
-      "date": "2026-06-23",
-      "tool": "codex",
-      "model": "gpt-5.5",
-      "input": 100,
-      "output": 50,
-      "cacheRead": 20,
-      "cacheWrite": 10
-    }
-  ]
-}
-```
-
-排行榜主分使用 raw token 口径。Codex 的 `input` 已包含 cached input，因此 Codex 主分为 `input + output`；Claude Code 等把缓存字段单列的工具，主分为 `input + output + cacheRead + cacheWrite`。上传里的 `total` 即使存在，也会由服务端按该 raw 口径重新计算后入库。
-
-支持的工具：`codex`、`claude-code`、`hermes`、`openclaw`、`cline`、`opencode`、`workbuddy`、`gemini`、`zcode`、`kimi`、`kilo-code`、`codex-vps`、`roo-code`、`qwen`、`codex-cache`、`cursor`、`github-copilot`、`continue`。
-
-工具归属按实际发起模型调用的 AI 工具判断，与宿主编辑器无关：Cursor 中的 Codex 仍计入 `codex`，VS Code/Cursor 中的 Cline、Roo Code、Kilo Code 仍计入各自工具。采集器先按 provider event ID 和来源优先级去重，再生成每日聚合，避免同一事件从 API、会话或日志重复进入统计。
-
-Cursor 只接受原生 Agent 的精确 Token 明细。Cursor Teams 可以把官方 Admin API 的 spend/usageEvents JSON 保存为 `~/.tokenrank/imports/cursor-usage.json`，采集器会读取其中的 `tokenUsage`；个人版如果本机没有明确的 input/output/cache Token 字段，`tokenrank doctor` 会显示 `EXACT SOURCE REQUIRED`，不会用请求数、积分、字符数或估算值替代。GitHub Copilot 只读取带明确 Token 类型的 CLI OpenTelemetry NDJSON/专属日志，Continue 读取其会话 Token usage；缺少精确字段时同样不会上传。
-
-当前自动扫描支持 JSON、JSONL、SQLite 和 DB 文件。SQLite 读取优先使用 Node 内置 `node:sqlite`，没有可用运行时时再回退到外部 `sqlite3` 命令；查询只读取 token、date、model 等聚合列，并跳过原始内容字段。`tokenrank doctor` 只显示工具、精度状态和行数，不输出本机路径或原始日志内容。
-
-## Cloudflare Workers 部署
-
-生产站通过 `@opennextjs/cloudflare` 部署到名为 `tokenrank` 的 Cloudflare Worker，并由 `wrangler.jsonc` 绑定 `tokenrank.org`。Cloudflare Workers Builds 连接本仓库时使用：
-
-- Production branch：`main`
-- Build command：`pnpm run cf:build`
-- Deploy command：`pnpm exec wrangler deploy`
-- Root directory：`/`
-
-生产运行需要 `DATABASE_URL`、`AUTH_SECRET`、`AUTH_X_ID`、`AUTH_X_SECRET`；公开 URL 和信任主机配置已写入 `wrangler.jsonc`。本地验证或手动部署使用：
-
-```bash
-pnpm run cf:build
-pnpm run cf:preview
-pnpm run cf:deploy
-```
-
-## 验证
+### 验证
 
 ```bash
 pnpm lint
@@ -174,6 +115,52 @@ pnpm build
 pnpm e2e
 ```
 
-## 开源许可
+## 公开入口
 
-本项目采用 [MIT License](LICENSE) 开源。
+| 路径 | 用途 |
+| --- | --- |
+| `/` | 公开榜单、筛选、榜首与分享入口 |
+| `/rules` | 计分、可信度、隐私与异常数据规则 |
+| `/onboard` | 本地预览、身份连接、安装和首次上传 |
+| `/dashboard` | 私有战绩、上传状态和公开设置 |
+| `/u/[handle]` | 公开个人战绩与挑战链接 |
+| `/api/boards` | 可用榜单与工具 key |
+| `/api/leaderboard` | 公开榜单数据 |
+| `/llms.txt` | 面向 AI crawler 的产品与接口摘要 |
+
+<details>
+<summary><strong>品牌与国际化</strong></summary>
+
+- 默认界面为英文，支持中文切换，语言偏好写入 `tokenrank_locale` cookie。
+- 中英文产品文案集中维护在 `src/i18n/copy.ts`。
+- Antonio Variable 与 IBM Plex Sans Variable 在仓库内自托管。
+- 品牌系统使用骨黑 `#070907`、信号绿 `#D6FF3F`、警示橙 `#FF5B35` 与青色 `#67E8E2`。
+- 图标生成器修改后运行 `pnpm icons:generate` 重建 favicon、PWA 与 pinned-tab 资源。
+
+</details>
+
+<details>
+<summary><strong>Demo 数据安全边界</strong></summary>
+
+内置 `demo_` 用户只用于显式的本地视觉开发，公共榜单、公开个人页和 sitemap 默认排除。写入本地测试库前必须在当前非生产 shell 设置 `TOKENRANK_ALLOW_DEMO_SEED=1`；需要在本地页面显示时再设置 `TOKENRANK_SHOW_DEMO_DATA=1`。生产环境和指向 `tokenrank.org` 的配置会拒绝 demo seed。
+
+</details>
+
+<details>
+<summary><strong>Cloudflare Workers 部署</strong></summary>
+
+生产站通过 `@opennextjs/cloudflare` 部署到名为 `tokenrank` 的 Worker，`wrangler.jsonc` 绑定 `tokenrank.org`。
+
+```bash
+pnpm run cf:build
+pnpm run cf:preview
+pnpm run cf:deploy
+```
+
+生产运行需要 `DATABASE_URL`、`AUTH_SECRET`、`AUTH_X_ID`、`AUTH_X_SECRET`。生产库出现首条 v2 行后，包含 migration `0006` 的 Web 版本是最早 rollback baseline；不得回滚到 pre-v2 Worker，紧急变更前应先保留数据库快照并 forward-fix。
+
+</details>
+
+## 参与与许可
+
+问题与建议请提交到 [GitHub Issues](https://github.com/tokenrank/tokenrank/issues)。项目采用 [MIT License](LICENSE) 开源。
