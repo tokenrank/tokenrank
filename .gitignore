@@ -22,8 +22,13 @@ playwright-report/
 build/
 
 .DS_Store
+Thumbs.db
 *.log
 *.pem
+*.key
+*.p12
+*.pfx
+*.tgz
 
 .vercel
 *.tsbuildinfo
@@ -33,3 +38,14 @@ next-env.d.ts
 .superpowers/
 .worktrees/
 tmp-tokenrank-*.png
+
+# Local agent, QA, audit, and editor artifacts
+.codex-remote-attachments/
+.codex-logs/
+.codex-runtime/
+.idea/
+.vscode/
+dogfood-output/
+docs/superpowers/
+docs/SEO_AEO_AUDIT_*.md
+tmp/
