@@ -8,10 +8,11 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { getCopy } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
 import { summarizeUsage } from "@/src/lib/dashboard/summary";
+import { buildCompetitiveContext } from "@/src/lib/dashboard/competitive-context";
 import { formatTokens } from "@/src/lib/format";
 import { absoluteUrl } from "@/src/lib/site";
 import { createSocialMetadata } from "@/src/lib/social-metadata";
-import { getProfile } from "@/src/lib/users";
+import { getLeaderboard, getProfile } from "@/src/lib/users";
 
 const getCachedProfile = cache(getProfile);
 
@@ -61,6 +62,14 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
   const profile = await getCachedProfile(handle);
 
   if (!profile) notFound();
+  const leaderboard = profile.user.rankingEnabled
+    ? await getLeaderboard("total", "7d")
+    : [];
+  const competitive = buildCompetitiveContext({
+    daily: profile.daily,
+    leaderboard,
+    userId: profile.user.id,
+  });
   const { canonical, description, title } = profileSeo(profile);
   const profileJsonLd = {
     "@context": "https://schema.org",
@@ -116,6 +125,7 @@ export default async function PublicProfilePage({ params }: PublicProfileProps) 
           actions={copy.common.buttons}
           avatarUrl={profile.user.avatarUrl}
           copy={copy.dashboard.usage}
+          competitive={competitive}
           daily={profile.daily}
           handle={profile.user.handle}
           locale={locale}

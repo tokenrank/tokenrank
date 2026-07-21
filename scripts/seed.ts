@@ -4,6 +4,7 @@ import { config as loadEnvFile } from "dotenv";
 import { and, eq, sql } from "drizzle-orm";
 
 import { dailyUsage, devices, users } from "../src/db/schema";
+import { assertDemoSeedAllowed } from "../src/lib/demo-data";
 import { estimateCostMicros } from "../src/lib/pricing";
 import { TOOL_KEYS, type TokenUsageEntry, type ToolKey } from "../src/lib/types";
 
@@ -170,6 +171,7 @@ async function upsertUsage(
 }
 
 async function main() {
+  assertDemoSeedAllowed();
   const { db } = await import("../src/db/client");
 
   for (const [userIndex, user] of demoUsers.entries()) {

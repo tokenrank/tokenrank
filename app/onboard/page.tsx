@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CheckCircle2, Gauge, ShieldCheck, Terminal, Trophy, UploadCloud } from "lucide-react";
+import { CheckCircle2, Gauge, ShieldCheck, Swords, Terminal, Trophy, UploadCloud } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { XSignInButton } from "@/components/auth/x-sign-in-button";
+import { LocalPreviewCommand } from "@/components/connect/local-preview-command";
 import { UploadCompletionRedirect } from "@/components/connect/upload-completion-redirect";
 import { WebhookTokenPanel } from "@/components/connect/webhook-token-panel";
 import { auth } from "@/src/auth/config";
@@ -11,9 +12,10 @@ import { getXSignInGuard } from "@/src/auth/sign-in-guard";
 import { defaultLocale } from "@/src/i18n/config";
 import { getCopy, text } from "@/src/i18n/copy";
 import { getRequestLocale } from "@/src/i18n/server";
+import { normalizeChallengeHandle } from "@/src/lib/challenge";
 import { absoluteUrl } from "@/src/lib/site";
 import { createSocialMetadata } from "@/src/lib/social-metadata";
-import { getUserUploadStatus } from "@/src/lib/users";
+import { getLeaderboard, getProfile, getUserUploadStatus } from "@/src/lib/users";
 
 export const dynamic = "force-dynamic";
 const metadataCopy = getCopy(defaultLocale).onboard;
@@ -35,12 +37,24 @@ export const metadata: Metadata = {
   }),
 };
 
-export default async function OnboardPage() {
+export default async function OnboardPage({
+  searchParams = Promise.resolve({}),
+}: {
+  searchParams?: Promise<{ challenge?: string | string[] }>;
+} = {}) {
   const locale = await getRequestLocale();
   const copy = getCopy(locale);
+  const params = await searchParams;
+  const requestedChallenge = normalizeChallengeHandle(params.challenge);
+  const callbackUrl = requestedChallenge
+    ? `/onboard?challenge=${encodeURIComponent(requestedChallenge)}`
+    : "/onboard";
   const session = await auth();
   const user = session?.user;
-  const xSignInGuard = await getXSignInGuard("/onboard", locale);
+  const xSignInGuard = await getXSignInGuard(callbackUrl, locale);
+  const challenge = requestedChallenge
+    ? await resolveChallenge(requestedChallenge, user?.id)
+    : null;
   const upload = user?.id
     ? await getUserUploadStatus(user.id)
     : { hasUsage: false, latestUploadedAt: null };
@@ -50,7 +64,7 @@ export default async function OnboardPage() {
     <main className="tr-page w-full flex-1">
       <section className="tr-container py-8 sm:py-12 lg:py-16">
         <div className="tr-live-tape tr-reveal">
-          <span>Join sequence / 04 stages</span>
+          <span>Private preview + join / 04 stages</span>
           <span>{upload.hasUsage ? "Signal detected" : user ? "Identity confirmed" : "Awaiting identity"}</span>
         </div>
 
@@ -64,6 +78,27 @@ export default async function OnboardPage() {
             <p className="tr-body mt-7 max-w-3xl text-base sm:text-lg">{copy.onboard.hero.body}</p>
           </div>
         </div>
+
+        {challenge ? (
+          <section className="mt-6 border border-[color:var(--tr-orange)] bg-[color:var(--tr-orange-soft)]/20 p-5 sm:p-6">
+            <div className="flex items-start gap-4">
+              <span className="flex size-11 shrink-0 items-center justify-center bg-[color:var(--tr-orange)] text-[#080b07]">
+                <Swords className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="tr-data-label text-[color:var(--tr-orange)]">{copy.onboard.challenge.eyebrow}</p>
+                <h2 className="mt-2 font-display text-2xl font-bold uppercase tracking-[-0.025em] text-[color:var(--tr-ivory)] sm:text-3xl">
+                  {text(copy.onboard.challenge.title, { handle: challenge.handle })}
+                </h2>
+                <p className="tr-body mt-3 max-w-3xl text-sm">
+                  {challenge.rank
+                    ? text(copy.onboard.challenge.rankedBody, { rank: challenge.rank })
+                    : copy.onboard.challenge.unrankedBody}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-6">
@@ -102,30 +137,49 @@ export default async function OnboardPage() {
                 />
               </>
             ) : (
-              <section className="tr-shell tr-reveal lg:min-h-[38rem]">
-                <div className="tr-panel relative grid gap-6 overflow-hidden p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-8 lg:min-h-[38rem]">
-                  <span className="pointer-events-none absolute right-8 top-8 hidden font-display text-[12rem] font-bold leading-none text-[color:var(--tr-line)] opacity-45 lg:block" aria-hidden="true">
-                    01
-                  </span>
-                  <div className="relative z-10">
-                    <p className="tr-data-label">Stage 01 / identity</p>
-                    <h2 className="mt-3 font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]">
-                      {copy.onboard.signIn.title}
-                    </h2>
-                    <p className="tr-body mt-3 max-w-2xl text-sm">{copy.onboard.signIn.body}</p>
+              <>
+                <LocalPreviewCommand copy={copy.onboard.preview} />
+                <section className="tr-shell tr-reveal">
+                  <div className="tr-panel relative overflow-hidden" data-testid="identity-claim-card">
+                    <span className="pointer-events-none absolute right-8 top-8 hidden font-display text-[12rem] font-bold leading-none text-[color:var(--tr-line)] opacity-45 lg:block" aria-hidden="true">
+                      01
+                    </span>
+                    <div className="relative z-10 grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-center">
+                      <div className="min-w-0">
+                        <p className="tr-data-label">Stage 01 / identity</p>
+                        <h2 className="mt-3 max-w-xl font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)] sm:text-4xl">
+                          {copy.onboard.signIn.title}
+                        </h2>
+                        <p className="tr-body mt-3 max-w-2xl text-sm">{copy.onboard.signIn.body}</p>
+                      </div>
+                      <div className="min-w-0 xl:justify-self-end">
+                        <XSignInButton
+                          alternateHref={xSignInGuard.alternateHref}
+                          alternateLabel={xSignInGuard.alternateLabel}
+                          callbackUrl={callbackUrl}
+                          copy={copy.auth.button}
+                          disabledReason={xSignInGuard.disabledReason}
+                          showDisabledReason={false}
+                          variant="inverted"
+                        />
+                      </div>
+                    </div>
+                    {xSignInGuard.disabledReason ? (
+                      <div
+                        className="relative z-10 grid gap-2 border-t border-[color:var(--tr-line)] bg-[color:var(--tr-surface-2)]/75 px-6 py-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-5 sm:px-8"
+                        role="status"
+                      >
+                        <p className="tr-data-label whitespace-nowrap text-[color:var(--tr-gold)]">
+                          {copy.onboard.signIn.statusLabel}
+                        </p>
+                        <p className="max-w-3xl text-sm leading-6 text-[color:var(--tr-muted)]">
+                          {xSignInGuard.disabledReason}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="relative z-10">
-                    <XSignInButton
-                      alternateHref={xSignInGuard.alternateHref}
-                      alternateLabel={xSignInGuard.alternateLabel}
-                      callbackUrl="/onboard"
-                      copy={copy.auth.button}
-                      disabledReason={xSignInGuard.disabledReason}
-                      variant="inverted"
-                    />
-                  </div>
-                </div>
-              </section>
+                </section>
+              </>
             )}
           </div>
 
@@ -155,6 +209,24 @@ export default async function OnboardPage() {
       </section>
     </main>
   );
+}
+
+async function resolveChallenge(
+  handle: string,
+  currentUserId: string | undefined,
+): Promise<{ handle: string; rank: number | null } | null> {
+  if (!process.env.DATABASE_URL) return null;
+
+  try {
+    const profile = await getProfile(handle);
+    if (!profile || profile.user.id === currentUserId) return null;
+
+    const leaderboard = await getLeaderboard("total", "7d");
+    const rank = leaderboard.find((entry) => entry.userId === profile.user.id)?.rank ?? null;
+    return { handle: profile.user.handle, rank };
+  } catch {
+    return null;
+  }
 }
 
 function Step({

@@ -39,14 +39,17 @@ export default async function DashboardPage() {
             <span>Private record / locked</span>
             <span>Auth required</span>
           </div>
-          <div className="relative min-h-[34rem] overflow-hidden border-x border-b border-[color:var(--tr-line)] bg-[color:var(--tr-surface)] p-6 sm:p-10 lg:p-14">
+          <div
+            className="relative overflow-hidden border-x border-b border-[color:var(--tr-line)] bg-[color:var(--tr-surface)]"
+            data-testid="signed-out-dashboard-card"
+          >
             <span className="tr-page-number" aria-hidden="true">
               05
             </span>
-            <div className="relative z-10 flex h-full max-w-4xl flex-col justify-between">
-              <div>
+            <div className="relative z-10 grid gap-8 p-6 sm:p-10 lg:p-12 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-end">
+              <div className="min-w-0">
                 <p className="tr-kicker">{copy.dashboard.signedOut.eyebrow}</p>
-                <h1 className="tr-title mt-8 text-[clamp(4rem,9vw,8.5rem)]">
+                <h1 className="tr-title mt-7 max-w-5xl text-[clamp(3.5rem,7vw,7rem)]">
                   {copy.dashboard.signedOut.title}
                 </h1>
                 <p className="tr-body mt-7 max-w-2xl text-base sm:text-lg">
@@ -54,13 +57,17 @@ export default async function DashboardPage() {
                 </p>
               </div>
 
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <div
+                className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1 xl:border-l xl:border-[color:var(--tr-line)] xl:pl-6 [&_a]:w-full [&_button]:w-full"
+                data-testid="signed-out-dashboard-actions"
+              >
                 <XSignInButton
                   alternateHref={xSignInGuard.alternateHref}
                   alternateLabel={xSignInGuard.alternateLabel}
                   callbackUrl="/dashboard"
                   copy={copy.auth.button}
                   disabledReason={xSignInGuard.disabledReason}
+                  showDisabledReason={false}
                   variant="solid"
                 />
                 <Link href="/onboard" className="tr-button-secondary">
@@ -69,6 +76,19 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             </div>
+            {xSignInGuard.disabledReason ? (
+              <div
+                className="relative z-10 grid gap-2 border-t border-[color:var(--tr-line)] bg-[color:var(--tr-surface-2)]/75 px-6 py-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-5 sm:px-10 lg:px-12"
+                role="status"
+              >
+                <p className="tr-data-label whitespace-nowrap text-[color:var(--tr-gold)]">
+                  {copy.onboard.signIn.statusLabel}
+                </p>
+                <p className="max-w-3xl text-sm leading-6 text-[color:var(--tr-muted)]">
+                  {xSignInGuard.disabledReason}
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
       </main>

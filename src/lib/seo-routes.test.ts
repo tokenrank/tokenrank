@@ -30,7 +30,7 @@ describe("SEO and AI crawler routes", () => {
   });
 
   it("publishes correctly sized Open Graph and Twitter cards", () => {
-    expect(openGraphImage.alt).toBe("TokenRank AI token leaderboard");
+    expect(openGraphImage.alt).toBe("TokenRank AI activity leaderboard");
     expect(openGraphImage.size).toEqual({ width: 1200, height: 630 });
     expect(openGraphImage.contentType).toBe("image/png");
     expect(twitterImage.alt).toBe(openGraphImage.alt);

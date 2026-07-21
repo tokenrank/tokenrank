@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { absoluteUrl, siteName } from "./site";
 
-export const socialImageAlt = "TokenRank AI token leaderboard";
+export const socialImageAlt = "TokenRank AI activity leaderboard";
 export const socialImageSize = {
   width: 1200,
   height: 630,

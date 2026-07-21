@@ -1,4 +1,5 @@
-import { Share2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BadgeCheck, Flame, Share2, TrendingUp, Trophy } from "lucide-react";
 
 import { ProfileAvatar } from "@/components/brand/profile-avatar";
 import { boardLabel } from "@/components/leaderboard/board-tabs";
@@ -12,6 +13,7 @@ import {
   type DashboardUsageRow,
   type TokenBreakdown,
 } from "@/src/lib/dashboard/summary";
+import type { CompetitiveContext } from "@/src/lib/dashboard/competitive-context";
 import { TOOL_KEYS, type ToolKey } from "@/src/lib/types";
 
 import { ActivityHeatmap } from "./activity-heatmap";
@@ -27,6 +29,7 @@ export function UsageDashboard({
   actions = defaultCopy.common.buttons,
   avatarUrl,
   copy = defaultCopy.dashboard.usage,
+  competitive,
   daily,
   handle,
   locale = defaultLocale,
@@ -35,6 +38,7 @@ export function UsageDashboard({
   actions?: AppCopy["common"]["buttons"];
   avatarUrl?: string | null;
   copy?: UsageCopy;
+  competitive?: CompetitiveContext;
   daily: Usage[];
   handle: string;
   locale?: Locale;
@@ -46,8 +50,20 @@ export function UsageDashboard({
   const topClient = summary.byClient[0];
   const topTool = summary.byTool[0];
   const topModel = summary.byModel[0];
-  const shareText =
-    locale === "zh"
+  const competitiveChange = competitive ? changeLabel(competitive, copy) : "";
+  const shareText = competitive
+    ? text(
+        competitive.rank
+          ? copy.competition.shareRanked
+          : copy.competition.shareUnranked,
+        {
+          change: competitiveChange,
+          handle,
+          rank: competitive.rank ?? "-",
+          streak: competitive.currentStreak,
+        },
+      )
+    : locale === "zh"
       ? `我在 TokenRank 已经使用 ${formatTokens(summary.totalTokens, locale)} AI Token。`
       : `I have logged ${formatTokens(summary.totalTokens, locale)} AI tokens on TokenRank.`;
   const profileUrl = `${siteUrl}/u/${encodeURIComponent(handle)}`;
@@ -81,6 +97,13 @@ export function UsageDashboard({
             <p className="mt-4 text-sm font-semibold leading-6 text-black/65">
               {summaryParts.join(locale === "zh" ? " · " : " / ")}
             </p>
+            <div className="mt-5 border-t border-black/25 pt-4">
+              <p className="flex items-center gap-2 font-mono text-[0.65rem] font-black uppercase tracking-[0.08em]">
+                <BadgeCheck className="size-4" aria-hidden="true" />
+                {copy.trustLabel}
+              </p>
+              <p className="mt-2 text-xs font-semibold leading-5 text-black/60">{copy.trustBody}</p>
+            </div>
             <a
               href={shareUrl}
               target="_blank"
@@ -93,6 +116,72 @@ export function UsageDashboard({
           </div>
         </div>
       </section>
+
+      {competitive ? (
+        <section className="tr-shell tr-reveal overflow-hidden" aria-labelledby="competition-title">
+          <div className="tr-live-tape">
+            <span>{copy.competition.eyebrow}</span>
+            <span>{text(copy.competition.participants, { count: competitive.participants })}</span>
+          </div>
+          <div className="tr-panel">
+            <div className="flex flex-col gap-3 border-b border-[color:var(--tr-line)] p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+              <div>
+                <p className="tr-data-label">Competition signal</p>
+                <h2
+                  id="competition-title"
+                  className="mt-2 font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)]"
+                >
+                  {copy.competition.title}
+                </h2>
+              </div>
+              <span className="tr-chip">Local aggregate</span>
+            </div>
+
+            <div className="grid gap-px bg-[color:var(--tr-line)] md:grid-cols-3">
+              <CompetitionStat
+                icon={<Trophy className="size-4" aria-hidden="true" />}
+                label={copy.competition.rank}
+                value={competitive.rank ? `#${String(competitive.rank).padStart(2, "0")}` : copy.competition.unranked}
+                hint={
+                  competitive.topPercent
+                    ? text(copy.competition.topPercent, {
+                        count: competitive.participants,
+                        percent: competitive.topPercent,
+                      })
+                    : text(copy.competition.participants, { count: competitive.participants })
+                }
+              />
+              <CompetitionStat
+                icon={<Flame className="size-4" aria-hidden="true" />}
+                label={copy.competition.streak}
+                value={text(copy.competition.streakValue, { count: competitive.currentStreak })}
+                hint={formatTokens(competitive.last7Tokens, locale)}
+              />
+              <CompetitionStat
+                icon={<TrendingUp className="size-4" aria-hidden="true" />}
+                label={copy.competition.change}
+                value={competitive.changePercent === null ? copy.competition.newActivity : competitiveChange}
+                hint={
+                  competitive.changePercent === null
+                    ? copy.competition.noBaseline
+                    : formatTokens(competitive.previous7Tokens, locale)
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-[color:var(--tr-line)] bg-[#090c09] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <p className="max-w-2xl text-xs leading-6 text-[color:var(--tr-muted)]">{copy.trustBody}</p>
+              <Link
+                href={`/onboard?challenge=${encodeURIComponent(handle)}`}
+                className="tr-button-secondary shrink-0"
+              >
+                {copy.competition.challenge}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-px border border-[color:var(--tr-line)] bg-[color:var(--tr-line)] sm:grid-cols-2 xl:grid-cols-6">
         <Stat label={copy.stats.total} value={formatTokens(summary.totalTokens, locale)} hint={text(copy.stats.rows, { count: summary.uploadRows })} />
@@ -143,6 +232,34 @@ export function UsageDashboard({
       <DailyDetailTable copy={copy.table} locale={locale} rows={daily.slice(0, 120)} />
     </div>
   );
+}
+
+function CompetitionStat({
+  hint,
+  icon,
+  label,
+  value,
+}: {
+  hint: string;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 bg-[color:var(--tr-surface)] p-5 sm:p-6">
+      <div className="flex items-center gap-2 tr-data-label">
+        <span className="text-[color:var(--tr-gold)]">{icon}</span>
+        {label}
+      </div>
+      <div className="tr-data-value mt-4 break-words text-3xl text-[color:var(--tr-ivory)]">{value}</div>
+      <p className="mt-3 text-xs leading-5 text-[color:var(--tr-muted)]">{hint}</p>
+    </div>
+  );
+}
+
+function changeLabel(competitive: CompetitiveContext, copy: UsageCopy): string {
+  if (competitive.changePercent === null) return copy.competition.newActivity;
+  return `${competitive.changePercent > 0 ? "+" : ""}${competitive.changePercent}%`;
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {

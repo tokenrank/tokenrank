@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "TokenRank AI token leaderboard";
+export const alt = "TokenRank AI activity leaderboard";
 export const size = {
   width: 1200,
   height: 630,
@@ -84,7 +84,7 @@ export default function OpenGraphImage() {
 
               <div style={{ display: "flex", flexDirection: "column" }}>
                 <div style={{ color: "#ff5b35", fontSize: 18, fontWeight: 900, letterSpacing: 3 }}>
-                  AGGREGATE USAGE // PRIVATE CONTENT
+                  LOCAL AGGREGATE // PRIVATE CONTENT
                 </div>
                 <div
                   style={{
@@ -125,7 +125,7 @@ export default function OpenGraphImage() {
               <div style={{ color: "#858b80", fontSize: 15, fontWeight: 900, letterSpacing: 2 }}>RANK / 001</div>
               <div style={{ color: "#d6ff3f", fontSize: 132, fontWeight: 900, letterSpacing: -8, lineHeight: 0.8 }}>01</div>
               <div style={{ borderTop: "2px solid #343a33", color: "#f2f1e8", fontSize: 18, fontWeight: 800, lineHeight: 1.4, paddingTop: 18 }}>
-                Aggregate tokens. Fair ranking. No source code uploaded.
+                Activity signal. Server checked. Not a productivity score.
               </div>
             </div>
           </div>

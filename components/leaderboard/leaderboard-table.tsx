@@ -58,7 +58,7 @@ export function LeaderboardTable({
             </h2>
             <p className="mt-1 font-mono text-xs text-[color:var(--tr-muted)]">{copy.subtitle}</p>
           </div>
-          <p className="tr-data-label">Data feed / verified aggregate</p>
+          <p className="tr-data-label">{copy.dataFeed}</p>
         </header>
 
         <div className="grid gap-3 p-3 md:hidden">

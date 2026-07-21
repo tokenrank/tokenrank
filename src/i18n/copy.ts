@@ -66,11 +66,12 @@ const en = {
   home: {
     metaTitle: "AI Token Usage Leaderboard for Coding Agents | TokenRank",
     metaDescription:
-      "Compare aggregate AI token usage across Codex, Claude Code, Gemini, Qwen, and more. Join the public leaderboard without sharing prompts, code, or chats.",
+      "Compare locally collected aggregate AI token usage across Codex, Claude Code, Gemini, Qwen, and more. Prompts, code, and chats stay local.",
     hero: {
       eyebrow: "AI token leaderboard",
       title: "BURN TOKENS.\nASCEND RANKS.",
-      body: "Track the tokens you put to work across AI agents and see where you rank. Only aggregate usage is uploaded—never your prompts, code, or chats.",
+      body: "Automatically track aggregate token usage across Codex, Claude Code, Gemini, Qwen, and more. Your prompts, code, chats, filenames, and file contents stay local.",
+      signal: "An activity signal, not a productivity score.",
       primary: "Join the board",
       secondary: "View leaderboard",
     },
@@ -110,11 +111,33 @@ const en = {
       topTools: "Top tools",
       noTools: "-",
       tokenScore: "{board} tokens",
-      spendScore: "Spend",
+      spendScore: "Estimated spend",
+      dataFeed: "Local aggregate / server checked",
     },
     answer: {
       title: "WHAT IS TOKENRANK",
       body: "TokenRank is a public AI token usage leaderboard. It compares aggregate usage from supported coding agents and AI tools while keeping prompts, source code, chats, filenames, and file contents off the server.",
+    },
+    trust: {
+      eyebrow: "Trust boundary",
+      title: "Know what each number proves",
+      intro:
+        "Current rankings use collector-reported local aggregates. TokenRank checks structure, account ownership, totals, and duplicate rows; it does not verify provider bills.",
+      items: [
+        {
+          title: "X account linked",
+          body: "OAuth confirms control of the public X identity shown on the board.",
+        },
+        {
+          title: "Local aggregate",
+          body: "The collector reports totals by day, tool, and model. Local data can still be changed by its owner.",
+        },
+        {
+          title: "Server checked",
+          body: "The server validates fields, recomputes totals, checks upload ownership, and prevents duplicate device rows.",
+        },
+      ],
+      note: "Not Provider Verified · Estimated cost is not a bill · Activity is not productivity",
     },
     how: {
       eyebrow: "How it works",
@@ -140,11 +163,15 @@ const en = {
       items: [
         {
           question: "What does TokenRank measure?",
-          answer: "It measures aggregate input, output, cache, and total token usage reported by supported AI coding agents and tools.",
+          answer: "It measures aggregate input, output, cache, and total token activity reported by supported AI agents and tools. It does not measure skill, productivity, or work quality.",
         },
         {
           question: "Does TokenRank upload prompts or source code?",
           answer: "No. The collector excludes prompts, source code, chats, filenames, and file contents and uploads aggregate usage rows only.",
+        },
+        {
+          question: "Is leaderboard data provider verified?",
+          answer: "Not yet. Current data is collected or imported on the user's device and checked by the server for structure, ownership, totals, and duplicates. It is not verified against provider billing.",
         },
         {
           question: "Which AI tools can appear on the leaderboard?",
@@ -177,12 +204,12 @@ const en = {
     hero: {
       eyebrow: "Rules",
       title: "Measure usage. Protect the work.",
-      body: "TokenRank is a public leaderboard for aggregate AI activity. It is built for transparent comparison and sharing, not formal audit.",
+      body: "TokenRank is a public leaderboard for collector-reported aggregate AI activity. It is an activity signal for comparison and sharing—not a provider audit or productivity score.",
       cta: "Join the board",
     },
     privacy: {
       title: "Privacy boundary",
-      body: "TokenRank accepts aggregate rows only: identity, tokens, tools, models, dates, and estimated cost. Your code stays off the wire.",
+      body: "TokenRank accepts collector-reported aggregate rows only: identity, tokens, tools, models, dates, and estimated cost. Your code stays off the wire.",
     },
     cards: [
       {
@@ -207,7 +234,7 @@ const en = {
       },
       {
         title: "Suspicious rows can be removed",
-        body: "The server validates tools, dates, integers, and webhook ownership. Obviously fake records can be flagged, hidden, or removed.",
+        body: "The server validates tools, dates, integers, recomputed totals, webhook ownership, and duplicate keys. These checks do not turn local data into Provider Verified usage; suspicious records can be flagged, hidden, or removed.",
       },
       {
         title: "X sharing is user-controlled",
@@ -218,11 +245,27 @@ const en = {
   onboard: {
     metaTitle: "Join TokenRank",
     metaDescription:
-      "Use one flow to sign in with X, generate a private upload endpoint, install the collector, and detect the first upload.",
+      "Preview aggregate AI usage locally before signing in, then connect an X identity and start private collector sync.",
     hero: {
       eyebrow: "Onboarding",
-      title: "Connect once. Rank automatically.",
-      body: "Sign in, copy one command, and keep the page open. After the first upload lands, TokenRank sends you straight to your dashboard.",
+      title: "Preview first. Claim your rank.",
+      body: "See the aggregate activity found on this machine before creating an account. Nothing uploads until you choose to connect your public identity.",
+    },
+    preview: {
+      eyebrow: "Stage 00 / private preview",
+      title: "See your numbers before signing in",
+      body: "Run the official CLI preview locally. It scans supported aggregate usage and prints the payload shape without connecting an account or uploading anything.",
+      command: "npx --yes tokenrank preview",
+      copy: "Copy preview command",
+      copied: "Command copied",
+      privacy: "No account · No upload · Prompts and code stay local",
+      source: "View CLI source",
+    },
+    challenge: {
+      eyebrow: "Challenge received",
+      title: "@{handle} challenged your activity rank",
+      rankedBody: "They are #{rank} on the 7-day overall board. Preview your local aggregate, then connect to enter the same board.",
+      unrankedBody: "Preview your local aggregate, then connect to enter the 7-day overall board.",
     },
     signedIn: {
       title: "Signed in as {name}",
@@ -230,8 +273,9 @@ const en = {
       dashboard: "Dashboard",
     },
     signIn: {
-      title: "Confirm your public X identity",
-      body: "The board shows your X profile. Login confirms identity only; it does not upload code, prompts, chats, or files.",
+      title: "Claim your public rank with X",
+      body: "After previewing, connect the X identity shown on the board. Login confirms identity only; it does not upload code, prompts, chats, or files.",
+      statusLabel: "Sign-in status",
     },
     flowTitle: "Ranking flow",
     asideNote:
@@ -318,7 +362,7 @@ const en = {
       eyebrow: "Dashboard",
       title: "Sign in to see your record.",
       body: "Your dashboard is the private view of uploaded aggregate rows. Sign in and continue through onboarding if you have not joined yet.",
-      onboard: "Go to onboarding",
+      onboard: "Preview before joining",
     },
     missing: {
       title: "Account data is not ready",
@@ -343,6 +387,27 @@ const en = {
       mainClient: "Main client: {value}",
       mainTool: "Main tool: {value}",
       mainModel: "Main model: {value}",
+      trustLabel: "Local aggregate / server checked",
+      trustBody:
+        "Collector-reported activity. TokenRank validates the upload but does not verify it against provider billing.",
+      competition: {
+        eyebrow: "7-day competition",
+        title: "Rank context",
+        rank: "7-day rank",
+        unranked: "Not ranked",
+        topPercent: "Top {percent}% of {count}",
+        participants: "{count} ranked profiles",
+        streak: "Active streak",
+        streakValue: "{count} days",
+        change: "7-day change",
+        newActivity: "New activity",
+        noBaseline: "No prior 7-day baseline",
+        challenge: "Beat my rank",
+        shareRanked:
+          "I'm #{rank} on TokenRank's 7-day AI activity board, with a {streak}-day streak and {change} vs the prior week. Beat my rank: @{handle}",
+        shareUnranked:
+          "My aggregate AI activity is now on TokenRank, with a {streak}-day streak. Join the 7-day board and beat my rank: @{handle}",
+      },
       stats: {
         total: "Total tokens",
         today: "Today · UTC",
@@ -458,8 +523,8 @@ const en = {
     },
     guard: {
       missingDatabase:
-        "DATABASE_URL is not configured locally. X callback needs the database to create the account session.",
-      missingX: "AUTH_X_ID / AUTH_X_SECRET are not configured locally, so X redirect is disabled.",
+        "This local preview is not connected to the account service, so X sign-in stays off here. The private CLI preview above still works without an account.",
+      missingX: "X sign-in is unavailable in this preview because the X login service is not connected.",
       hostMismatch:
         "This page is {currentHost}, but the X OAuth callback is bound to {canonicalHost}. Start login from the same host so the browser returns the OAuth state cookie.",
     },
@@ -540,11 +605,12 @@ const zh = {
   home: {
     metaTitle: "AI Token 用量排行榜：Codex、Claude Code 等 | TokenRank",
     metaDescription:
-      "比较 Codex、Claude Code、Gemini、Qwen 等 AI 工具的聚合 Token 用量；公开上榜，但不上传 prompt、代码或对话。",
+      "比较 Codex、Claude Code、Gemini、Qwen 等 AI 工具在本机采集的聚合 Token 用量；prompt、代码和对话留在本机。",
     hero: {
       eyebrow: "AI Token 排行榜",
       title: "TOKEN 燃烧\nRANKING 狂飙",
-      body: "汇总你在各类 Agent 与 AI 工具中的 Token 用量，与真正把 AI 用起来的人同榜竞技。只上传聚合用量，不上传 prompt、代码或对话。",
+      body: "自动汇总 Codex、Claude Code、Gemini、Qwen 等工具的 Token 用量。prompt、代码、对话、文件名和文件内容都留在本机。",
+      signal: "这是 AI 活动信号，不是生产力评分。",
       primary: "开始上榜",
       secondary: "查看榜单",
     },
@@ -584,11 +650,32 @@ const zh = {
       topTools: "主要工具",
       noTools: "-",
       tokenScore: "{board} Token",
-      spendScore: "消耗金额",
+      spendScore: "预估金额",
+      dataFeed: "本地聚合 / 服务端校验",
     },
     answer: {
       title: "TOKENRANK 是什么",
       body: "TokenRank 是公开的 AI Token 用量排行榜。它比较各类 Coding Agent 与 AI 工具的聚合用量，同时确保 prompt、源码、对话、文件名和文件内容不会上传到服务器。",
+    },
+    trust: {
+      eyebrow: "可信度边界",
+      title: "先看懂每个数字能证明什么",
+      intro: "当前排名来自采集器上报的本地聚合数据。TokenRank 校验结构、账号归属、总量和重复行，但不会核对 Provider 账单。",
+      items: [
+        {
+          title: "X 账号已连接",
+          body: "OAuth 确认用户控制榜单展示的公开 X 身份。",
+        },
+        {
+          title: "本地聚合",
+          body: "采集器按日期、工具和模型上报总量；本机数据仍可能被其所有者修改。",
+        },
+        {
+          title: "服务端校验",
+          body: "服务端校验字段、重新计算总量、确认上传归属，并避免设备重复行。",
+        },
+      ],
+      note: "不是 Provider Verified · 预估金额不是账单 · 活动不等于生产力",
     },
     how: {
       eyebrow: "运行方式",
@@ -614,11 +701,15 @@ const zh = {
       items: [
         {
           question: "TokenRank 统计什么？",
-          answer: "它统计支持的 AI Coding Agent 与工具上报的聚合 input、output、cache 和 total token 用量。",
+          answer: "它统计支持的 AI Agent 与工具上报的聚合 input、output、cache 和 total token 活动，不衡量能力、生产力或工作质量。",
         },
         {
           question: "TokenRank 会上传 prompt 或源码吗？",
           answer: "不会。采集器排除 prompt、源码、对话、文件名和文件内容，只上传聚合用量行。",
+        },
+        {
+          question: "榜单数据经过 Provider 验证吗？",
+          answer: "目前没有。数据由用户设备本地采集或导入，服务端会校验结构、归属、总量和重复行，但不会与 Provider 账单核对。",
         },
         {
           question: "哪些 AI 工具可以进入排行榜？",
@@ -651,12 +742,12 @@ const zh = {
     hero: {
       eyebrow: "规则",
       title: "记录用量，不暴露作品",
-      body: "TokenRank 是 AI 使用活动的公开排行榜，适合透明对比和分享，不是严肃审计工具。",
+      body: "TokenRank 是采集器上报的 AI 聚合活动排行榜，用于对比和分享；它不是 Provider 审计，也不是生产力评分。",
       cta: "开始上榜",
     },
     privacy: {
       title: "隐私边界",
-      body: "TokenRank 只接收聚合行：身份、Token、工具、模型、日期和预估金额。你的代码不会离开本机。",
+      body: "TokenRank 只接收采集器上报的聚合行：身份、Token、工具、模型、日期和预估金额。你的代码不会离开本机。",
     },
     cards: [
       {
@@ -681,7 +772,7 @@ const zh = {
       },
       {
         title: "异常数据可移除",
-        body: "服务端会校验工具、日期、整数和 webhook 归属；明显虚假的记录可以被标记、隐藏或移除。",
+        body: "服务端会校验工具、日期、整数、重算总量、webhook 归属和重复键。这些校验不会把本地数据变成 Provider Verified；可疑记录仍可被标记、隐藏或移除。",
       },
       {
         title: "X 分享由用户确认",
@@ -692,11 +783,27 @@ const zh = {
   onboard: {
     metaTitle: "开始上榜",
     metaDescription:
-      "在一个流程里完成 X 登录、私有上传地址生成、采集器安装和首次上传检测。",
+      "登录前先在本机预览 AI 聚合用量，再连接 X 身份并开启私有采集器同步。",
     hero: {
       eyebrow: "上榜流程",
-      title: "连接一次，自动上榜",
-      body: "登录、复制一行命令，然后保持页面打开。首次上传到达后，TokenRank 会自动进入你的面板。",
+      title: "先看数据，再认领排名",
+      body: "创建账号前，先看看这台设备能找到哪些聚合活动。只有你主动连接公开身份后，数据才会上传。",
+    },
+    preview: {
+      eyebrow: "阶段 00 / 私密预览",
+      title: "登录前先查看本机数据",
+      body: "运行官方 CLI 的本地预览。它只扫描支持的聚合用量并打印待上传结构，不连接账号，也不会上传。",
+      command: "npx --yes tokenrank preview",
+      copy: "复制预览命令",
+      copied: "命令已复制",
+      privacy: "无需账号 · 不会上传 · prompt 与代码留在本机",
+      source: "查看 CLI 源码",
+    },
+    challenge: {
+      eyebrow: "收到挑战",
+      title: "@{handle} 邀你挑战 AI 活动排名",
+      rankedBody: "TA 当前位列 7 天总榜第 #{rank}。先预览你的本地聚合数据，再连接身份进入同一张榜。",
+      unrankedBody: "先预览你的本地聚合数据，再连接身份进入 7 天总榜。",
     },
     signedIn: {
       title: "已登录：{name}",
@@ -704,8 +811,9 @@ const zh = {
       dashboard: "面板",
     },
     signIn: {
-      title: "先确认你的公开 X 身份",
-      body: "排行榜展示 X 资料。登录只确认身份，不上传代码、prompt、对话或文件。",
+      title: "用 X 认领你的公开排名",
+      body: "预览后，连接排行榜展示的 X 身份。登录只确认身份，不上传代码、prompt、对话或文件。",
+      statusLabel: "登录状态",
     },
     flowTitle: "上榜流程",
     asideNote:
@@ -791,7 +899,7 @@ const zh = {
       eyebrow: "面板",
       title: "登录后查看你的战绩",
       body: "面板是你的私有上传视图。还没上榜的话，登录后继续走同一套上榜流程。",
-      onboard: "去上榜流程",
+      onboard: "上榜前先预览",
     },
     missing: {
       title: "账号数据还没准备好",
@@ -815,6 +923,24 @@ const zh = {
       mainClient: "主要客户端：{value}",
       mainTool: "主要工具：{value}",
       mainModel: "主要模型：{value}",
+      trustLabel: "本地聚合 / 服务端校验",
+      trustBody: "采集器上报的活动数据。TokenRank 会校验上传，但不会与 Provider 账单核对。",
+      competition: {
+        eyebrow: "7 天竞技",
+        title: "排名上下文",
+        rank: "7 天排名",
+        unranked: "本期未上榜",
+        topPercent: "共 {count} 人，位于 Top {percent}%",
+        participants: "{count} 个上榜账号",
+        streak: "连续活跃",
+        streakValue: "{count} 天",
+        change: "近 7 天变化",
+        newActivity: "新增活动",
+        noBaseline: "前 7 天暂无基线",
+        challenge: "挑战我的排名",
+        shareRanked: "我在 TokenRank 的 7 天 AI 活动榜排名第 #{rank}，已连续活跃 {streak} 天，较前 7 天 {change}。来挑战我的排名：@{handle}",
+        shareUnranked: "我的 AI 聚合活动已加入 TokenRank，连续活跃 {streak} 天。进入 7 天榜来挑战我：@{handle}",
+      },
       stats: {
         total: "累计 Token",
         today: "今日 Token · UTC",
@@ -929,8 +1055,8 @@ const zh = {
     },
     guard: {
       missingDatabase:
-        "本地还没有配置 DATABASE_URL。X 登录回调需要数据库创建账号和会话，暂时不能完成登录。",
-      missingX: "本地还没有配置 AUTH_X_ID / AUTH_X_SECRET，暂时不能跳转到 X。",
+        "当前本地预览没有连接账号服务，因此这里暂不开放 X 登录；上方的私密 CLI 预览仍可直接使用，无需账号。",
+      missingX: "当前预览没有连接 X 登录服务，因此暂时不能跳转到 X。",
       hostMismatch:
         "当前页面是 {currentHost}，但 X OAuth callback 绑定在 {canonicalHost}。请从同一个地址发起登录，否则浏览器不会带回 OAuth state cookie。",
     },

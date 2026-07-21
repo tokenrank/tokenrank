@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Trophy } from "lucide-react";
+import { ArrowRight, BadgeCheck, HardDrive, ShieldCheck, Trophy } from "lucide-react";
 
 import { HomeAnswerStrip } from "@/components/home/home-answer-strip";
 import { boardLabel, BoardTabs } from "@/components/leaderboard/board-tabs";
@@ -126,6 +126,9 @@ export default async function Home({
                 <p className="tr-body mt-7 max-w-2xl text-base sm:text-lg">
                   {copy.home.hero.body}
                 </p>
+                <p className="mt-4 border-l-2 border-[color:var(--tr-gold)] pl-3 font-mono text-xs font-black uppercase tracking-[0.08em] text-[color:var(--tr-ivory-soft)]">
+                  {copy.home.hero.signal}
+                </p>
               </div>
 
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -165,6 +168,48 @@ export default async function Home({
         </div>
 
         <HomeAnswerStrip copy={copy.home.answer} />
+
+        <section
+          aria-labelledby="trust-boundary-title"
+          className="border-x border-b border-[color:var(--tr-line)] bg-[color:var(--tr-surface)]"
+        >
+          <div className="grid gap-4 border-b border-[color:var(--tr-line)] p-5 sm:p-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:items-end">
+            <div>
+              <p className="tr-data-label">{copy.home.trust.eyebrow}</p>
+              <h2
+                id="trust-boundary-title"
+                className="mt-2 font-display text-3xl font-bold uppercase tracking-[-0.03em] text-[color:var(--tr-ivory)] sm:text-4xl"
+              >
+                {copy.home.trust.title}
+              </h2>
+            </div>
+            <p className="text-sm leading-7 text-[color:var(--tr-muted)]">
+              {copy.home.trust.intro}
+            </p>
+          </div>
+          <div className="grid gap-px bg-[color:var(--tr-line)] lg:grid-cols-3">
+            {copy.home.trust.items.map((item, index) => {
+              const Icon = [BadgeCheck, HardDrive, ShieldCheck][index] ?? ShieldCheck;
+
+              return (
+                <article key={item.title} className="bg-[#0a0d0a] p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center bg-[color:var(--tr-gold)] text-[#080b07]">
+                      <Icon className="size-4" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-xl font-bold uppercase tracking-[-0.02em] text-[color:var(--tr-ivory)]">
+                      {item.title}
+                    </h3>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[color:var(--tr-muted)]">{item.body}</p>
+                </article>
+              );
+            })}
+          </div>
+          <p className="border-t border-[color:var(--tr-line)] bg-[color:var(--tr-orange-soft)]/20 px-5 py-3 font-mono text-[0.65rem] font-black uppercase tracking-[0.08em] text-[color:var(--tr-orange)] sm:px-6">
+            {copy.home.trust.note}
+          </p>
+        </section>
 
         <div className="grid border-x border-b border-[color:var(--tr-line)] bg-[#0a0d0a] sm:grid-cols-3">
           <ScoreDatum label={copy.home.stats.leader} value={leaderScore} />

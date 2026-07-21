@@ -328,6 +328,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe("sanitizePublicUser", () => {
@@ -400,6 +401,36 @@ describe("getUsageRows", () => {
       handle: "unknown",
       name: "Unknown",
     });
+  });
+
+  it("excludes reserved demo users from the public data path by default", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T19:15:00.000Z"));
+    vi.stubEnv("TOKENRANK_SHOW_DEMO_DATA", "");
+
+    mockUsageRowsSelect(
+      ["demo_alice", "user-1"].map((userId) => ({
+        userId,
+        handle: userId,
+        name: userId,
+        avatarUrl: null,
+        deviceId: `device-${userId}`,
+        date: "2026-06-23",
+        tool: "codex",
+        model: "gpt-5.5",
+        inputTokens: 10,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalTokens: 10,
+        estimatedCostMicros: 1,
+        blocked: false,
+      })),
+    );
+
+    await expect(getUsageRows("today")).resolves.toEqual([
+      expect.objectContaining({ userId: "user-1" }),
+    ]);
   });
 });
 
@@ -491,6 +522,21 @@ describe("getProfile", () => {
     expect(usageSql.params).toEqual(expect.arrayContaining(["user-1"]));
     expect(usageSql.params.filter((param) => param === false)).toHaveLength(2);
     expect(usageSql.columns.filter((column) => column === "blocked")).toHaveLength(2);
+  });
+
+  it("does not publish a reserved demo profile by default", async () => {
+    vi.stubEnv("TOKENRANK_SHOW_DEMO_DATA", "");
+    const userQuery = {
+      from: vi.fn(),
+      where: vi.fn(),
+      limit: vi.fn().mockResolvedValue([{ id: "demo_alice", profilePublic: true }]),
+    };
+    userQuery.from.mockReturnValue(userQuery);
+    userQuery.where.mockReturnValue(userQuery);
+    mockDb.select.mockReturnValue(userQuery);
+
+    await expect(getProfile("alice_ai")).resolves.toBeNull();
+    expect(mockDb.select).toHaveBeenCalledTimes(1);
   });
 });
 

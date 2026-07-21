@@ -18,6 +18,7 @@ import { hashSecret } from "./security/tokens";
 import { canonicalTotalTokens } from "./token-metrics";
 import type { BoardKey, RangeKey, TokenUsageEntry, UsageRow } from "./types";
 import type { UploadSyncOptions } from "./collector/upload";
+import { isDemoUserId, shouldExposeDemoData } from "./demo-data";
 
 type UserRow = typeof users.$inferSelect;
 type PgBatchItem = BatchItem<"pg">;
@@ -280,7 +281,11 @@ export async function getUsageRows(range: RangeKey): Promise<UsageRow[]> {
       ),
     );
 
-  return rows.map((row) => ({
+  const publicRows = shouldExposeDemoData()
+    ? rows
+    : rows.filter((row) => !isDemoUserId(row.userId));
+
+  return publicRows.map((row) => ({
     ...row,
     handle: displayHandle(row.handle),
     name: displayName(row.name, row.handle),
@@ -296,6 +301,7 @@ export async function getPublicProfileSitemapEntries() {
   const db = await getDb();
   const rows = await db
     .select({
+      id: users.id,
       handle: users.xHandle,
       updatedAt: users.updatedAt,
     })
@@ -304,6 +310,10 @@ export async function getPublicProfileSitemapEntries() {
     .orderBy(desc(users.updatedAt));
 
   return rows.flatMap((row) => {
+    if (!shouldExposeDemoData() && isDemoUserId(row.id)) {
+      return [];
+    }
+
     const handle = row.handle?.trim();
     return handle ? [{ handle, updatedAt: row.updatedAt }] : [];
   });
@@ -314,7 +324,11 @@ export async function getProfile(handle: string) {
   const normalizedHandle = handle.replace(/^@+/, "").trim().toLowerCase();
   const [user] = await db.select().from(users).where(eq(users.xHandle, normalizedHandle)).limit(1);
 
-  if (!user || !user.profilePublic) {
+  if (
+    !user ||
+    !user.profilePublic ||
+    (!shouldExposeDemoData() && isDemoUserId(user.id))
+  ) {
     return null;
   }
 

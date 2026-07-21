@@ -1,6 +1,8 @@
 # TokenRank
 
-TokenRank 是面向真正把 AI 用进工作的人的公开 Token 使用排行榜，以公开 X 身份展示 Agent 与 AI 工具的聚合 Token 用量。默认英文界面，支持中文切换；品牌视觉采用“AI Token 竞技场 × 工业数据终端”系统，以骨黑、信号绿和警示橙建立强排名感。它只展示按日期、工具和模型聚合后的 Token 统计，不上传 prompt、源码、聊天内容、文件名或文件内容。
+TokenRank 是公开的 AI Token 使用排行榜，以公开 X 身份展示 Agent 与 AI 工具在本机采集的聚合 Token 用量。品牌主口号保持 `BURN TOKENS. ASCEND RANKS.` / `TOKEN 燃烧。RANKING 狂飙。`；榜单提供可比较的活动信号，不把 Token 用量解释为能力、生产力或工作质量。默认英文界面，支持中文切换；品牌视觉采用“AI Token 竞技场 × 工业数据终端”系统，以骨黑、信号绿和警示橙建立强排名感。它只展示按日期、工具和模型聚合后的统计，不上传 prompt、源码、聊天内容、文件名或文件内容。
+
+当前公开数据属于 `Local aggregate / server checked`：采集器从用户设备上报聚合行，服务端校验字段、账号归属、重算总量并避免重复键，但不会与 Provider 账单核对，因此不应标记为 `Provider Verified`；页面中的金额也是估算值，不是账单。
 
 ## 本地开发
 
@@ -29,6 +31,8 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 没有 `DATABASE_URL` 时，首页会降级为空榜单，方便本地和 e2e 渲染；登录、上传、dashboard 和真实榜单数据仍然需要数据库。
 
+内置 `demo_` 用户只用于显式的本地视觉开发，公共榜单、公开个人页和 sitemap 默认都会排除。需要写入本地测试库时必须在当前非生产 shell 显式设置 `TOKENRANK_ALLOW_DEMO_SEED=1`；需要让这些账号出现在本地页面时再设置 `TOKENRANK_SHOW_DEMO_DATA=1`。生产环境和指向 `tokenrank.org` 的配置都会拒绝 demo seed。
+
 ## 品牌与国际化
 
 - 默认语言为英文，导航里的语言切换会写入 `tokenrank_locale` cookie。
@@ -42,9 +46,9 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 
 - `/`：公开竞技榜单，包含实时榜首、分享区、总榜、金额榜、全工具榜和时间窗口。
 - `/rules`：隐私边界、公平规则和计分说明，以公开协议形式呈现。
-- `/onboard`：登录 X、生成上传地址、安装本地 collector、检测首次上传的四阶段上榜流程。
+- `/onboard`：登录前先用 `npx --yes tokenrank preview` 查看本机聚合数据，再登录 X、生成上传地址、安装本地 collector 并检测首次上传。
 - `/dashboard`：登录用户的私有战绩面板，展示热力图、趋势、客户端/工具/模型分布和隐私设置。
-- `/u/[handle]`：公开个人战绩，包括统计、热力图、趋势、分布和带粘性表头的明细数据窗。
+- `/u/[handle]`：公开个人战绩，包括 7 天排名、Top 百分比、连续活跃、周环比、挑战链接、统计、热力图、趋势、分布和明细数据窗。
 - `/robots.txt`、`/sitemap.xml`、`/llms.txt`、`/manifest.webmanifest`：搜索引擎、AI crawler 与可安装 Web App 的机器可读入口。
 - `/api/boards`：可用榜单和工具 key。
 - `/api/leaderboard`：公开榜单数据。
@@ -57,6 +61,12 @@ http://127.0.0.1:3000/api/auth/callback/twitter
 CLI 已拆分为独立项目维护：[tokenrank/tokenrank-cli](https://github.com/tokenrank/tokenrank-cli)。本仓库只负责用户身份、webhook、上传 API、服务端校验、排行榜，以及把带用户 token 的安装入口转交给 CLI 最新 release。
 
 本地 CLI 只采集聚合后的 Token 行。它不会上传 prompt、代码或对话内容。
+
+无需登录或连接账号即可先预览本机数据；该命令不会上传：
+
+```bash
+npx --yes tokenrank preview
+```
 
 交互式终端采用与网站一致的骨黑、信号绿和警示橙 Scoreboard Panels，不再使用大型 Block Art。Windows、macOS 和 Linux 的彩色 TTY 共用同一套视觉；40–71 列窄终端会自动切换为紧凑布局，`NO_COLOR=1`、非 TTY、JSON 和后台模式保持纯文本或结构化输出。
 

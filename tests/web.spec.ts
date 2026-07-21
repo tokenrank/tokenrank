@@ -4,15 +4,18 @@ test("leaderboard renders the public board controls", async ({ page }) => {
   await page.context().clearCookies();
   await page.goto("/");
 
-  await expect(page).toHaveTitle("TokenRank - AI token leaderboard");
+  await expect(page).toHaveTitle("AI Token Usage Leaderboard for Coding Agents | TokenRank");
   await expect(
     page.getByRole("heading", { name: "BURN TOKENS. ASCEND RANKS." }),
   ).toBeVisible();
   await expect(
     page.getByText(
-      "Track the tokens you put to work across AI agents and see where you rank. Only aggregate usage is uploaded—never your prompts, code, or chats.",
+      "Automatically track aggregate token usage across Codex, Claude Code, Gemini, Qwen, and more. Your prompts, code, chats, filenames, and file contents stay local.",
     ),
   ).toBeVisible();
+  await expect(page.getByText("An activity signal, not a productivity score.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Know what each number proves" })).toBeVisible();
+  await expect(page.getByText("Not Provider Verified", { exact: false })).toBeVisible();
   await expect(page.getByRole("link", { name: "Overall" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Spend" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Qwen" })).toBeVisible();
@@ -31,13 +34,14 @@ test("language switch renders the Chinese brand copy", async ({ page }) => {
   await page.getByRole("button", { name: "中文" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "TOKEN 燃烧。 RANKING 狂飙。" }),
+    page.getByRole("heading", { name: "TOKEN 燃烧 RANKING 狂飙" }),
   ).toBeVisible();
   await expect(
     page.getByText(
-      "汇总你在各类 Agent 与 AI 工具中的 Token 用量，与真正把 AI 用起来的人同榜竞技。只上传聚合用量，不上传 prompt、代码或对话。",
+      "自动汇总 Codex、Claude Code、Gemini、Qwen 等工具的 Token 用量。prompt、代码、对话、文件名和文件内容都留在本机。",
     ),
   ).toBeVisible();
+  await expect(page.getByText("这是 AI 活动信号，不是生产力评分。")).toBeVisible();
   await expect(page.getByRole("link", { name: "总榜" })).toBeVisible();
   await expect(page.getByText("分享榜单")).toBeVisible();
 });
@@ -56,7 +60,9 @@ test("canonical onboarding and dashboard routes replace the old journey names", 
   await page.goto("/onboard");
 
   await expect(page).toHaveURL(/\/onboard$/);
-  await expect(page.getByRole("heading", { name: "Connect once. Rank automatically." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Preview first. Claim your rank." })).toBeVisible();
+  await expect(page.getByDisplayValue("npx --yes tokenrank preview")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy preview command" })).toBeVisible();
 
   const connectResponse = await page.goto("/connect");
   expect(connectResponse?.status()).toBe(404);

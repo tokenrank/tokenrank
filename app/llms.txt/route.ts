@@ -8,7 +8,7 @@ export function GET() {
     "",
     `> ${siteDescription}`,
     "",
-    "TokenRank is a public leaderboard for aggregate token usage across supported AI agents and tools. It shows who is putting AI to work without exposing prompts, source code, chats, filenames, or file contents.",
+    "TokenRank is a public leaderboard for locally collected aggregate token activity across supported AI agents and tools. It provides an activity signal, not a productivity score, without exposing prompts, source code, chats, filenames, or file contents.",
     "",
     "## Core Pages",
     "",
@@ -16,7 +16,7 @@ export function GET() {
     `- [How TokenRank works](${absoluteUrl("/#how-it-works")}) - Three-step explanation of identity, local aggregation, and ranking.`,
     `- [FAQ](${absoluteUrl("/#faq")}) - Direct answers about measurement, privacy, supported tools, deduplication, and joining.`,
     `- [Rules](${absoluteUrl("/rules")}) - Privacy, fair-play, and scoring rules.`,
-    `- [Onboarding](${absoluteUrl("/onboard")}) - Login, collector setup, first upload, and dashboard handoff flow.`,
+    `- [Onboarding](${absoluteUrl("/onboard")}) - Local preview before login, identity claim, collector setup, first upload, and dashboard handoff flow.`,
     "",
     "## Machine-Readable Endpoints",
     "",
@@ -26,6 +26,7 @@ export function GET() {
     "## Privacy Boundary",
     "",
     "The collector sends only aggregate rows: date, tool, model, input tokens, output tokens, cache read tokens, cache write tokens, and totals. Raw prompts, code, conversations, filenames, and file contents are intentionally excluded.",
+    "Current public rows are collector-reported local aggregates. The server validates structure, account ownership, totals, and duplicate keys, but does not verify the data against provider bills. Estimated cost is not a bill.",
     "",
   ].join("\n");
 

@@ -11,6 +11,14 @@ const originalNavigatorPlatform = window.navigator.platform;
 const originalNavigatorUserAgent = window.navigator.userAgent;
 const originalNavigatorClipboard = window.navigator.clipboard;
 const originalScrollIntoView = Element.prototype.scrollIntoView;
+const auth = vi.hoisted(() =>
+  vi.fn(async () => ({
+    user: {
+      id: "user-1",
+      name: "TokenRank User",
+    },
+  })),
+);
 const getXSignInGuard = vi.hoisted(() => vi.fn(async () => ({})));
 const getUserUploadStatus = vi.hoisted(() =>
   vi.fn<
@@ -26,12 +34,7 @@ const getUserUploadStatus = vi.hoisted(() =>
 const routerReplace = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/auth/config", () => ({
-  auth: vi.fn(async () => ({
-    user: {
-      id: "user-1",
-      name: "TokenRank User",
-    },
-  })),
+  auth,
 }));
 
 vi.mock("@/src/auth/sign-in-guard", () => ({
@@ -472,6 +475,37 @@ describe("collector sync interval copy", () => {
     expect(getUserUploadStatus).toHaveBeenCalledWith("user-1");
     expect(container.textContent).toContain("TokenRank User");
     expect(container.textContent).toContain("Generate upload URL");
+  });
+
+  it("renders missing local account services as a contained status instead of an error", async () => {
+    auth.mockResolvedValueOnce(null);
+    getXSignInGuard.mockResolvedValueOnce({
+      disabledReason: defaultCopy.auth.guard.missingDatabase,
+    });
+
+    const { container, getByRole, getByTestId } = render(await OnboardPage());
+    const identityCard = getByTestId("identity-claim-card");
+
+    expect(getByRole("status").textContent).toContain("Sign-in status");
+    expect(identityCard.textContent).toContain("This local preview is not connected to the account service");
+    expect(container.textContent).not.toContain("DATABASE_URL");
+    expect(identityCard.querySelector("button")?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("keeps signed-out dashboard actions balanced when local X login is available", async () => {
+    auth.mockResolvedValueOnce(null);
+    getXSignInGuard.mockResolvedValueOnce({});
+
+    const { getByRole, getByTestId, queryByRole } = render(await DashboardPage());
+    const card = getByTestId("signed-out-dashboard-card");
+    const actions = getByTestId("signed-out-dashboard-actions");
+    const onboardingLink = getByRole("link", { name: "Preview before joining" });
+
+    expect(card.querySelector("button")?.hasAttribute("disabled")).toBe(false);
+    expect(actions.className).toContain("sm:grid-cols-2");
+    expect(actions.className).toContain("xl:grid-cols-1");
+    expect(onboardingLink.getAttribute("href")).toBe("/onboard");
+    expect(queryByRole("status")).toBeNull();
   });
 
   it("does not link sign out to the Auth.js confirmation page", async () => {
